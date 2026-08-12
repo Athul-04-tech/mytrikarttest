@@ -1,0 +1,330 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-heading: 'Outfit', 'Plus Jakarta Sans', system-ui, sans-serif;
+
+  --color-primary: #0F3D2E;
+  --color-primary-hover: #155440;
+  --color-primary-light: #1E6B52;
+  --color-primary-subtle: #E8F2EE;
+  
+  --color-accent: #D4AF37;
+  --color-accent-hover: #E3BE46;
+  --color-accent-light: #FCF7E8;
+  --color-accent-gold-dark: #B59325;
+
+  --color-cream: #FBF8F1;
+  --color-surface: #FFFFFF;
+  --color-surface-soft: #F4EFE6;
+
+  --color-urgency: #C0392B;
+  --color-urgency-hover: #D94435;
+  --color-urgency-light: #FDEDEC;
+
+  --color-sage: #5C6B63;
+  --color-sage-dark: #37433D;
+  --color-sage-light: #87988F;
+  --color-sage-border: #D8E0DC;
+  --color-sage-bg: #F0F4F2;
+}
+
+:root {
+  /* Color Values */
+  --color-primary-val: #0F3D2E;
+  --color-accent-val: #D4AF37;
+  --color-bg-val: #FBF8F1;
+  --color-highlight-val: #C0392B;
+  --color-sage-val: #5C6B63;
+
+  /* Global Animation & Motion Standard Tokens (Optimized for instant responsiveness) */
+  --ease-premium: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration-micro: 120ms;
+  --duration-panel: 160ms;
+  --duration-page: 180ms;
+}
+
+html {
+  scroll-behavior: smooth;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--color-bg-val);
+  color: #1A2420;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* Base custom scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F4EFE6;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #D8E0DC;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #5C6B63;
+}
+
+/* Focus Ring Customization */
+*:focus-visible {
+  outline: 2px solid var(--color-accent-val);
+  outline-offset: 2px;
+}
+
+/* Glassmorphism panel utility */
+.glass-panel {
+  background: rgba(251, 248, 241, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(212, 175, 55, 0.2);
+}
+
+/* =========================================================================
+   GLOBAL MICRO-INTERACTION STANDARD UTILITIES
+   ========================================================================= */
+
+/* 1. Interactive Buttons */
+.btn-interactive {
+  transition: transform var(--duration-micro) var(--ease-premium), 
+              box-shadow var(--duration-micro) var(--ease-premium),
+              background-color var(--duration-micro) var(--ease-premium),
+              border-color var(--duration-micro) var(--ease-premium),
+              color var(--duration-micro) var(--ease-premium);
+  will-change: transform;
+}
+
+.btn-interactive:hover {
+  transform: translateY(-1px) scale(1.02);
+}
+
+.btn-interactive:active {
+  transform: translateY(0) scale(0.97);
+  transition-duration: 80ms;
+}
+
+/* 2. Interactive Icons */
+.icon-interactive {
+  transition: transform var(--duration-micro) var(--ease-premium),
+              color var(--duration-micro) var(--ease-premium),
+              background-color var(--duration-micro) var(--ease-premium);
+  will-change: transform;
+}
+
+.icon-interactive:hover {
+  transform: scale(1.12);
+}
+
+.icon-interactive:active {
+  transform: scale(0.92);
+  transition-duration: 80ms;
+}
+
+/* 3. Interactive Product / Content Cards */
+.card-interactive {
+  transition: transform var(--duration-panel) var(--ease-premium),
+              box-shadow var(--duration-panel) var(--ease-premium),
+              border-color var(--duration-panel) var(--ease-premium);
+  will-change: transform, box-shadow;
+}
+
+.card-interactive:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 24px -6px rgba(15, 61, 46, 0.08), 0 4px 8px -2px rgba(15, 61, 46, 0.04);
+}
+
+.card-interactive:active {
+  transform: translateY(-1px) scale(0.995);
+  box-shadow: 0 4px 8px -2px rgba(15, 61, 46, 0.06);
+}
+
+/* Image Zoom within Card */
+.card-img-zoom {
+  transition: transform 400ms var(--ease-premium);
+  will-change: transform;
+}
+
+.card-interactive:hover .card-img-zoom {
+  transform: scale(1.04);
+}
+
+/* 4. Interactive Links & Nav Items */
+.link-interactive {
+  position: relative;
+  transition: color var(--duration-micro) var(--ease-premium);
+}
+
+.link-interactive::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background-color: var(--color-accent-val);
+  transition: width var(--duration-panel) var(--ease-premium);
+  border-radius: 1px;
+}
+
+.link-interactive:hover::after {
+  width: 100%;
+}
+
+/* 5. Interactive Chips & Badges */
+.chip-interactive {
+  transition: transform var(--duration-micro) var(--ease-premium),
+              background-color var(--duration-micro) var(--ease-premium),
+              border-color var(--duration-micro) var(--ease-premium),
+              box-shadow var(--duration-micro) var(--ease-premium);
+  will-change: transform;
+}
+
+.chip-interactive:hover {
+  transform: translateY(-1px) scale(1.03);
+}
+
+.chip-interactive:active {
+  transform: scale(0.96);
+}
+
+/* 6. Form Fields Micro-interaction */
+.input-interactive {
+  transition: border-color var(--duration-micro) var(--ease-premium),
+              box-shadow var(--duration-micro) var(--ease-premium),
+              background-color var(--duration-micro) var(--ease-premium);
+}
+
+.input-interactive:hover {
+  border-color: #A2B2A9;
+}
+
+.input-interactive:focus {
+  border-color: var(--color-accent-val);
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.18);
+  background-color: #FFFFFF;
+}
+
+/* 7. Avatars & Circular Badges */
+.avatar-interactive {
+  transition: transform var(--duration-micro) var(--ease-spring),
+              box-shadow var(--duration-micro) var(--ease-premium);
+  will-change: transform;
+}
+
+.avatar-interactive:hover {
+  transform: scale(1.08);
+  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
+}
+
+.avatar-interactive:active {
+  transform: scale(0.95);
+}
+
+/* =========================================================================
+   KEYFRAME ANIMATIONS
+   ========================================================================= */
+
+@keyframes pulseGoldGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(212, 175, 55, 0);
+  }
+}
+
+.animate-gold-glow {
+  animation: pulseGoldGlow 2s infinite var(--ease-premium);
+}
+
+@keyframes badgePop {
+  0% { transform: scale(0.8); }
+  60% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
+.animate-badge-pop {
+  animation: badgePop var(--duration-panel) var(--ease-spring);
+}
+
+@keyframes slideDownFade {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideUpMobile {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes fadeInReveal {
+  from { opacity: 0.85; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-dropdown {
+  animation: slideDownFade var(--duration-panel) var(--ease-premium) forwards;
+  will-change: transform, opacity;
+}
+
+.animate-bottom-sheet {
+  animation: slideUpMobile var(--duration-panel) var(--ease-premium) forwards;
+  will-change: transform;
+}
+
+.animate-reveal {
+  animation: fadeInReveal var(--duration-page) var(--ease-premium) forwards;
+  will-change: transform, opacity;
+}
+
+/* Scroll reveal initial state */
+.reveal-init {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity var(--duration-page) var(--ease-premium), transform var(--duration-page) var(--ease-premium);
+}
+
+.reveal-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Global Prefers-Reduced-Motion Fallbacks */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .btn-interactive:hover,
+  .btn-interactive:active,
+  .card-interactive:hover,
+  .card-interactive:active,
+  .icon-interactive:hover,
+  .icon-interactive:active,
+  .chip-interactive:hover,
+  .chip-interactive:active,
+  .avatar-interactive:hover,
+  .avatar-interactive:active {
+    transform: none !important;
+  }
+}
