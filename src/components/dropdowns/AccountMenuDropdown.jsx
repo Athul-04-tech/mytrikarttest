@@ -18,6 +18,7 @@ import {
   LogOut 
 } from 'lucide-react';
 import { LOGIN_MENU_ITEMS } from '../../data/mockData';
+import { useAuth } from '../../context/AuthContext';
 
 const ICON_MAP = {
   UserCheck,
@@ -48,9 +49,12 @@ const LABEL_TO_ROUTE_MAP = {
 export default function AccountMenuDropdown({ 
   isOpen, 
   onClose, 
-  currentUser = { name: 'Aarav Sharma', email: 'aarav.sharma@example.com', isPlus: true },
-  onLogout
+  currentUser: propCurrentUser,
+  onLogout: propOnLogout
 }) {
+  const auth = useAuth();
+  const currentUser = (auth && auth.currentUser) ? auth.currentUser : propCurrentUser;
+  const onLogout = auth ? auth.logout : propOnLogout;
   const navigate = useNavigate();
   if (!isOpen) return null;
 
@@ -82,7 +86,7 @@ export default function AccountMenuDropdown({
     <>
       {/* Mobile Backdrop Sheet Modal overlay */}
       <div 
-        className="fixed inset-0 bg-[#0F3D2E]/40 backdrop-blur-xs z-40 md:hidden"
+        className="fixed inset-0 bg-[#FA661C]/40 backdrop-blur-xs z-40 md:hidden"
         onClick={onClose}
         aria-hidden="true"
       />
@@ -91,27 +95,22 @@ export default function AccountMenuDropdown({
       <div className="fixed inset-x-0 bottom-0 z-50 md:z-50 md:absolute md:top-full md:right-0 md:left-auto md:bottom-auto md:w-80 md:mt-2 animate-bottom-sheet md:animate-dropdown">
         
         {/* Card Surface */}
-        <div className="bg-[#FBF8F1] border border-[#D4AF37]/30 rounded-t-2xl md:rounded-2xl shadow-2xl overflow-hidden glass-panel">
+        <div className="bg-[#FFFFFF] border border-[#FF811A]/30 rounded-t-2xl md:rounded-2xl shadow-2xl overflow-hidden glass-panel">
           
           {/* Header Identity Badge */}
-          <div className="p-4 bg-gradient-to-r from-[#0F3D2E] to-[#16523F] text-[#FBF8F1] flex items-center justify-between">
+          <div className="p-4 bg-gradient-to-r from-[#FA661C] to-[#16523F] text-[#FFFFFF] flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-full bg-[#D4AF37] text-[#0F3D2E] font-black text-sm flex items-center justify-center shadow-inner avatar-interactive">
-                {currentUser?.name ? currentUser.name.slice(0, 2).toUpperCase() : 'AS'}
+              <div className="w-10 h-10 rounded-full bg-[#FF811A] text-[#FA661C] font-black text-sm flex items-center justify-center shadow-inner avatar-interactive">
+                {(currentUser?.fullName || currentUser?.name || currentUser?.username || 'U').slice(0, 2).toUpperCase()}
               </div>
               <div>
                 <div className="flex items-center space-x-1.5">
-                  <h4 className="font-['Outfit'] font-bold text-sm text-[#FBF8F1] leading-tight">
-                    {currentUser?.name || 'Aarav Sharma'}
+                  <h4 className="font-['Outfit'] font-bold text-sm text-[#FFFFFF] leading-tight">
+                    {currentUser?.fullName || currentUser?.name || currentUser?.username || 'Account'}
                   </h4>
-                  {currentUser?.isPlus && (
-                    <span className="text-[9px] font-black bg-[#D4AF37] text-[#0F3D2E] px-1 rounded uppercase tracking-wider">
-                      PLUS
-                    </span>
-                  )}
                 </div>
-                <p className="text-[10px] text-[#D8E0DC] leading-none mt-0.5 truncate max-w-[170px]">
-                  {currentUser?.email || 'aarav.sharma@example.com'}
+                <p className="text-[10px] text-[#EAE3DC] leading-none mt-0.5 truncate max-w-[170px]">
+                  {currentUser?.email || ''}
                 </p>
               </div>
             </div>
@@ -120,7 +119,7 @@ export default function AccountMenuDropdown({
             <button 
               type="button" 
               onClick={onClose}
-              className="p-1 rounded-full text-[#D8E0DC] hover:text-white md:hidden icon-interactive"
+              className="p-1 rounded-full text-[#EAE3DC] hover:text-[#000000] md:hidden icon-interactive"
               aria-label="Close menu"
             >
               <X className="w-5 h-5" />
@@ -128,7 +127,7 @@ export default function AccountMenuDropdown({
           </div>
 
           {/* Menu Items List */}
-          <div className="p-2 max-h-[65vh] md:max-h-96 overflow-y-auto divide-y divide-[#D8E0DC]/30">
+          <div className="p-2 max-h-[65vh] md:max-h-96 overflow-y-auto divide-y divide-[#EAE3DC]/30">
             <div className="py-1">
               {LOGIN_MENU_ITEMS.map((item, idx) => {
                 const IconComponent = ICON_MAP[item.iconName] || Sparkles;
@@ -138,27 +137,27 @@ export default function AccountMenuDropdown({
                     key={idx}
                     type="button"
                     onClick={(e) => handleMenuItemClick(e, item)}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-[#0F3D2E] transition-all cursor-pointer btn-interactive ${
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-[#FA661C] transition-all cursor-pointer btn-interactive ${
                       item.isHighlight 
-                        ? 'bg-[#FCF7E8] text-[#0F3D2E] hover:bg-[#E8F2EE] font-bold' 
-                        : 'hover:bg-[#E8F2EE] hover:text-[#0F3D2E]'
+                        ? 'bg-[#FFF8F2] text-[#FA661C] hover:bg-[#FFF3EC] font-bold' 
+                        : 'hover:bg-[#FFF3EC] hover:text-[#FA661C]'
                     }`}
                   >
                     <div className="flex items-center space-x-2.5">
                       <IconComponent className={`w-4 h-4 icon-interactive ${
-                        item.isPlus ? 'text-[#D4AF37]' : item.isHighlight ? 'text-[#0F3D2E]' : 'text-[#5C6B63]'
+                        item.isPlus ? 'text-[#FF811A]' : item.isHighlight ? 'text-[#FA661C]' : 'text-[#6B6058]'
                       }`} />
                       <span>{item.label}</span>
                     </div>
 
                     {item.isPlus && (
-                      <span className="text-[9px] font-extrabold text-[#0F3D2E] bg-[#D4AF37] px-1.5 py-0.2 rounded-full shadow-2xs">
+                      <span className="text-[9px] font-extrabold text-[#FA661C] bg-[#FF811A] px-1.5 py-0.2 rounded-full shadow-2xs">
                         GOLD
                       </span>
                     )}
 
                     {!item.isPlus && (
-                      <ChevronRight className="w-3.5 h-3.5 text-[#5C6B63] opacity-40 group-hover:opacity-100" />
+                      <ChevronRight className="w-3.5 h-3.5 text-[#6B6058] opacity-40 group-hover:opacity-100" />
                     )}
                   </button>
                 );
@@ -170,9 +169,9 @@ export default function AccountMenuDropdown({
               <button
                 type="button"
                 onClick={handleLogoutClick}
-                className="w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-bold text-[#C0392B] hover:bg-[#FDEDEC] transition-colors btn-interactive cursor-pointer"
+                className="w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-bold text-[#D7263D] hover:bg-[#FDE8EA] transition-colors btn-interactive cursor-pointer"
               >
-                <LogOut className="w-4 h-4 text-[#C0392B] icon-interactive" />
+                <LogOut className="w-4 h-4 text-[#D7263D] icon-interactive" />
                 <span>Log Out of MytriKart</span>
               </button>
             </div>

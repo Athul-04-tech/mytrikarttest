@@ -22,7 +22,7 @@ const BUSINESS_TYPES = [
   }
 ];
 
-export default function Step2BusinessInfo({ formData, updateFormData, onNext, onBack }) {
+export default function Step2BusinessInfo({ formData, updateFormData, onNext, onBack, backendErrors = {} }) {
   const [errors, setErrors] = useState({});
 
   const validate = () => {
@@ -44,23 +44,28 @@ export default function Step2BusinessInfo({ formData, updateFormData, onNext, on
     }
   };
 
+  const displayGstError = errors.gstVatNumber || backendErrors.gstVatNumber || backendErrors.tax_id || backendErrors.gst_vat_number;
+  const displayStoreNameError = errors.storeName || backendErrors.storeName || backendErrors.store_name;
+  const displayBusinessNameError = errors.businessName || backendErrors.businessName || backendErrors.business_name;
+  const displayRegError = errors.businessRegNumber || backendErrors.businessRegNumber || backendErrors.registration_number;
+
   return (
     <form onSubmit={handleContinue} className="space-y-6 animate-reveal">
       
       {/* Step Header */}
       <div>
-        <h2 className="font-['Outfit'] text-2xl sm:text-3xl font-extrabold text-[#0F3D2E] tracking-tight">
+        <h2 className="font-['Outfit'] text-2xl sm:text-3xl font-extrabold text-[#FA661C] tracking-tight">
           Business Information
         </h2>
-        <p className="text-xs sm:text-sm text-[#5C6B63] mt-1">
+        <p className="text-xs sm:text-sm text-[#6B6058] mt-1">
           Provide your formal legal entity classification, commercial registration, and tax credentials
         </p>
       </div>
 
       {/* Business Type Visual Selection Cards */}
       <div>
-        <label className="block text-xs font-bold uppercase tracking-wider text-[#0F3D2E] mb-2">
-          Business Entity Type <span className="text-[#C0392B]">*</span>
+        <label className="block text-xs font-bold uppercase tracking-wider text-[#FA661C] mb-2">
+          Business Entity Type <span className="text-[#D7263D]">*</span>
         </label>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -74,39 +79,39 @@ export default function Step2BusinessInfo({ formData, updateFormData, onNext, on
                 onClick={() => updateFormData({ businessType: type.id })}
                 className={`p-4 rounded-2xl border-2 transition-all cursor-pointer card-interactive flex flex-col justify-between ${
                   isSelected
-                    ? 'bg-[#FCF7E8] border-[#D4AF37] ring-2 ring-[#D4AF37]/30 shadow-sm'
-                    : 'bg-white border-[#D8E0DC] hover:border-[#5C6B63]/60'
+                    ? 'bg-[#FFF8F2] border-[#FF811A] ring-2 ring-[#FF811A]/30 shadow-sm'
+                    : 'bg-white border-[#EAE3DC] hover:border-[#6B6058]/60'
                 }`}
               >
                 <div>
                   <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-3 transition-colors ${
-                    isSelected ? 'bg-[#0F3D2E] text-[#D4AF37]' : 'bg-[#FBF8F1] text-[#5C6B63]'
+                    isSelected ? 'bg-[#FA661C] text-[#FF811A]' : 'bg-[#FFFFFF] text-[#6B6058]'
                   }`}>
                     <Icon className="w-5 h-5" />
                   </div>
-                  <h4 className="font-bold text-xs sm:text-sm text-[#0F3D2E]">
+                  <h4 className="font-bold text-xs sm:text-sm text-[#FA661C]">
                     {type.title}
                   </h4>
-                  <p className="text-[11px] text-[#5C6B63] mt-1 leading-snug">
+                  <p className="text-[11px] text-[#6B6058] mt-1 leading-snug">
                     {type.desc}
                   </p>
                 </div>
 
-                <div className="mt-3 pt-2 border-t border-[#D8E0DC]/60 flex items-center justify-between text-[10px] font-extrabold">
-                  <span className={isSelected ? 'text-[#0F3D2E]' : 'text-[#5C6B63]'}>
+                <div className="mt-3 pt-2 border-t border-[#EAE3DC]/60 flex items-center justify-between text-[10px] font-extrabold">
+                  <span className={isSelected ? 'text-[#FA661C]' : 'text-[#6B6058]'}>
                     {isSelected ? '✓ Selected' : 'Click to select'}
                   </span>
                   <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${
-                    isSelected ? 'border-[#0F3D2E] bg-[#0F3D2E]' : 'border-[#D8E0DC]'
+                    isSelected ? 'border-[#FA661C] bg-[#FA661C]' : 'border-[#EAE3DC]'
                   }`}>
-                    {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-[#D4AF37]" />}
+                    {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-[#FF811A]" />}
                   </div>
                 </div>
               </div>
             );
           })}
         </div>
-        {errors.businessType && <p className="text-[10px] text-[#C0392B] font-bold mt-1.5">{errors.businessType}</p>}
+        {errors.businessType && <p className="text-[10px] text-[#D7263D] font-bold mt-1.5">{errors.businessType}</p>}
       </div>
 
       {/* Main Business Inputs Grid */}
@@ -114,8 +119,8 @@ export default function Step2BusinessInfo({ formData, updateFormData, onNext, on
         
         {/* Store Name (Brand Facing) */}
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-[#0F3D2E] mb-1">
-            Store Name (Customer Facing) <span className="text-[#C0392B]">*</span>
+          <label className="block text-xs font-bold uppercase tracking-wider text-[#FA661C] mb-1">
+            Store Name (Customer Facing) <span className="text-[#D7263D]">*</span>
           </label>
           <input
             type="text"
@@ -123,15 +128,17 @@ export default function Step2BusinessInfo({ formData, updateFormData, onNext, on
             value={formData.storeName || ''}
             onChange={(e) => updateFormData({ storeName: e.target.value })}
             placeholder="e.g. Royal Silk & Spices"
-            className="w-full py-2.5 px-3.5 bg-white border border-[#D8E0DC] rounded-xl text-xs sm:text-sm text-[#0F3D2E] font-medium input-interactive"
+            className={`w-full py-2.5 px-3.5 bg-white border rounded-xl text-xs sm:text-sm text-[#FA661C] font-medium input-interactive ${
+              displayStoreNameError ? 'border-[#D7263D] focus:border-[#D7263D]' : 'border-[#EAE3DC]'
+            }`}
           />
-          {errors.storeName && <p className="text-[10px] text-[#C0392B] font-bold mt-1">{errors.storeName}</p>}
+          {displayStoreNameError && <p className="text-[10px] text-[#D7263D] font-bold mt-1">{displayStoreNameError}</p>}
         </div>
 
         {/* Legal Business Name */}
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-[#0F3D2E] mb-1">
-            Legal Business Name <span className="text-[#C0392B]">*</span>
+          <label className="block text-xs font-bold uppercase tracking-wider text-[#FA661C] mb-1">
+            Legal Business Name <span className="text-[#D7263D]">*</span>
           </label>
           <input
             type="text"
@@ -139,15 +146,17 @@ export default function Step2BusinessInfo({ formData, updateFormData, onNext, on
             value={formData.businessName || ''}
             onChange={(e) => updateFormData({ businessName: e.target.value })}
             placeholder="e.g. Royal Heritage Enterprises Pvt Ltd"
-            className="w-full py-2.5 px-3.5 bg-white border border-[#D8E0DC] rounded-xl text-xs sm:text-sm text-[#0F3D2E] font-medium input-interactive"
+            className={`w-full py-2.5 px-3.5 bg-white border rounded-xl text-xs sm:text-sm text-[#FA661C] font-medium input-interactive ${
+              displayBusinessNameError ? 'border-[#D7263D] focus:border-[#D7263D]' : 'border-[#EAE3DC]'
+            }`}
           />
-          {errors.businessName && <p className="text-[10px] text-[#C0392B] font-bold mt-1">{errors.businessName}</p>}
+          {displayBusinessNameError && <p className="text-[10px] text-[#D7263D] font-bold mt-1">{displayBusinessNameError}</p>}
         </div>
 
         {/* GST/VAT Number */}
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-[#0F3D2E] mb-1">
-            GSTIN / VAT Number <span className="text-[#C0392B]">*</span>
+          <label className="block text-xs font-bold uppercase tracking-wider text-[#FA661C] mb-1">
+            GSTIN / VAT Number <span className="text-[#D7263D]">*</span>
           </label>
           <div className="relative">
             <input
@@ -156,20 +165,22 @@ export default function Step2BusinessInfo({ formData, updateFormData, onNext, on
               value={formData.gstVatNumber || ''}
               onChange={(e) => updateFormData({ gstVatNumber: e.target.value.toUpperCase() })}
               placeholder="e.g. 27AAAAA0000A1Z5"
-              className="w-full py-2.5 pl-3.5 pr-9 bg-white border border-[#D8E0DC] rounded-xl text-xs sm:text-sm text-[#0F3D2E] font-medium font-mono uppercase input-interactive"
+              className={`w-full py-2.5 pl-3.5 pr-9 bg-white border rounded-xl text-xs sm:text-sm text-[#FA661C] font-medium font-mono uppercase input-interactive ${
+                displayGstError ? 'border-[#D7263D] focus:border-[#D7263D]' : 'border-[#EAE3DC]'
+              }`}
             />
-            <FileText className="w-4 h-4 text-[#5C6B63] absolute right-3 top-1/2 -translate-y-1/2" />
+            <FileText className="w-4 h-4 text-[#6B6058] absolute right-3 top-1/2 -translate-y-1/2" />
           </div>
-          {errors.gstVatNumber && <p className="text-[10px] text-[#C0392B] font-bold mt-1">{errors.gstVatNumber}</p>}
+          {displayGstError && <p className="text-[10px] text-[#D7263D] font-bold mt-1">{displayGstError}</p>}
         </div>
 
         {/* PAN/TIN (Optional) */}
         <div>
           <div className="flex items-center justify-between mb-1">
-            <label className="text-xs font-bold uppercase tracking-wider text-[#0F3D2E]">
+            <label className="text-xs font-bold uppercase tracking-wider text-[#FA661C]">
               PAN / Tax Identification Number
             </label>
-            <span className="text-[10px] font-bold text-[#5C6B63] bg-[#E8F2EE] px-1.5 py-0.2 rounded">
+            <span className="text-[10px] font-bold text-[#6B6058] bg-[#FFF3EC] px-1.5 py-0.2 rounded">
               Optional
             </span>
           </div>
@@ -178,14 +189,14 @@ export default function Step2BusinessInfo({ formData, updateFormData, onNext, on
             value={formData.panTin || ''}
             onChange={(e) => updateFormData({ panTin: e.target.value.toUpperCase() })}
             placeholder="e.g. ABCDE1234F"
-            className="w-full py-2.5 px-3.5 bg-white border border-[#D8E0DC] rounded-xl text-xs sm:text-sm text-[#0F3D2E] font-medium font-mono uppercase input-interactive"
+            className="w-full py-2.5 px-3.5 bg-white border border-[#EAE3DC] rounded-xl text-xs sm:text-sm text-[#FA661C] font-medium font-mono uppercase input-interactive"
           />
         </div>
 
         {/* Business Registration Number */}
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-[#0F3D2E] mb-1">
-            Business Registration Number <span className="text-[#C0392B]">*</span>
+          <label className="block text-xs font-bold uppercase tracking-wider text-[#FA661C] mb-1">
+            Business Registration Number <span className="text-[#D7263D]">*</span>
           </label>
           <input
             type="text"
@@ -193,20 +204,22 @@ export default function Step2BusinessInfo({ formData, updateFormData, onNext, on
             value={formData.businessRegNumber || ''}
             onChange={(e) => updateFormData({ businessRegNumber: e.target.value })}
             placeholder="CIN / Udyam / Trade License No."
-            className="w-full py-2.5 px-3.5 bg-white border border-[#D8E0DC] rounded-xl text-xs sm:text-sm text-[#0F3D2E] font-medium font-mono input-interactive"
+            className={`w-full py-2.5 px-3.5 bg-white border rounded-xl text-xs sm:text-sm text-[#FA661C] font-medium font-mono input-interactive ${
+              displayRegError ? 'border-[#D7263D] focus:border-[#D7263D]' : 'border-[#EAE3DC]'
+            }`}
           />
-          {errors.businessRegNumber && <p className="text-[10px] text-[#C0392B] font-bold mt-1">{errors.businessRegNumber}</p>}
+          {displayRegError && <p className="text-[10px] text-[#D7263D] font-bold mt-1">{displayRegError}</p>}
         </div>
 
         {/* Years in Business */}
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-[#0F3D2E] mb-1">
-            Years in Business <span className="text-[#C0392B]">*</span>
+          <label className="block text-xs font-bold uppercase tracking-wider text-[#FA661C] mb-1">
+            Years in Business <span className="text-[#D7263D]">*</span>
           </label>
           <select
             value={formData.yearsInBusiness || '1-3 years'}
             onChange={(e) => updateFormData({ yearsInBusiness: e.target.value })}
-            className="w-full py-2.5 px-3.5 bg-white border border-[#D8E0DC] rounded-xl text-xs sm:text-sm text-[#0F3D2E] font-medium input-interactive"
+            className="w-full py-2.5 px-3.5 bg-white border border-[#EAE3DC] rounded-xl text-xs sm:text-sm text-[#FA661C] font-medium input-interactive"
           >
             <option value="Less than 1 year">Less than 1 year (New Enterprise)</option>
             <option value="1-3 years">1 – 3 years</option>
@@ -219,11 +232,11 @@ export default function Step2BusinessInfo({ formData, updateFormData, onNext, on
       </div>
 
       {/* Navigation Buttons */}
-      <div className="flex items-center justify-between pt-6 border-t border-[#D8E0DC]">
+      <div className="flex items-center justify-between pt-6 border-t border-[#EAE3DC]">
         <button
           type="button"
           onClick={onBack}
-          className="px-5 py-3 rounded-xl text-xs font-bold text-[#5C6B63] bg-[#FBF8F1] hover:bg-[#E8F2EE] border border-[#D8E0DC] btn-interactive flex items-center space-x-2 cursor-pointer"
+          className="px-5 py-3 rounded-xl text-xs font-bold text-[#6B6058] bg-[#FFFFFF] hover:bg-[#FFF3EC] border border-[#EAE3DC] btn-interactive flex items-center space-x-2 cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4 icon-interactive" />
           <span>Back: Personal Info</span>
@@ -231,13 +244,14 @@ export default function Step2BusinessInfo({ formData, updateFormData, onNext, on
 
         <button
           type="submit"
-          className="px-6 py-3 rounded-xl text-xs font-bold text-[#FBF8F1] bg-[#0F3D2E] hover:bg-[#155440] btn-interactive flex items-center space-x-2 shadow-md cursor-pointer"
+          className="px-6 py-3 rounded-xl text-xs font-bold text-[#FFFFFF] bg-[#FA661C] hover:bg-[#E0530B] btn-interactive flex items-center space-x-2 shadow-md cursor-pointer"
         >
           <span>Continue to Store Profile</span>
-          <ArrowRight className="w-4 h-4 text-[#D4AF37] icon-interactive" />
+          <ArrowRight className="w-4 h-4 text-[#FF811A] icon-interactive" />
         </button>
       </div>
 
     </form>
   );
 }
+

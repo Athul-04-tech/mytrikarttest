@@ -33,17 +33,17 @@ const ICON_MAP = {
 
 // Subtle, tasteful tonal tinting per category theme
 const CATEGORY_TONES = {
-  'for-you': { text: 'text-[#0F3D2E]', activeRing: 'ring-[#D4AF37]', iconTint: 'text-[#D4AF37]' },
-  'fashion': { text: 'text-[#0F3D2E]', activeRing: 'ring-[#D4AF37]', iconTint: 'text-[#9C5A4C]' },
-  'mobiles': { text: 'text-[#0F3D2E]', activeRing: 'ring-[#D4AF37]', iconTint: 'text-[#3B6E8C]' },
-  'electronics': { text: 'text-[#0F3D2E]', activeRing: 'ring-[#D4AF37]', iconTint: 'text-[#4A5D78]' },
-  'beauty': { text: 'text-[#0F3D2E]', activeRing: 'ring-[#D4AF37]', iconTint: 'text-[#B86B77]' },
-  'home': { text: 'text-[#0F3D2E]', activeRing: 'ring-[#D4AF37]', iconTint: 'text-[#8A6D3B]' },
-  'appliances': { text: 'text-[#0F3D2E]', activeRing: 'ring-[#D4AF37]', iconTint: 'text-[#46655A]' },
-  'toys': { text: 'text-[#0F3D2E]', activeRing: 'ring-[#D4AF37]', iconTint: 'text-[#BF7E28]' },
-  'health': { text: 'text-[#0F3D2E]', activeRing: 'ring-[#D4AF37]', iconTint: 'text-[#2D7A58]' },
-  'auto': { text: 'text-[#0F3D2E]', activeRing: 'ring-[#D4AF37]', iconTint: 'text-[#4F5D58]' },
-  'sports': { text: 'text-[#0F3D2E]', activeRing: 'ring-[#D4AF37]', iconTint: 'text-[#8C6239]' }
+  'for-you': { text: 'text-[#FA661C]', activeRing: 'ring-[#FF811A]', iconTint: 'text-[#FF811A]' },
+  'fashion': { text: 'text-[#FA661C]', activeRing: 'ring-[#FF811A]', iconTint: 'text-[#9C5A4C]' },
+  'mobiles': { text: 'text-[#FA661C]', activeRing: 'ring-[#FF811A]', iconTint: 'text-[#3B6E8C]' },
+  'electronics': { text: 'text-[#FA661C]', activeRing: 'ring-[#FF811A]', iconTint: 'text-[#4A5D78]' },
+  'beauty': { text: 'text-[#FA661C]', activeRing: 'ring-[#FF811A]', iconTint: 'text-[#B86B77]' },
+  'home': { text: 'text-[#FA661C]', activeRing: 'ring-[#FF811A]', iconTint: 'text-[#8A6D3B]' },
+  'appliances': { text: 'text-[#FA661C]', activeRing: 'ring-[#FF811A]', iconTint: 'text-[#46655A]' },
+  'toys': { text: 'text-[#FA661C]', activeRing: 'ring-[#FF811A]', iconTint: 'text-[#BF7E28]' },
+  'health': { text: 'text-[#FA661C]', activeRing: 'ring-[#FF811A]', iconTint: 'text-[#2D7A58]' },
+  'auto': { text: 'text-[#FA661C]', activeRing: 'ring-[#FF811A]', iconTint: 'text-[#4F5D58]' },
+  'sports': { text: 'text-[#FA661C]', activeRing: 'ring-[#FF811A]', iconTint: 'text-[#8C6239]' }
 };
 
 export default function CategoryNav({ activeCategory = 'for-you', onSelectCategory }) {
@@ -106,7 +106,7 @@ export default function CategoryNav({ activeCategory = 'for-you', onSelectCatego
   return (
     <nav 
       aria-label="Marketplace Category Navigation"
-      className="bg-white border-b border-[#D8E0DC] py-2.5 shadow-2xs sticky top-[105px] sm:top-[73px] z-30 transition-colors"
+      className="bg-white border-b border-[#EAE3DC] py-2.5 shadow-2xs sticky top-[105px] sm:top-[73px] z-30 transition-colors"
     >
       <div className="max-w-7xl mx-auto px-2 sm:px-6 relative group/nav">
         
@@ -115,7 +115,7 @@ export default function CategoryNav({ activeCategory = 'for-you', onSelectCatego
           <button
             type="button"
             onClick={() => handleArrowScroll('left')}
-            className="hidden sm:flex absolute left-1 top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-full bg-white/95 border border-[#D8E0DC] text-[#0F3D2E] items-center justify-center shadow-md hover:bg-[#FCF7E8] transition-all hover:scale-110"
+            className="hidden sm:flex absolute left-1 top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-full bg-white/95 border border-[#EAE3DC] text-[#FA661C] items-center justify-center shadow-md hover:bg-[#FFF8F2] transition-all hover:scale-110"
             aria-label="Scroll Categories Left"
           >
             <ChevronLeft className="w-4 h-4" />
@@ -127,7 +127,7 @@ export default function CategoryNav({ activeCategory = 'for-you', onSelectCatego
           <button
             type="button"
             onClick={() => handleArrowScroll('right')}
-            className="hidden sm:flex absolute right-1 top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-full bg-white/95 border border-[#D8E0DC] text-[#0F3D2E] items-center justify-center shadow-md hover:bg-[#FCF7E8] transition-all hover:scale-110"
+            className="hidden sm:flex absolute right-1 top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-full bg-white/95 border border-[#EAE3DC] text-[#FA661C] items-center justify-center shadow-md hover:bg-[#FFF8F2] transition-all hover:scale-110"
             aria-label="Scroll Categories Right"
           >
             <ChevronRight className="w-4 h-4" />
@@ -159,15 +159,15 @@ export default function CategoryNav({ activeCategory = 'for-you', onSelectCatego
                 key={cat.id}
                 type="button"
                 onClick={(e) => handleSelect(cat.id, e)}
-                className={`flex flex-col items-center justify-center shrink-0 px-2 sm:px-3 py-1.5 rounded-2xl transition-all duration-200 group focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0F3D2E] focus-visible:ring-offset-2 relative snap-align-center cursor-pointer ${
-                  isActive ? 'scale-[1.03]' : 'hover:bg-[#FBF8F1]/80'
+                className={`flex flex-col items-center justify-center shrink-0 px-2 sm:px-3 py-1.5 rounded-2xl transition-all duration-200 group focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FA661C] focus-visible:ring-offset-2 relative snap-align-center cursor-pointer ${
+                  isActive ? 'scale-[1.03]' : 'hover:bg-[#FFFFFF]/80'
                 }`}
                 aria-current={isActive ? 'page' : undefined}
                 aria-label={`Browse ${cat.label} Category`}
               >
                 {/* Visual Tactile Ripple Pulse on Tap */}
                 {isRippling && (
-                  <span className="absolute top-4 w-11 h-11 rounded-full bg-[#D4AF37]/35 animate-ripple pointer-events-none z-0" />
+                  <span className="absolute top-4 w-11 h-11 rounded-full bg-[#FF811A]/35 animate-ripple pointer-events-none z-0" />
                 )}
 
                 {/* Dimensional Icon Badge */}
@@ -177,7 +177,7 @@ export default function CategoryNav({ activeCategory = 'for-you', onSelectCatego
                       ? `category-active-gradient ${tone.text} ring-2 ${tone.activeRing} category-icon-shadow ${
                           isJustSelected ? 'animate-category-settle' : 'animate-category-breathe'
                         }` 
-                      : 'bg-[#FBF8F1] text-[#5C6B63] category-icon-shadow hover:category-icon-shadow-hover hover:scale-108 hover:bg-white group-hover:text-[#0F3D2E]'
+                      : 'bg-[#FFFFFF] text-[#6B6058] category-icon-shadow hover:category-icon-shadow-hover hover:scale-108 hover:bg-white group-hover:text-[#FA661C]'
                   }`}
                 >
                   {/* Unified Line Icon with Locked Stroke Width (1.8) & Hover Spring Wiggle */}
@@ -194,8 +194,8 @@ export default function CategoryNav({ activeCategory = 'for-you', onSelectCatego
                 {/* Category Label with Smooth Color & Spacing Transition */}
                 <span className={`text-[11px] sm:text-xs tracking-tight transition-all duration-200 whitespace-nowrap ${
                   isActive 
-                    ? 'text-[#0F3D2E] font-extrabold tracking-normal' 
-                    : 'text-[#5C6B63] font-medium group-hover:text-[#0F3D2E] group-hover:font-bold group-hover:tracking-normal'
+                    ? 'text-[#FA661C] font-extrabold tracking-normal' 
+                    : 'text-[#6B6058] font-medium group-hover:text-[#FA661C] group-hover:font-bold group-hover:tracking-normal'
                 }`}>
                   {cat.label}
                 </span>
@@ -203,7 +203,7 @@ export default function CategoryNav({ activeCategory = 'for-you', onSelectCatego
                 {/* Animated Center-Outward Drawing Emerald Underline */}
                 {isActive && (
                   <span 
-                    className="absolute -bottom-1 inset-x-2 h-0.5 bg-[#0F3D2E] rounded-full animate-underline" 
+                    className="absolute -bottom-1 inset-x-2 h-0.5 bg-[#FA661C] rounded-full animate-underline" 
                   />
                 )}
               </button>

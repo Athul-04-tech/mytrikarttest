@@ -42,7 +42,7 @@ export const HERO_SLIDES = [
     cta: "Explore Deals",
     isAd: true,
     tagline: "CURATED SELECTION",
-    bgColor: "from-[#0F3D2E] via-[#16523F] to-[#0A2A1F]",
+    bgColor: "from-[#FA661C] via-[#16523F] to-[#0A2A1F]",
     image: "/products/spatial_headphones_1786529304124.png",
     badge: "Limited Period Offer",
     category: "electronics"
@@ -54,7 +54,7 @@ export const HERO_SLIDES = [
     cta: "Shop Collection",
     isAd: false,
     tagline: "NEW SEASON ARRIVALS",
-    bgColor: "from-[#1D4A3A] via-[#0F3D2E] to-[#143B2D]",
+    bgColor: "from-[#1D4A3A] via-[#FA661C] to-[#143B2D]",
     image: "/products/banarasi_silk_saree_1786529541618.png",
     badge: "Gold Exclusive",
     category: "fashion"
@@ -66,7 +66,7 @@ export const HERO_SLIDES = [
     cta: "Pre-Order Now",
     isAd: true,
     tagline: "FEATURED LAUNCH",
-    bgColor: "from-[#0A2A1F] via-[#0F3D2E] to-[#1A5743]",
+    bgColor: "from-[#0A2A1F] via-[#FA661C] to-[#1A5743]",
     image: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=1200&q=80",
     badge: "Free Express Shipping",
     category: "mobiles"
@@ -78,7 +78,7 @@ export const HERO_SLIDES = [
     cta: "Discover Styles",
     isAd: false,
     tagline: "HANDPICKED HOMES",
-    bgColor: "from-[#124233] via-[#0F3D2E] to-[#256852]",
+    bgColor: "from-[#124233] via-[#FA661C] to-[#256852]",
     image: "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1200&q=80",
     badge: "Trending Choice",
     category: "home"
@@ -90,7 +90,7 @@ export const HERO_SLIDES = [
     cta: "Equip Yourself",
     isAd: true,
     tagline: "HIGH PERFORMANCE",
-    bgColor: "from-[#0F3D2E] via-[#1A5240] to-[#0A2A1F]",
+    bgColor: "from-[#FA661C] via-[#1A5240] to-[#0A2A1F]",
     image: "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=1200&q=80",
     badge: "Athletic Spotlight",
     category: "sports"
@@ -102,7 +102,7 @@ export const HERO_SLIDES = [
     cta: "Glow Everyday",
     isAd: false,
     tagline: "PURE BOTANICALS",
-    bgColor: "from-[#194D3B] via-[#0F3D2E] to-[#0A2A1F]",
+    bgColor: "from-[#194D3B] via-[#FA661C] to-[#0A2A1F]",
     image: "https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=1200&q=80",
     badge: "100% Toxin Free",
     category: "beauty"
@@ -114,7 +114,7 @@ export const HERO_SLIDES = [
     cta: "Upgrade Kitchen",
     isAd: true,
     tagline: "CHEF GRADE",
-    bgColor: "from-[#0F3D2E] via-[#16523F] to-[#0A2A1F]",
+    bgColor: "from-[#FA661C] via-[#16523F] to-[#0A2A1F]",
     image: "/products/italian_espresso_machine_1786529559641.png",
     badge: "2-Year Warranty",
     category: "appliances"
@@ -126,7 +126,7 @@ export const HERO_SLIDES = [
     cta: "Explore for Kids",
     isAd: false,
     tagline: "SAFE & NURTURING",
-    bgColor: "from-[#0A2A1F] via-[#144937] to-[#0F3D2E]",
+    bgColor: "from-[#0A2A1F] via-[#144937] to-[#FA661C]",
     image: "https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?auto=format&fit=crop&w=1200&q=80",
     badge: "Certified Non-Toxic",
     category: "toys"
@@ -138,7 +138,7 @@ export const HERO_SLIDES = [
     cta: "Nourish Naturally",
     isAd: true,
     tagline: "FARM TO TABLE",
-    bgColor: "from-[#0F3D2E] via-[#1A5743] to-[#124233]",
+    bgColor: "from-[#FA661C] via-[#1A5743] to-[#124233]",
     image: "https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=1200&q=80",
     badge: "Pure Organic",
     category: "health"
@@ -150,7 +150,7 @@ export const HERO_SLIDES = [
     cta: "Gear Up Your Ride",
     isAd: false,
     tagline: "DRIVE WITH CONFIDENCE",
-    bgColor: "from-[#0A2A1F] via-[#0F3D2E] to-[#16523F]",
+    bgColor: "from-[#0A2A1F] via-[#FA661C] to-[#16523F]",
     image: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1200&q=80",
     badge: "Heavy Duty",
     category: "auto"

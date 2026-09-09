@@ -77,10 +77,10 @@ export default function OtpInputBoxes({ length = 6, value = [], onChange, hasErr
           aria-label={`Digit ${index + 1}`}
           className={`w-10 h-12 sm:w-12 sm:h-14 text-center text-lg sm:text-xl font-bold rounded-xl transition-all duration-150 bg-white border input-interactive ${
             hasError
-              ? 'border-[#C0392B] ring-2 ring-[#C0392B]/20 text-[#C0392B]'
+              ? 'border-[#D7263D] ring-2 ring-[#D7263D]/20 text-[#D7263D]'
               : value[index]
-              ? 'border-[#0F3D2E] text-[#0F3D2E] ring-1 ring-[#D4AF37]/40 bg-[#FCF7E8]/40'
-              : 'border-[#D8E0DC] text-[#0F3D2E] hover:border-[#5C6B63]/60'
+              ? 'border-[#FA661C] text-[#FA661C] ring-1 ring-[#FF811A]/40 bg-[#FFF8F2]/40'
+              : 'border-[#EAE3DC] text-[#FA661C] hover:border-[#6B6058]/60'
           } shadow-xs`}
         />
       ))}

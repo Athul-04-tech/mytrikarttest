@@ -85,37 +85,37 @@ export default function AdminHomePage() {
       default:
         return (
           /* Generic Specification Workspace Card */
-          <div className="bg-white rounded-3xl border border-[#D8E0DC] p-6 sm:p-10 shadow-xs space-y-6 animate-reveal">
-            <div className="flex items-center justify-between pb-4 border-b border-[#D8E0DC]">
+          <div className="bg-white rounded-3xl border border-[#EAE3DC] p-6 sm:p-10 shadow-xs space-y-6 animate-reveal">
+            <div className="flex items-center justify-between pb-4 border-b border-[#EAE3DC]">
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-[#D4AF37] bg-[#0F3D2E] px-2.5 py-0.5 rounded-full">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-[#FF811A] bg-[#FA661C] px-2.5 py-0.5 rounded-full">
                   SPECIFICATION MODULE
                 </span>
-                <h2 className="font-['Outfit'] text-2xl sm:text-3xl font-extrabold text-[#0F3D2E] mt-2">
+                <h2 className="font-['Outfit'] text-2xl sm:text-3xl font-extrabold text-[#FA661C] mt-2">
                   {activeSectionLabel}
                 </h2>
-                <p className="text-xs sm:text-sm text-[#5C6B63] mt-1">
+                <p className="text-xs sm:text-sm text-[#6B6058] mt-1">
                   Governance rules, automated bulk tools, and compliance logs for this module.
                 </p>
               </div>
 
               <Link
                 to="/admin"
-                className="px-4 py-2 bg-[#FBF8F1] hover:bg-[#E8F2EE] border border-[#D8E0DC] rounded-xl text-xs font-bold text-[#0F3D2E] btn-interactive flex items-center space-x-1.5 cursor-pointer"
+                className="px-4 py-2 bg-[#FFFFFF] hover:bg-[#FFF3EC] border border-[#EAE3DC] rounded-xl text-xs font-bold text-[#FA661C] btn-interactive flex items-center space-x-1.5 cursor-pointer"
               >
-                <ArrowLeft className="w-4 h-4 text-[#D4AF37]" />
+                <ArrowLeft className="w-4 h-4 text-[#FF811A]" />
                 <span>Back to Overview</span>
               </Link>
             </div>
 
-            <div className="p-8 bg-[#FBF8F1] border border-dashed border-[#D8E0DC] rounded-2xl text-center space-y-3">
-              <div className="w-14 h-14 rounded-2xl bg-[#E8F2EE] text-[#0F3D2E] mx-auto flex items-center justify-center">
+            <div className="p-8 bg-[#FFFFFF] border border-dashed border-[#EAE3DC] rounded-2xl text-center space-y-3">
+              <div className="w-14 h-14 rounded-2xl bg-[#FFF3EC] text-[#FA661C] mx-auto flex items-center justify-center">
                 <Boxes className="w-7 h-7" />
               </div>
-              <h3 className="font-['Outfit'] font-bold text-lg text-[#0F3D2E]">
+              <h3 className="font-['Outfit'] font-bold text-lg text-[#FA661C]">
                 {activeSectionLabel} Console View
               </h3>
-              <p className="text-xs text-[#5C6B63] max-w-md mx-auto">
+              <p className="text-xs text-[#6B6058] max-w-md mx-auto">
                 Ready for administrative bulk uploads, webhook synchronization, and audit logging.
               </p>
             </div>
@@ -125,7 +125,7 @@ export default function AdminHomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FBF8F1] flex text-[#1A2420] font-sans selection:bg-[#D4AF37]/30 selection:text-[#0F3D2E]">
+    <div className="min-h-screen bg-[#FFFFFF] flex text-[#1A2420] font-sans selection:bg-[#FF811A]/30 selection:text-[#FA661C]">
       
       {/* 1. LEFT SIDEBAR */}
       <AdminSidebar

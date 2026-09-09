@@ -1,38 +1,50 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, Navigate, useLocation } from 'react-router-dom';
 import ProfileSidebar, { PROFILE_SECTIONS } from '../components/profile/ProfileSidebar';
 import PersonalDetailsSection from '../components/profile/PersonalDetailsSection';
 import AddressBookSection from '../components/profile/AddressBookSection';
 import OrdersSection from '../components/profile/OrdersSection';
 import RefundsSection from '../components/profile/RefundsSection';
 import WarrantySection from '../components/profile/WarrantySection';
-import WalletSection from '../components/profile/WalletSection';
-import RewardsSection from '../components/profile/RewardsSection';
 import NotificationsSection from '../components/profile/NotificationsSection';
 import SupportSection from '../components/profile/SupportSection';
 import AccountSettingsSection from '../components/profile/AccountSettingsSection';
-import { USER_PROFILE } from '../data/profileMockData';
+import { useAuth } from '../context/AuthContext';
 import { 
   ArrowLeft, 
-  Crown, 
-  Wallet, 
   ChevronRight, 
   Sparkles, 
   ShieldCheck, 
   Home,
-  CheckCircle2
+  CheckCircle2,
+  LogOut
 } from 'lucide-react';
 
 export default function ProfilePage({ onLogout }) {
   const { sectionId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { isLoggedIn, currentUser, logout, isLoading } = useAuth();
 
   const isSectionValid = sectionId ? PROFILE_SECTIONS.some(s => s.id === sectionId) : true;
   const initialValidSection = isSectionValid && sectionId ? sectionId : 'profile';
 
   const [activeSection, setActiveSection] = useState(initialValidSection);
-  const [userProfile, setUserProfile] = useState(USER_PROFILE);
+  const [userProfile, setUserProfile] = useState(currentUser || {});
   const [mobileDrilldownOpen, setMobileDrilldownOpen] = useState(Boolean(sectionId));
+
+  // Sync profile state with real AuthContext user profile
+  useEffect(() => {
+    if (currentUser) {
+      setUserProfile(prev => ({
+        ...prev,
+        ...currentUser,
+        fullName: currentUser.fullName || currentUser.name || `${currentUser.first_name || ''} ${currentUser.last_name || ''}`.trim() || currentUser.username,
+        email: currentUser.email || prev.email,
+        mobile: currentUser.phone_number || currentUser.mobile || prev.mobile,
+      }));
+    }
+  }, [currentUser]);
 
   // Sync sectionId from URL instantly
   useEffect(() => {
@@ -51,6 +63,11 @@ export default function ProfilePage({ onLogout }) {
     document.title = `${currentMeta.label} — MytriKart Account Hub`;
   }, [activeSection]);
 
+  // Protection guard: redirect to /login if logged out and not loading
+  if (!isLoggedIn && !isLoading) {
+    return <Navigate to="/login" state={{ from: location.pathname }} replace />;
+  }
+
   const handleSelectSection = (secId) => {
     if (secId === activeSection) return;
     setActiveSection(secId);
@@ -65,35 +82,41 @@ export default function ProfilePage({ onLogout }) {
     window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
+  const handleSignOut = async () => {
+    await logout();
+    if (onLogout) onLogout();
+    navigate('/');
+  };
+
   const currentSectionMeta = PROFILE_SECTIONS.find(s => s.id === activeSection) || PROFILE_SECTIONS[0];
 
   return (
-    <div className="min-h-screen bg-[#FBF8F1] text-[#1A2420] flex flex-col font-sans selection:bg-[#D4AF37]/30 selection:text-[#0F3D2E]">
+    <div className="min-h-screen bg-[#FFFFFF] text-[#1A2420] flex flex-col font-sans selection:bg-[#FF811A]/30 selection:text-[#FA661C]">
       
       {/* Top Breadcrumb / Navigation Bar */}
-      <header className="bg-white border-b border-[#D8E0DC] py-3 px-4 sm:px-8 sticky top-0 z-30 shadow-2xs">
+      <header className="bg-white border-b border-[#EAE3DC] py-3 px-4 sm:px-8 sticky top-0 z-30 shadow-2xs">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           
           <div className="flex items-center space-x-3">
             <Link
               to="/"
-              className="flex items-center space-x-1.5 font-['Outfit'] font-extrabold text-xl text-[#0F3D2E] group btn-interactive"
+              className="flex items-center space-x-1.5 font-['Outfit'] font-extrabold text-xl text-[#FA661C] group btn-interactive"
               aria-label="Return to Marketplace Homepage"
             >
-              <span>Mytri<span className="text-[#D4AF37]">Kart</span></span>
+              <span>Mytri<span className="text-[#FF811A]">Kart</span></span>
             </Link>
 
-            <span className="text-[#D8E0DC] hidden sm:inline">|</span>
+            <span className="text-[#EAE3DC] hidden sm:inline">|</span>
 
             {/* Breadcrumb trail */}
-            <div className="hidden sm:flex items-center space-x-1.5 text-xs text-[#5C6B63]">
-              <Link to="/" className="hover:text-[#0F3D2E] transition-colors">
+            <div className="hidden sm:flex items-center space-x-1.5 text-xs text-[#6B6058]">
+              <Link to="/" className="hover:text-[#FA661C] transition-colors">
                 Home
               </Link>
-              <ChevronRight className="w-3.5 h-3.5 text-[#D8E0DC]" />
-              <Link to="/profile" className="font-bold text-[#0F3D2E]">Account Hub</Link>
-              <ChevronRight className="w-3.5 h-3.5 text-[#D8E0DC]" />
-              <span className="font-semibold text-[#D4AF37]">{currentSectionMeta.label}</span>
+              <ChevronRight className="w-3.5 h-3.5 text-[#EAE3DC]" />
+              <Link to="/profile" className="font-bold text-[#FA661C]">Account Hub</Link>
+              <ChevronRight className="w-3.5 h-3.5 text-[#EAE3DC]" />
+              <span className="font-semibold text-[#FF811A]">{currentSectionMeta.label}</span>
             </div>
           </div>
 
@@ -101,7 +124,7 @@ export default function ProfilePage({ onLogout }) {
           <div className="flex items-center space-x-2 sm:space-x-3">
             <Link
               to="/"
-              className="px-3.5 py-1.5 rounded-xl border border-[#D8E0DC] bg-[#FBF8F1] hover:bg-[#E8F2EE] text-xs font-bold text-[#0F3D2E] transition-all flex items-center space-x-1.5 btn-interactive shadow-2xs"
+              className="px-3.5 py-1.5 rounded-xl border border-[#EAE3DC] bg-[#FFFFFF] hover:bg-[#FFF3EC] text-xs font-bold text-[#FA661C] transition-all flex items-center space-x-1.5 btn-interactive shadow-2xs"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Back to Marketplace</span>
@@ -110,10 +133,11 @@ export default function ProfilePage({ onLogout }) {
 
             <button
               type="button"
-              onClick={onLogout}
-              className="px-3.5 py-1.5 rounded-xl bg-[#0F3D2E] hover:bg-[#155440] text-[#FBF8F1] text-xs font-bold transition-all shadow-xs btn-interactive cursor-pointer"
+              onClick={handleSignOut}
+              className="px-3.5 py-1.5 rounded-xl bg-[#FA661C] hover:bg-[#E0530B] text-[#FFFFFF] text-xs font-bold transition-all shadow-xs btn-interactive flex items-center space-x-1.5 cursor-pointer"
             >
-              Sign Out
+              <LogOut className="w-3.5 h-3.5 text-[#FF811A]" />
+              <span>Sign Out</span>
             </button>
           </div>
 
@@ -129,15 +153,15 @@ export default function ProfilePage({ onLogout }) {
             <button
               type="button"
               onClick={handleMobileBackToHub}
-              className="flex items-center space-x-1.5 text-xs font-bold text-[#0F3D2E] bg-white px-3 py-2 rounded-xl border border-[#D8E0DC] shadow-2xs"
+              className="flex items-center space-x-1.5 text-xs font-bold text-[#FA661C] bg-white px-3 py-2 rounded-xl border border-[#EAE3DC] shadow-2xs"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>Back to Account Menu</span>
             </button>
           ) : (
             <div className="flex items-center space-x-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#D4AF37]" />
-              <span className="font-['Outfit'] font-black text-sm text-[#0F3D2E]">Select Account Section</span>
+              <span className="w-2.5 h-2.5 rounded-full bg-[#FF811A]" />
+              <span className="font-['Outfit'] font-black text-sm text-[#FA661C]">Select Account Section</span>
             </div>
           )}
         </div>
@@ -152,8 +176,9 @@ export default function ProfilePage({ onLogout }) {
             <ProfileSidebar 
               activeSection={activeSection}
               onSelectSection={handleSelectSection}
+              user={userProfile}
               userProfile={userProfile}
-              onLogout={onLogout}
+              onLogout={handleSignOut}
             />
           </div>
 
@@ -166,7 +191,11 @@ export default function ProfilePage({ onLogout }) {
               
               {/* 1. Personal Details */}
               {activeSection === 'profile' && (
-                <PersonalDetailsSection userProfile={userProfile} />
+                <PersonalDetailsSection 
+                  profileData={userProfile} 
+                  userProfile={userProfile}
+                  onUpdateProfile={(updated) => setUserProfile(prev => ({ ...prev, ...updated }))}
+                />
               )}
 
               {/* 2. Address Book */}
@@ -189,17 +218,7 @@ export default function ProfilePage({ onLogout }) {
                 <WarrantySection />
               )}
 
-              {/* 6. Mytri Wallet & Gift Cards */}
-              {activeSection === 'wallet' && (
-                <WalletSection />
-              )}
-
-              {/* 7. SuperCoins & Rewards */}
-              {activeSection === 'rewards' && (
-                <RewardsSection />
-              )}
-
-              {/* 8. Notification Preferences */}
+              {/* 8. Notifications Preferences */}
               {activeSection === 'notifications' && (
                 <NotificationsSection />
               )}
@@ -211,22 +230,22 @@ export default function ProfilePage({ onLogout }) {
 
               {/* 10. Account Settings */}
               {activeSection === 'settings' && (
-                <AccountSettingsSection onLogout={onLogout} />
+                <AccountSettingsSection onLogout={handleSignOut} />
               )}
 
               {/* Fallback for PAN/GSTIN & Privacy */}
               {(activeSection === 'pan-gstin' || activeSection === 'privacy') && (
-                <div className="bg-white rounded-3xl border border-[#D8E0DC] p-6 sm:p-8 shadow-xs space-y-4">
+                <div className="bg-white rounded-3xl border border-[#EAE3DC] p-6 sm:p-8 shadow-xs space-y-4">
                   <div className="flex items-center space-x-2">
-                    <ShieldCheck className="w-5 h-5 text-[#0F3D2E]" />
-                    <h3 className="font-['Outfit'] font-black text-lg text-[#0F3D2E] capitalize">
+                    <ShieldCheck className="w-5 h-5 text-[#FA661C]" />
+                    <h3 className="font-['Outfit'] font-black text-lg text-[#FA661C] capitalize">
                       {activeSection.replace('-', ' ')} Verification
                     </h3>
                   </div>
-                  <p className="text-xs text-[#5C6B63]">
+                  <p className="text-xs text-[#6B6058]">
                     Your identity documents and statutory compliance data are verified with 256-bit AES encryption.
                   </p>
-                  <div className="p-4 bg-[#FCF7E8] rounded-2xl border border-[#D4AF37]/40 text-xs font-bold text-[#0F3D2E]">
+                  <div className="p-4 bg-[#FFF8F2] rounded-2xl border border-[#FF811A]/40 text-xs font-bold text-[#FA661C]">
                     Status: KYC Verified & Linked to GSTIN / PAN Dossier
                   </div>
                 </div>

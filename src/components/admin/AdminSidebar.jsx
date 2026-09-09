@@ -19,6 +19,7 @@ import {
   X
 } from 'lucide-react';
 import { ADMIN_NAV_GROUPS } from '../../data/adminMockData';
+import { useToast } from '../../context/ToastContext';
 
 const ICON_MAP = {
   LayoutDashboard,
@@ -40,6 +41,7 @@ export default function AdminSidebar({
 }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const toast = useToast();
   const [openGroups, setOpenGroups] = useState(['catalog', 'orders', 'finance']);
 
   const activeSection = location.pathname === '/admin' ? 'dashboard' : location.pathname.replace('/admin/', '');
@@ -80,12 +82,17 @@ export default function AdminSidebar({
     if (onCloseMobile) onCloseMobile();
   };
 
+  const handleAdminSignOut = () => {
+    navigate('/');
+    toast.info("Admin Sign Out", "You have signed out of Admin Operations Console.");
+  };
+
   return (
     <>
       {/* Mobile Backdrop Sheet */}
       {isMobileOpen && (
         <div 
-          className="fixed inset-0 bg-[#0F3D2E]/70 backdrop-blur-xs z-40 lg:hidden"
+          className="fixed inset-0 bg-[#1A1A1A]/70 backdrop-blur-xs z-40 lg:hidden"
           onClick={onCloseMobile}
           aria-hidden="true"
         />
@@ -94,24 +101,24 @@ export default function AdminSidebar({
       {/* Main Sidebar Shell */}
       <aside 
         aria-label="Admin Operations Navigation"
-        className={`fixed lg:sticky top-0 left-0 h-screen w-72 shrink-0 bg-[#0F3D2E] text-[#FBF8F1] border-r border-[#D4AF37]/30 flex flex-col justify-between z-50 transition-transform duration-300 ${
+        className={`fixed lg:sticky top-0 left-0 h-screen w-72 shrink-0 bg-[#1A1A1A] text-[#FFFFFF] border-r border-[#FF811A]/30 flex flex-col justify-between z-50 transition-transform duration-300 ${
           isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
         <div className="flex flex-col h-full overflow-hidden">
           
           {/* Top Brand Wordmark + Environment Header */}
-          <div className="p-4 sm:p-5 border-b border-[#FBF8F1]/15 flex items-center justify-between">
+          <div className="p-4 sm:p-5 border-b border-[#FFFFFF]/15 flex items-center justify-between">
             <div>
               <Link to="/admin" className="flex items-center space-x-2">
-                <span className="font-['Outfit'] font-black text-2xl tracking-tight text-[#FBF8F1]">
-                  Mytri<span className="text-[#D4AF37]">Kart</span>
+                <span className="font-['Outfit'] font-black text-2xl tracking-tight text-[#FFFFFF]">
+                  Mytri<span className="text-[#FF811A]">Kart</span>
                 </span>
-                <span className="text-[10px] font-black uppercase tracking-wider bg-[#D4AF37] text-[#0F3D2E] px-1.5 py-0.5 rounded shadow-2xs">
+                <span className="text-[10px] font-black uppercase tracking-wider bg-[#FF811A] text-[#FA661C] px-1.5 py-0.5 rounded shadow-2xs">
                   OPS
                 </span>
               </Link>
-              <div className="flex items-center space-x-1.5 mt-1 text-[11px] text-[#D8E0DC]">
+              <div className="flex items-center space-x-1.5 mt-1 text-[11px] text-[#EAE3DC]">
                 <span className="w-2 h-2 rounded-full bg-[#52B788] animate-pulse" />
                 <span>Production Console v2.6.4</span>
               </div>
@@ -120,7 +127,7 @@ export default function AdminSidebar({
             <button
               type="button"
               onClick={onCloseMobile}
-              className="lg:hidden p-1 text-[#FBF8F1]/80 hover:text-white"
+              className="lg:hidden p-1 text-[#FFFFFF]/80 hover:text-[#000000]"
               aria-label="Close menu"
             >
               <X className="w-5 h-5" />
@@ -128,15 +135,15 @@ export default function AdminSidebar({
           </div>
 
           {/* Module Quick Filter Search */}
-          <div className="p-3 border-b border-[#FBF8F1]/10">
-            <div className="flex items-center space-x-2 bg-[#155440] px-3 py-1.5 rounded-xl border border-[#FBF8F1]/20">
-              <Search className="w-3.5 h-3.5 text-[#D4AF37]" />
+          <div className="p-3 border-b border-[#FFFFFF]/10">
+            <div className="flex items-center space-x-2 bg-[#E0530B] px-3 py-1.5 rounded-xl border border-[#FFFFFF]/20">
+              <Search className="w-3.5 h-3.5 text-[#FF811A]" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Filter 30 Admin Modules..."
-                className="bg-transparent text-xs text-[#FBF8F1] placeholder-[#FBF8F1]/50 outline-none w-full"
+                className="bg-transparent text-xs text-[#FFFFFF] placeholder-[#FFFFFF]/50 outline-none w-full"
               />
             </div>
           </div>
@@ -157,8 +164,8 @@ export default function AdminSidebar({
                     onClick={() => handleItemClick(group.id)}
                     className={`w-full flex items-center justify-between px-3 py-2 rounded-xl font-bold transition-all cursor-pointer btn-interactive ${
                       isCurrent
-                        ? 'bg-[#D4AF37] text-[#0F3D2E] shadow-sm'
-                        : 'text-[#FBF8F1]/80 hover:bg-[#155440] hover:text-[#FBF8F1]'
+                        ? 'bg-[#FF811A] text-[#FA661C] shadow-sm'
+                        : 'text-[#FFFFFF]/80 hover:bg-[#E0530B] hover:text-[#FFFFFF]'
                     }`}
                   >
                     <div className="flex items-center space-x-2.5">
@@ -174,19 +181,19 @@ export default function AdminSidebar({
                   <button
                     type="button"
                     onClick={() => toggleGroup(group.id)}
-                    className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-[#FBF8F1]/90 hover:bg-[#155440] font-bold text-xs transition-colors cursor-pointer"
+                    className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-[#FFFFFF]/90 hover:bg-[#E0530B] font-bold text-xs transition-colors cursor-pointer"
                   >
                     <div className="flex items-center space-x-2.5">
-                      <Icon className="w-4 h-4 text-[#D4AF37]" />
+                      <Icon className="w-4 h-4 text-[#FF811A]" />
                       <span>{group.label}</span>
                     </div>
-                    <ChevronDown className={`w-3.5 h-3.5 text-[#FBF8F1]/60 transition-transform duration-200 ${
-                      isOpen ? 'rotate-180 text-[#D4AF37]' : ''
+                    <ChevronDown className={`w-3.5 h-3.5 text-[#FFFFFF]/60 transition-transform duration-200 ${
+                      isOpen ? 'rotate-180 text-[#FF811A]' : ''
                     }`} />
                   </button>
 
                   {isOpen && (
-                    <div className="pl-6 pr-1 space-y-1 border-l-2 border-[#D4AF37]/30 ml-4 py-1">
+                    <div className="pl-6 pr-1 space-y-1 border-l-2 border-[#FF811A]/30 ml-4 py-1">
                       {group.items.map((item) => {
                         const isCurrent = activeSection === item.id;
 
@@ -197,18 +204,18 @@ export default function AdminSidebar({
                             onClick={() => handleItemClick(item.id)}
                             className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition-all cursor-pointer ${
                               isCurrent
-                                ? 'bg-[#D4AF37] text-[#0F3D2E] font-black shadow-xs'
-                                : 'text-[#FBF8F1]/70 hover:bg-[#155440] hover:text-[#FBF8F1]'
+                                ? 'bg-[#FF811A] text-[#FA661C] font-black shadow-xs'
+                                : 'text-[#FFFFFF]/70 hover:bg-[#E0530B] hover:text-[#FFFFFF]'
                             }`}
                           >
                             <span className="truncate">{item.label}</span>
                             {item.badge && (
                               <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded-full ml-1 shrink-0 ${
                                 item.badge.includes('Alert') || item.badge.includes('Action')
-                                  ? 'bg-[#C0392B] text-white'
+                                  ? 'bg-[#D7263D] text-white'
                                   : isCurrent
-                                  ? 'bg-[#0F3D2E] text-[#FBF8F1]'
-                                  : 'bg-[#155440] text-[#D4AF37]'
+                                  ? 'bg-[#1A1A1A] text-[#FFFFFF]'
+                                  : 'bg-[#E0530B] text-[#FF811A]'
                               }`}>
                                 {item.badge}
                               </span>
@@ -223,15 +230,23 @@ export default function AdminSidebar({
             })}
           </nav>
 
-          {/* Bottom Marketplace Link */}
-          <div className="p-3 border-t border-[#FBF8F1]/15 bg-[#0A2A1F]">
+          {/* Bottom Actions: Exit & Sign Out */}
+          <div className="p-3 border-t border-[#FFFFFF]/15 bg-[#0A2A1F] space-y-1.5">
             <Link
               to="/"
-              className="w-full py-2 px-3 rounded-xl bg-[#155440] hover:bg-[#1A624B] text-[#FBF8F1] border border-[#D4AF37]/30 text-xs font-bold btn-interactive flex items-center justify-center space-x-1.5 cursor-pointer shadow-xs"
+              className="w-full py-1.5 px-3 rounded-xl bg-[#E0530B]/60 hover:bg-[#E0530B] text-[#FF811A] text-[11px] font-bold btn-interactive flex items-center justify-center space-x-1.5 cursor-pointer"
             >
-              <LogOut className="w-3.5 h-3.5 text-[#D4AF37]" />
-              <span>Exit to Marketplace Home</span>
+              <span>View Marketplace</span>
             </Link>
+
+            <button
+              type="button"
+              onClick={handleAdminSignOut}
+              className="w-full py-2 px-3 rounded-xl bg-[#D7263D]/90 hover:bg-[#D7263D] text-[#FFFFFF] text-xs font-bold btn-interactive flex items-center justify-center space-x-1.5 cursor-pointer shadow-xs"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Sign Out of Admin Console</span>
+            </button>
           </div>
 
         </div>

@@ -64,7 +64,7 @@ export default function HeroCarousel({ activeCategory = 'for-you' }) {
       onMouseLeave={() => setIsPaused(false)}
     >
       <div 
-        className="relative rounded-2xl md:rounded-3xl overflow-hidden shadow-xl border border-[#D4AF37]/30 group"
+        className="relative rounded-2xl md:rounded-3xl overflow-hidden shadow-xl border border-[#FF811A]/30 group"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -91,29 +91,29 @@ export default function HeroCarousel({ activeCategory = 'for-you' }) {
               />
 
               {/* Decorative Background Gradient Overlays */}
-              <div className="absolute inset-0 bg-gradient-to-r from-[#0F3D2E] via-[#0F3D2E]/90 to-transparent" />
-              <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-[#D4AF37]/10 to-transparent pointer-events-none" />
+              <div className="absolute inset-0 bg-gradient-to-r from-[#FA661C] via-[#FA661C]/90 to-transparent" />
+              <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-[#FF811A]/10 to-transparent pointer-events-none" />
 
               {/* Slide Content Box */}
-              <div className="relative z-10 p-6 sm:p-10 md:p-14 max-w-xl text-[#FBF8F1]">
+              <div className="relative z-10 p-6 sm:p-10 md:p-14 max-w-xl text-[#FFFFFF]">
                 
                 {/* Badge + Tagline */}
                 <div className="flex items-center space-x-2 mb-3">
-                  <span className="text-[10px] sm:text-xs font-extrabold uppercase tracking-widest bg-[#D4AF37] text-[#0F3D2E] px-2.5 py-0.5 rounded-full shadow-2xs">
+                  <span className="text-[10px] sm:text-xs font-extrabold uppercase tracking-widest bg-[#FF811A] text-[#FA661C] px-2.5 py-0.5 rounded-full shadow-2xs">
                     {slide.badge}
                   </span>
-                  <span className="text-xs font-semibold text-[#D4AF37] tracking-wider hidden sm:inline-block">
+                  <span className="text-xs font-semibold text-[#FF811A] tracking-wider hidden sm:inline-block">
                     • {slide.tagline}
                   </span>
                 </div>
 
                 {/* Banner Main Title */}
-                <h2 className="font-['Outfit'] text-2xl sm:text-4xl md:text-5xl font-extrabold text-[#FBF8F1] leading-tight mb-2 tracking-tight">
+                <h2 className="font-['Outfit'] text-2xl sm:text-4xl md:text-5xl font-extrabold text-[#FFFFFF] leading-tight mb-2 tracking-tight">
                   {slide.title}
                 </h2>
 
                 {/* Subtitle / Offer text */}
-                <p className="text-xs sm:text-base text-[#FBF8F1]/90 font-medium mb-6 max-w-md">
+                <p className="text-xs sm:text-base text-[#FFFFFF]/90 font-medium mb-6 max-w-md">
                   {slide.subtitle}
                 </p>
 
@@ -121,7 +121,7 @@ export default function HeroCarousel({ activeCategory = 'for-you' }) {
                 <a
                   href="#explore"
                   onClick={(e) => { e.preventDefault(); alert(`Navigating to promotional campaign: ${slide.title}`); }}
-                  className="inline-flex items-center space-x-2 bg-[#D4AF37] hover:bg-[#E3BE46] text-[#0F3D2E] font-extrabold text-xs sm:text-sm px-5 py-2.5 rounded-xl shadow-lg transition-all btn-interactive"
+                  className="inline-flex items-center space-x-2 bg-[#FF811A] hover:bg-[#E3BE46] text-[#FA661C] font-extrabold text-xs sm:text-sm px-5 py-2.5 rounded-xl shadow-lg transition-all btn-interactive"
                 >
                   <span>{slide.cta}</span>
                   <ArrowRight className="w-4 h-4" />
@@ -132,7 +132,7 @@ export default function HeroCarousel({ activeCategory = 'for-you' }) {
               {/* Corner AD Tag */}
               {slide.isAd && (
                 <div className="absolute top-3 right-3 sm:top-4 sm:right-4 z-20">
-                  <span className="text-[10px] font-bold text-[#D4AF37] bg-[#0F3D2E]/80 backdrop-blur-md px-2 py-0.5 rounded-full border border-[#D4AF37]/40 shadow-xs uppercase tracking-wider">
+                  <span className="text-[10px] font-bold text-[#FF811A] bg-[#FA661C]/80 backdrop-blur-md px-2 py-0.5 rounded-full border border-[#FF811A]/40 shadow-xs uppercase tracking-wider">
                     AD
                   </span>
                 </div>
@@ -146,7 +146,7 @@ export default function HeroCarousel({ activeCategory = 'for-you' }) {
           <>
             <button
               onClick={handlePrev}
-              className="hidden md:flex absolute left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-[#FBF8F1]/80 hover:bg-[#FBF8F1] text-[#0F3D2E] items-center justify-center shadow-lg backdrop-blur-md opacity-0 group-hover:opacity-100 transition-all btn-interactive focus:outline-none cursor-pointer"
+              className="hidden md:flex absolute left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-[#FFFFFF]/80 hover:bg-[#FFFFFF] text-[#FA661C] items-center justify-center shadow-lg backdrop-blur-md opacity-0 group-hover:opacity-100 transition-all btn-interactive focus:outline-none cursor-pointer"
               aria-label="Previous Banner Slide"
             >
               <ChevronLeft className="w-6 h-6" />
@@ -154,7 +154,7 @@ export default function HeroCarousel({ activeCategory = 'for-you' }) {
 
             <button
               onClick={handleNext}
-              className="hidden md:flex absolute right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-[#FBF8F1]/80 hover:bg-[#FBF8F1] text-[#0F3D2E] items-center justify-center shadow-lg backdrop-blur-md opacity-0 group-hover:opacity-100 transition-all btn-interactive focus:outline-none cursor-pointer"
+              className="hidden md:flex absolute right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-[#FFFFFF]/80 hover:bg-[#FFFFFF] text-[#FA661C] items-center justify-center shadow-lg backdrop-blur-md opacity-0 group-hover:opacity-100 transition-all btn-interactive focus:outline-none cursor-pointer"
               aria-label="Next Banner Slide"
             >
               <ChevronRight className="w-6 h-6" />
@@ -171,8 +171,8 @@ export default function HeroCarousel({ activeCategory = 'for-you' }) {
                 onClick={() => setCurrentIndex(idx)}
                 className={`h-2 rounded-full transition-all duration-300 focus:outline-none cursor-pointer ${
                   currentIndex === idx 
-                    ? 'w-7 bg-[#D4AF37] shadow-xs' 
-                    : 'w-2 bg-[#5C6B63]/60 hover:bg-[#FBF8F1]'
+                    ? 'w-7 bg-[#FF811A] shadow-xs' 
+                    : 'w-2 bg-[#6B6058]/60 hover:bg-[#FFFFFF]'
                 }`}
                 aria-label={`Go to slide ${idx + 1}`}
               />

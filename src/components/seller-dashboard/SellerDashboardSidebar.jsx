@@ -11,12 +11,13 @@ import {
   ExternalLink,
   X 
 } from 'lucide-react';
-import { SELLER_PROFILE } from '../../data/sellerDashboardData';
+import AuthContext from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 
 const SELLER_NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', route: '/seller/dashboard', icon: LayoutDashboard },
-  { id: 'products', label: 'Products & Inventory', route: '/seller/products', icon: Package, badge: '48' },
-  { id: 'orders', label: 'Orders & Fulfillment', route: '/seller/orders', icon: ShoppingBag, badge: '6 New', isHighlight: true },
+  { id: 'products', label: 'Products & Inventory', route: '/seller/products', icon: Package },
+  { id: 'orders', label: 'Orders & Fulfillment', route: '/seller/orders', icon: ShoppingBag, isHighlight: true },
   { id: 'settlements', label: 'Settlements & Payouts', route: '/seller/settlements', icon: Landmark },
   { id: 'settings', label: 'Store Settings', route: '/seller/settings', icon: Settings },
   { id: 'profile', label: 'Merchant Profile', route: '/seller/profile', icon: User }
@@ -24,17 +25,58 @@ const SELLER_NAV_ITEMS = [
 
 export default function SellerDashboardSidebar({
   isMobileOpen,
-  onCloseMobile
+  onCloseMobile,
+  productStatusCounts,
+  orderStatusCounts,
+  vendorProfile
 }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const toast = useToast();
+  const auth = React.useContext(AuthContext);
+  const logout = auth?.logout;
+  const currentUser = auth?.currentUser;
+
+  // Compute live badge counts from real API data
+  const totalProducts = productStatusCounts && typeof productStatusCounts === 'object'
+    ? Object.values(productStatusCounts).reduce((acc, curr) => acc + (Number(curr) || 0), 0)
+    : 0;
+
+  const newOrdersCount = orderStatusCounts && typeof orderStatusCounts === 'object'
+    ? Number(orderStatusCounts.new || orderStatusCounts.NEW || 0)
+    : 0;
+
+  const getBadgeForItem = (itemId) => {
+    if (itemId === 'products') {
+      return totalProducts > 0 ? String(totalProducts) : null;
+    }
+    if (itemId === 'orders') {
+      return newOrdersCount > 0 ? `${newOrdersCount} New` : null;
+    }
+    return null;
+  };
+
+  const handleSellerSignOut = async () => {
+    if (logout) {
+      try {
+        await logout();
+      } catch (err) {
+        console.warn("Logout request completed with warning:", err);
+      }
+    }
+    navigate('/');
+    toast.info("Seller Sign Out", "You have signed out of Seller Hub.");
+  };
+
+  const displayStoreName = vendorProfile?.store_name || (currentUser?.first_name ? `${currentUser.first_name}'s Store` : 'Merchant Store');
+  const storeInitials = displayStoreName.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase() || 'SH';
 
   return (
     <>
       {/* Mobile Backdrop Overlay */}
       {isMobileOpen && (
         <div 
-          className="fixed inset-0 bg-[#0F3D2E]/70 backdrop-blur-xs z-40 lg:hidden"
+          className="fixed inset-0 bg-[#1A1A1A]/70 backdrop-blur-xs z-40 lg:hidden"
           onClick={onCloseMobile}
           aria-hidden="true"
         />
@@ -43,25 +85,25 @@ export default function SellerDashboardSidebar({
       {/* Persistent Left Sidebar Shell */}
       <aside 
         aria-label="Seller Hub Navigation"
-        className={`fixed lg:sticky top-0 left-0 h-screen w-64 shrink-0 bg-[#0F3D2E] text-[#FBF8F1] border-r border-[#D4AF37]/30 flex flex-col justify-between z-50 transition-transform duration-300 ${
+        className={`fixed lg:sticky top-0 left-0 h-screen w-64 shrink-0 bg-[#1A1A1A] text-[#FFFFFF] border-r border-[#FF811A]/30 flex flex-col justify-between z-50 transition-transform duration-300 ${
           isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
         <div className="flex flex-col h-full overflow-hidden">
           
           {/* Top Brand Header */}
-          <div className="p-4 sm:p-5 border-b border-[#FBF8F1]/15 flex items-center justify-between">
+          <div className="p-4 sm:p-5 border-b border-[#FFFFFF]/15 flex items-center justify-between">
             <Link to="/seller/dashboard" className="flex items-center space-x-2.5 truncate">
-              <div className="w-9 h-9 rounded-xl bg-[#D4AF37] text-[#0F3D2E] font-['Outfit'] font-black text-sm flex items-center justify-center shadow-md border border-[#FBF8F1] shrink-0 avatar-interactive">
-                AP
+              <div className="w-9 h-9 rounded-xl bg-[#FF811A] text-[#FA661C] font-['Outfit'] font-black text-sm flex items-center justify-center shadow-md border border-[#FFFFFF] shrink-0 avatar-interactive">
+                {storeInitials}
               </div>
               <div className="truncate">
                 <div className="flex items-center space-x-1.5">
-                  <span className="font-['Outfit'] font-extrabold text-sm text-[#FBF8F1] truncate">
-                    {SELLER_PROFILE.storeName}
+                  <span className="font-['Outfit'] font-extrabold text-sm text-[#FFFFFF] truncate">
+                    {displayStoreName}
                   </span>
                 </div>
-                <span className="text-[9px] font-bold text-[#D4AF37] tracking-wider uppercase block">
+                <span className="text-[9px] font-bold text-[#FF811A] tracking-wider uppercase block">
                   SELLER HUB
                 </span>
               </div>
@@ -71,7 +113,7 @@ export default function SellerDashboardSidebar({
             <button
               type="button"
               onClick={onCloseMobile}
-              className="lg:hidden p-1 text-[#FBF8F1]/80 hover:text-white"
+              className="lg:hidden p-1 text-[#FFFFFF]/80 hover:text-[#000000]"
               aria-label="Close navigation"
             >
               <X className="w-5 h-5" />
@@ -84,6 +126,8 @@ export default function SellerDashboardSidebar({
               const Icon = item.icon;
               const isCurrent = location.pathname === item.route || (item.id === 'dashboard' && location.pathname === '/seller');
 
+              const badgeText = getBadgeForItem(item.id);
+
               return (
                 <button
                   key={item.id}
@@ -94,8 +138,8 @@ export default function SellerDashboardSidebar({
                   }}
                   className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl font-bold transition-all cursor-pointer btn-interactive ${
                     isCurrent
-                      ? 'bg-[#D4AF37] text-[#0F3D2E] shadow-sm'
-                      : 'text-[#FBF8F1]/80 hover:bg-[#155440] hover:text-[#FBF8F1]'
+                      ? 'bg-[#FF811A] text-[#FA661C] shadow-sm'
+                      : 'text-[#FFFFFF]/80 hover:bg-[#E0530B] hover:text-[#FFFFFF]'
                   }`}
                 >
                   <div className="flex items-center space-x-2.5 truncate">
@@ -103,15 +147,15 @@ export default function SellerDashboardSidebar({
                     <span className="truncate">{item.label}</span>
                   </div>
 
-                  {item.badge && (
+                  {badgeText && (
                     <span className={`text-[9px] font-extrabold px-1.5 py-0.2 rounded-full shrink-0 ${
                       item.isHighlight 
-                        ? 'bg-[#0F3D2E] text-[#D4AF37]' 
+                        ? 'bg-[#1A1A1A] text-[#FF811A]' 
                         : isCurrent
-                        ? 'bg-[#0F3D2E] text-[#FBF8F1]'
-                        : 'bg-[#155440] text-[#D4AF37]'
+                        ? 'bg-[#1A1A1A] text-[#FFFFFF]'
+                        : 'bg-[#E0530B] text-[#FF811A]'
                     }`}>
-                      {item.badge}
+                      {badgeText}
                     </span>
                   )}
                 </button>
@@ -119,23 +163,24 @@ export default function SellerDashboardSidebar({
             })}
           </nav>
 
-          {/* Bottom Storefront & Marketplace Link */}
-          <div className="p-3 border-t border-[#FBF8F1]/15 bg-[#0A2A1F] space-y-1.5">
+          {/* Bottom Actions: Storefront, Home & Sign Out */}
+          <div className="p-3 border-t border-[#FFFFFF]/15 bg-[#0A2A1F] space-y-1.5">
             <Link
               to="/"
-              className="w-full py-2 px-3 rounded-xl bg-[#155440]/60 hover:bg-[#155440] text-[#D4AF37] text-[11px] font-bold btn-interactive flex items-center justify-center space-x-1.5 cursor-pointer"
+              className="w-full py-1.5 px-3 rounded-xl bg-[#E0530B]/60 hover:bg-[#E0530B] text-[#FF811A] text-[11px] font-bold btn-interactive flex items-center justify-center space-x-1.5 cursor-pointer"
             >
               <ExternalLink className="w-3 h-3" />
-              <span>View Live Storefront</span>
+              <span>Live Storefront</span>
             </Link>
 
-            <Link
-              to="/"
-              className="w-full py-2 px-3 rounded-xl bg-[#155440] hover:bg-[#1A624B] text-[#FBF8F1] border border-[#D4AF37]/30 text-xs font-bold btn-interactive flex items-center justify-center space-x-1.5 cursor-pointer shadow-xs"
+            <button
+              type="button"
+              onClick={handleSellerSignOut}
+              className="w-full py-2 px-3 rounded-xl bg-[#D7263D]/90 hover:bg-[#D7263D] text-[#FFFFFF] text-xs font-bold btn-interactive flex items-center justify-center space-x-1.5 cursor-pointer shadow-xs"
             >
-              <LogOut className="w-3.5 h-3.5 text-[#D4AF37]" />
-              <span>Exit to Marketplace Home</span>
-            </Link>
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Sign Out of Seller Hub</span>
+            </button>
           </div>
 
         </div>

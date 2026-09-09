@@ -16,31 +16,31 @@ export default function SellerProgressStepper({ currentStep, onJumpToStep }) {
   const progressPercent = ((currentStep - 1) / (SELLER_STEPS.length - 1)) * 100;
 
   return (
-    <div className="bg-white border-b border-[#D8E0DC] py-4 px-4 sm:px-8 shadow-xs sticky top-[57px] z-30">
+    <div className="bg-white border-b border-[#EAE3DC] py-4 px-4 sm:px-8 shadow-xs sticky top-[57px] z-30">
       <div className="max-w-7xl mx-auto">
         
         {/* Top Info Row: Current Step Title + Auto-Save Indicator */}
         <div className="flex items-center justify-between text-xs mb-3">
           <div className="flex items-center space-x-2">
-            <span className="font-bold text-[#0F3D2E] text-xs sm:text-sm">
+            <span className="font-bold text-[#FA661C] text-xs sm:text-sm">
               Step {currentStep} of {SELLER_STEPS.length}:
             </span>
-            <span className="font-extrabold text-[#D4AF37] text-xs sm:text-sm">
+            <span className="font-extrabold text-[#FF811A] text-xs sm:text-sm">
               {currentStepMeta.title}
             </span>
           </div>
 
-          <div className="flex items-center space-x-2 text-[11px] text-[#5C6B63]">
-            <span className="inline-block w-2 h-2 rounded-full bg-[#155440] animate-pulse" />
+          <div className="flex items-center space-x-2 text-[11px] text-[#6B6058]">
+            <span className="inline-block w-2 h-2 rounded-full bg-[#E0530B] animate-pulse" />
             <span className="hidden sm:inline font-medium">Draft auto-saved to Cloud Vault</span>
             <span className="sm:hidden font-medium">Auto-saved</span>
           </div>
         </div>
 
         {/* MOBILE VIEW (<640px): Compact Progress Bar */}
-        <div className="sm:hidden w-full h-2 bg-[#E8F2EE] rounded-full overflow-hidden p-0.5 border border-[#D8E0DC]/60">
+        <div className="sm:hidden w-full h-2 bg-[#FFF3EC] rounded-full overflow-hidden p-0.5 border border-[#EAE3DC]/60">
           <div 
-            className="h-full bg-gradient-to-r from-[#0F3D2E] to-[#D4AF37] rounded-full transition-all duration-300 shadow-2xs"
+            className="h-full bg-gradient-to-r from-[#FA661C] to-[#FF811A] rounded-full transition-all duration-300 shadow-2xs"
             style={{ width: `${Math.max(progressPercent, 14)}%` }}
           />
         </div>
@@ -48,11 +48,11 @@ export default function SellerProgressStepper({ currentStep, onJumpToStep }) {
         {/* DESKTOP / TABLET VIEW (641px+): Full Numbered Stepper */}
         <div className="hidden sm:block relative my-2 px-2 lg:px-6">
           {/* Background Track Line */}
-          <div className="absolute top-1/2 left-8 right-8 h-1 bg-[#E8F2EE] -translate-y-1/2 z-0 rounded-full" />
+          <div className="absolute top-1/2 left-8 right-8 h-1 bg-[#FFF3EC] -translate-y-1/2 z-0 rounded-full" />
           
           {/* Active Fill Line */}
           <div 
-            className="absolute top-1/2 left-8 h-1 bg-gradient-to-r from-[#0F3D2E] via-[#16523F] to-[#D4AF37] -translate-y-1/2 z-0 transition-all duration-300 rounded-full shadow-2xs"
+            className="absolute top-1/2 left-8 h-1 bg-gradient-to-r from-[#FA661C] via-[#16523F] to-[#FF811A] -translate-y-1/2 z-0 transition-all duration-300 rounded-full shadow-2xs"
             style={{ width: `${(progressPercent / 100) * 88}%` }}
           />
 
@@ -78,10 +78,10 @@ export default function SellerProgressStepper({ currentStep, onJumpToStep }) {
                   {/* Step Circle Badge */}
                   <div className={`w-8 h-8 lg:w-9 lg:h-9 rounded-full flex items-center justify-center text-xs font-black transition-all duration-200 ${
                     isCompleted
-                      ? 'bg-[#0F3D2E] text-[#D4AF37] shadow-sm hover:scale-110 ring-2 ring-[#D4AF37]'
+                      ? 'bg-[#FA661C] text-[#FF811A] shadow-sm hover:scale-110 ring-2 ring-[#FF811A]'
                       : isCurrent
-                      ? 'bg-[#D4AF37] text-[#0F3D2E] ring-4 ring-[#FCF7E8] shadow-md scale-110'
-                      : 'bg-white text-[#5C6B63] border-2 border-[#D8E0DC]'
+                      ? 'bg-[#FF811A] text-[#FA661C] ring-4 ring-[#FFF8F2] shadow-md scale-110'
+                      : 'bg-white text-[#6B6058] border-2 border-[#EAE3DC]'
                   }`}>
                     {isCompleted ? (
                       <Check className="w-4 h-4 stroke-[3]" />
@@ -93,10 +93,10 @@ export default function SellerProgressStepper({ currentStep, onJumpToStep }) {
                   {/* Label */}
                   <span className={`text-[11px] font-bold mt-1.5 whitespace-nowrap transition-colors ${
                     isCurrent
-                      ? 'text-[#0F3D2E]'
+                      ? 'text-[#FA661C]'
                       : isCompleted
-                      ? 'text-[#0F3D2E]/80 group-hover:text-[#0F3D2E]'
-                      : 'text-[#5C6B63]/60'
+                      ? 'text-[#FA661C]/80 group-hover:text-[#FA661C]'
+                      : 'text-[#6B6058]/60'
                   }`}>
                     {s.label}
                   </span>

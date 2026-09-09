@@ -6,14 +6,19 @@ import AccountMenuDropdown from '../dropdowns/AccountMenuDropdown';
 import MoreDropdown from '../dropdowns/MoreDropdown';
 import { User, ChevronDown, MoreVertical, ShoppingBag, Sparkles, LogIn, Heart } from 'lucide-react';
 import { useCart } from '../../context/CartWishlistContext';
+import { useAuth } from '../../context/AuthContext';
 
 export default function Header({ 
   onOpenLocationModal, 
   deliveryLocation, 
-  isLoggedIn = false,
-  currentUser = { name: 'Aarav Sharma', email: 'aarav.sharma@example.com', isPlus: true },
-  onLogout
+  isLoggedIn: propIsLoggedIn,
+  currentUser: propCurrentUser,
+  onLogout: propOnLogout
 }) {
+  const auth = useAuth();
+  const isLoggedIn = auth ? auth.isLoggedIn : propIsLoggedIn;
+  const currentUser = (auth && auth.currentUser) ? auth.currentUser : propCurrentUser;
+  const onLogout = auth ? auth.logout : propOnLogout;
   const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false);
   const [isMoreDropdownOpen, setIsMoreDropdownOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -64,8 +69,8 @@ export default function Header({
   return (
     <header 
       ref={headerRef}
-      className={`sticky top-0 z-40 bg-[#FBF8F1] transition-shadow duration-300 border-b border-[#D8E0DC] ${
-        isScrolled ? 'shadow-lg shadow-[#0F3D2E]/5 border-[#D4AF37]/30' : 'shadow-xs'
+      className={`sticky top-0 z-40 bg-[#FFFFFF] transition-shadow duration-300 border-b border-[#EAE3DC] ${
+        isScrolled ? 'shadow-lg shadow-[#FA661C]/5 border-[#FF811A]/30' : 'shadow-xs'
       }`}
     >
       {/* 1. Top Utility Bar */}
@@ -78,9 +83,13 @@ export default function Header({
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-3 flex flex-col sm:flex-row items-center gap-3 sm:gap-6">
         
         {/* Mobile Top Row: Logo + Utility Icons (Shown only on small screens) */}
-        <div className="w-full sm:w-auto flex items-center justify-between sm:hidden pb-1 border-b border-[#D8E0DC]/40">
-          <Link to="/" className="font-['Outfit'] font-extrabold text-xl text-[#0F3D2E] btn-interactive">
-            Mytri<span className="text-[#D4AF37]">Kart</span>
+        <div className="w-full sm:w-auto flex items-center justify-between sm:hidden pb-1 border-b border-[#EAE3DC]/40">
+          <Link to="/" className="flex items-center btn-interactive" aria-label="MytriKart Homepage">
+            <img 
+              src="/mytrikart-logo.png" 
+              alt="MytriKart Logo" 
+              className="h-8 w-auto object-contain max-w-[180px]"
+            />
           </Link>
 
           <div className="flex items-center space-x-2">
@@ -89,9 +98,9 @@ export default function Header({
               <button
                 type="button"
                 onClick={() => setIsAccountDropdownOpen(prev => !prev)}
-                className="p-1.5 rounded-xl text-xs font-bold flex items-center space-x-1.5 border border-[#D4AF37] bg-[#0F3D2E] text-[#FBF8F1] shadow-xs btn-interactive"
+                className="p-1.5 rounded-xl text-xs font-bold flex items-center space-x-1.5 border border-[#FF811A] bg-[#1A1A1A] text-[#FFFFFF] shadow-xs btn-interactive"
               >
-                <div className="w-6 h-6 rounded-full bg-[#D4AF37] text-[#0F3D2E] font-black text-[10px] flex items-center justify-center avatar-interactive">
+                <div className="w-6 h-6 rounded-full bg-[#FF811A] text-[#FA661C] font-black text-[10px] flex items-center justify-center avatar-interactive">
                   {currentUser?.name ? currentUser.name.slice(0, 2).toUpperCase() : 'AS'}
                 </div>
                 <span className="truncate max-w-[65px]">{currentUser?.name?.split(' ')[0] || 'User'}</span>
@@ -99,22 +108,22 @@ export default function Header({
             ) : (
               <Link
                 to="/login"
-                className="px-3 py-1.5 rounded-xl text-xs font-bold flex items-center space-x-1 border border-[#0F3D2E] bg-[#0F3D2E] text-[#FBF8F1] shadow-xs btn-interactive cursor-pointer"
+                className="group px-3 py-1.5 rounded-xl text-xs font-bold flex items-center space-x-1 border border-[#FA661C] bg-[#1A1A1A] hover:bg-[#FA661C] text-[#FFFFFF] shadow-xs btn-interactive cursor-pointer transition-colors duration-150"
               >
-                <LogIn className="w-3.5 h-3.5 text-[#D4AF37]" />
-                <span>Login</span>
+                <LogIn className="w-3.5 h-3.5 text-[#FF811A] group-hover:text-[#000000] transition-colors duration-150" />
+                <span className="text-[#FFFFFF] group-hover:text-[#000000] transition-colors duration-150">Login</span>
               </Link>
             )}
 
             {/* Mobile Wishlist Icon */}
             <Link
               to="/wishlist"
-              className="p-2 bg-white border border-[#D8E0DC] text-[#0F3D2E] rounded-xl shadow-xs btn-interactive relative cursor-pointer"
+              className="p-2 bg-white border border-[#EAE3DC] text-[#FA661C] rounded-xl shadow-xs btn-interactive relative cursor-pointer"
               aria-label="Wishlist"
             >
-              <Heart className="w-4 h-4 text-[#D4AF37]" />
+              <Heart className="w-4 h-4 text-[#FF811A]" />
               {wishlistCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-[#D4AF37] text-[#0F3D2E] text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-white">
+                <span className="absolute -top-1 -right-1 bg-[#FF811A] text-[#FA661C] text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-white">
                   {wishlistCount}
                 </span>
               )}
@@ -123,12 +132,12 @@ export default function Header({
             {/* Mobile Cart Icon */}
             <Link
               to="/cart"
-              className="relative p-2 bg-[#0F3D2E] text-[#FBF8F1] rounded-xl shadow-xs btn-interactive cursor-pointer"
+              className="relative p-2 bg-[#1A1A1A] text-[#FFFFFF] rounded-xl shadow-xs btn-interactive cursor-pointer"
               aria-label="Shopping Cart"
             >
-              <ShoppingBag className="w-4 h-4 text-[#D4AF37] icon-interactive" />
+              <ShoppingBag className="w-4 h-4 text-[#FF811A] icon-interactive" />
               {cartCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 bg-[#C0392B] text-white text-[10px] font-extrabold w-4 h-4 rounded-full flex items-center justify-center border border-white animate-badge-pop">
+                <span className="absolute -top-1.5 -right-1.5 bg-[#D7263D] text-white text-[10px] font-extrabold w-4 h-4 rounded-full flex items-center justify-center border border-white animate-badge-pop">
                   {cartCount}
                 </span>
               )}
@@ -150,28 +159,28 @@ export default function Header({
                 onClick={handleLoginButtonClick}
                 className={`flex items-center space-x-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-150 border focus:outline-none btn-interactive cursor-pointer ${
                   isAccountDropdownOpen
-                    ? 'bg-[#0F3D2E] text-[#FBF8F1] border-[#0F3D2E] shadow-sm'
-                    : 'bg-white hover:bg-[#FCF7E8] text-[#0F3D2E] border-[#D8E0DC] hover:border-[#D4AF37]'
+                    ? 'bg-[#1A1A1A] text-[#FFFFFF] border-[#FA661C] shadow-sm'
+                    : 'bg-white hover:bg-[#FFF8F2] text-[#FA661C] border-[#EAE3DC] hover:border-[#FF811A]'
                 }`}
                 aria-expanded={isAccountDropdownOpen}
                 aria-label="User Account Menu"
               >
-                <div className="w-6 h-6 rounded-full bg-[#D4AF37] text-[#0F3D2E] font-black text-[10px] flex items-center justify-center shadow-xs avatar-interactive">
+                <div className="w-6 h-6 rounded-full bg-[#FF811A] text-[#FA661C] font-black text-[10px] flex items-center justify-center shadow-xs avatar-interactive">
                   {currentUser?.name ? currentUser.name.slice(0, 2).toUpperCase() : 'AS'}
                 </div>
-                <span className="text-xs font-bold text-[#0F3D2E]">{currentUser?.name || 'Aarav Sharma'}</span>
-                <ChevronDown className={`w-3.5 h-3.5 text-[#5C6B63] transition-transform duration-150 ${
-                  isAccountDropdownOpen ? 'rotate-180 text-[#D4AF37]' : ''
+                <span className="text-xs font-bold text-[#FA661C]">{currentUser?.name || 'Aarav Sharma'}</span>
+                <ChevronDown className={`w-3.5 h-3.5 text-[#6B6058] transition-transform duration-150 ${
+                  isAccountDropdownOpen ? 'rotate-180 text-[#FF811A]' : ''
                 }`} />
               </button>
             ) : (
               <Link
                 to="/login"
-                className="flex items-center space-x-1.5 px-4 py-2 bg-[#0F3D2E] hover:bg-[#155440] active:bg-[#0A2A1F] text-[#FBF8F1] rounded-xl text-xs font-bold btn-interactive shadow-xs hover:shadow-md border border-[#0F3D2E] focus:outline-none focus:ring-2 focus:ring-[#D4AF37] cursor-pointer"
+                className="group flex items-center space-x-1.5 px-4 py-2 bg-[#1A1A1A] hover:bg-[#FA661C] active:bg-[#E0530B] text-[#FFFFFF] rounded-xl text-xs font-bold btn-interactive shadow-xs hover:shadow-md border border-[#FA661C] focus:outline-none focus:ring-2 focus:ring-[#FF811A] cursor-pointer transition-colors duration-150"
                 aria-label="Open Customer Login / Sign Up"
               >
-                <User className="w-4 h-4 text-[#D4AF37] icon-interactive" />
-                <span>Login</span>
+                <User className="w-4 h-4 text-[#FF811A] group-hover:text-[#000000] transition-colors duration-150" />
+                <span className="text-[#FFFFFF] group-hover:text-[#000000] transition-colors duration-150">Login</span>
               </Link>
             )}
 
@@ -189,12 +198,12 @@ export default function Header({
           {/* WISHLIST BUTTON */}
           <Link
             to="/wishlist"
-            className="flex items-center space-x-1.5 px-3 py-2 bg-white hover:bg-[#FCF7E8] text-[#0F3D2E] border border-[#D8E0DC] hover:border-[#D4AF37] rounded-xl text-xs font-bold btn-interactive cursor-pointer relative"
+            className="flex items-center space-x-1.5 px-3 py-2 bg-white hover:bg-[#FFF8F2] text-[#FA661C] border border-[#EAE3DC] hover:border-[#FF811A] rounded-xl text-xs font-bold btn-interactive cursor-pointer relative"
           >
-            <Heart className="w-4 h-4 text-[#D4AF37] icon-interactive" />
+            <Heart className="w-4 h-4 text-[#FF811A] icon-interactive" />
             <span>Wishlist</span>
             {wishlistCount > 0 && (
-              <span className="bg-[#D4AF37] text-[#0F3D2E] text-[10px] font-black px-1.5 py-0.2 rounded-full ml-1">
+              <span className="bg-[#FF811A] text-[#FA661C] text-[10px] font-black px-1.5 py-0.2 rounded-full ml-1">
                 {wishlistCount}
               </span>
             )}
@@ -207,16 +216,16 @@ export default function Header({
               onClick={toggleMore}
               className={`flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-bold btn-interactive border focus:outline-none cursor-pointer ${
                 isMoreDropdownOpen
-                  ? 'bg-[#0F3D2E] text-[#FBF8F1] border-[#0F3D2E] shadow-sm'
-                  : 'bg-white hover:bg-[#FCF7E8] text-[#0F3D2E] border-[#D8E0DC] hover:border-[#D4AF37]'
+                  ? 'bg-[#1A1A1A] text-[#FFFFFF] border-[#FA661C] shadow-sm'
+                  : 'bg-white hover:bg-[#FFF8F2] text-[#FA661C] border-[#EAE3DC] hover:border-[#FF811A]'
               }`}
               aria-expanded={isMoreDropdownOpen}
               aria-label="More options menu"
             >
-              <MoreVertical className="w-4 h-4 text-[#5C6B63] icon-interactive" />
+              <MoreVertical className="w-4 h-4 text-[#6B6058] icon-interactive" />
               <span>More</span>
-              <ChevronDown className={`w-3.5 h-3.5 text-[#5C6B63] transition-transform duration-150 ${
-                isMoreDropdownOpen ? 'rotate-180 text-[#D4AF37]' : ''
+              <ChevronDown className={`w-3.5 h-3.5 text-[#6B6058] transition-transform duration-150 ${
+                isMoreDropdownOpen ? 'rotate-180 text-[#FF811A]' : ''
               }`} />
             </button>
 
@@ -229,18 +238,18 @@ export default function Header({
           {/* CART ICON WITH BRICK-RED BADGE */}
           <Link
             to="/cart"
-            className="flex items-center space-x-2 px-3.5 py-2 bg-[#0F3D2E] hover:bg-[#155440] text-[#FBF8F1] rounded-xl text-xs font-bold btn-interactive shadow-sm group focus:outline-none focus:ring-2 focus:ring-[#D4AF37] cursor-pointer"
+            className="flex items-center space-x-2 px-3.5 py-2 bg-[#1A1A1A] hover:bg-[#FA661C] active:bg-[#E0530B] text-[#FFFFFF] rounded-xl text-xs font-bold btn-interactive shadow-sm group focus:outline-none focus:ring-2 focus:ring-[#FF811A] cursor-pointer transition-colors duration-150"
             aria-label={`Cart with ${cartCount} items`}
           >
             <div className="relative">
-              <ShoppingBag className="w-4 h-4 text-[#D4AF37] icon-interactive" />
+              <ShoppingBag className="w-4 h-4 text-[#FF811A] group-hover:text-[#000000] transition-colors duration-150" />
               {cartCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-[#C0392B] text-white text-[9px] font-extrabold w-4 h-4 rounded-full flex items-center justify-center border-2 border-[#0F3D2E] animate-badge-pop">
+                <span className="absolute -top-2 -right-2 bg-[#D7263D] text-white text-[9px] font-extrabold w-4 h-4 rounded-full flex items-center justify-center border-2 border-[#FA661C] animate-badge-pop">
                   {cartCount}
                 </span>
               )}
             </div>
-            <span>Bag</span>
+            <span className="text-[#FFFFFF] group-hover:text-[#000000] transition-colors duration-150">Bag</span>
           </Link>
 
         </div>

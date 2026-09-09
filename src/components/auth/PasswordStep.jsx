@@ -25,7 +25,7 @@ export default function PasswordStep({
       <button
         type="button"
         onClick={onBackToIdentifier}
-        className="inline-flex items-center space-x-1 text-xs font-bold text-[#5C6B63] hover:text-[#0F3D2E] mb-4 transition-colors"
+        className="inline-flex items-center space-x-1 text-xs font-bold text-[#6B6058] hover:text-[#FA661C] mb-4 transition-colors"
       >
         <ArrowLeft className="w-4 h-4" />
         <span>Change Email / Mobile</span>
@@ -33,11 +33,11 @@ export default function PasswordStep({
 
       {/* Heading */}
       <div className="mb-5">
-        <h2 className="font-['Outfit'] text-2xl sm:text-3xl font-extrabold text-[#0F3D2E] tracking-tight">
+        <h2 className="font-['Outfit'] text-2xl sm:text-3xl font-extrabold text-[#FA661C] tracking-tight">
           Enter Password
         </h2>
-        <p className="text-xs text-[#5C6B63] mt-1">
-          Logging into account: <strong className="text-[#0F3D2E]">{identifier || 'user@example.com'}</strong>
+        <p className="text-xs text-[#6B6058] mt-1">
+          Logging into account: <strong className="text-[#FA661C]">{identifier || 'user@example.com'}</strong>
         </p>
       </div>
 
@@ -47,14 +47,14 @@ export default function PasswordStep({
           <div className="flex items-center justify-between mb-1.5">
             <label 
               htmlFor="user-password" 
-              className="text-xs font-bold uppercase tracking-wider text-[#0F3D2E]"
+              className="text-xs font-bold uppercase tracking-wider text-[#FA661C]"
             >
               Password
             </label>
             <button
               type="button"
               onClick={onGoToForgot}
-              className="text-xs font-bold text-[#D4AF37] hover:text-[#B59325] hover:underline"
+              className="text-xs font-bold text-[#FF811A] hover:text-[#E66E08] hover:underline"
             >
               Forgot Password?
             </button>
@@ -71,8 +71,8 @@ export default function PasswordStep({
               aria-describedby={hasError ? "password-error" : undefined}
               className={`w-full py-3 pl-4 pr-11 text-sm font-medium rounded-xl transition-all duration-200 bg-white border ${
                 hasError
-                  ? 'border-[#C0392B] ring-2 ring-[#C0392B]/20 text-[#0F3D2E]'
-                  : 'border-[#D8E0DC] text-[#0F3D2E] focus:border-[#0F3D2E] focus:ring-2 focus:ring-[#0F3D2E]/20'
+                  ? 'border-[#D7263D] ring-2 ring-[#D7263D]/20 text-[#FA661C]'
+                  : 'border-[#EAE3DC] text-[#FA661C] focus:border-[#FA661C] focus:ring-2 focus:ring-[#FA661C]/20'
               } focus:outline-none shadow-xs`}
             />
 
@@ -80,7 +80,7 @@ export default function PasswordStep({
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#5C6B63] hover:text-[#0F3D2E] p-1"
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#6B6058] hover:text-[#FA661C] p-1"
               aria-label={showPassword ? "Hide password" : "Show password"}
             >
               {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -89,7 +89,7 @@ export default function PasswordStep({
 
           {/* Validation Error Message */}
           {hasError && (
-            <div id="password-error" aria-live="polite" className="text-xs font-semibold text-[#C0392B] mt-1.5">
+            <div id="password-error" aria-live="polite" className="text-xs font-semibold text-[#D7263D] mt-1.5">
               {errorMessage || "Incorrect password entered. Please try again or use OTP."}
             </div>
           )}
@@ -99,17 +99,17 @@ export default function PasswordStep({
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full py-3.5 px-4 bg-[#0F3D2E] hover:bg-[#155440] active:bg-[#0A2A1F] text-[#FBF8F1] font-bold text-sm rounded-xl transition-all duration-200 shadow-md flex items-center justify-center space-x-2 focus:outline-none focus:ring-2 focus:ring-[#D4AF37] min-h-[48px]"
+          className="w-full py-3.5 px-4 bg-[#FA661C] hover:bg-[#E0530B] active:bg-[#0A2A1F] text-[#000000] font-black text-sm rounded-xl transition-all duration-200 shadow-md flex items-center justify-center space-x-2 focus:outline-none focus:ring-2 focus:ring-[#FF811A] min-h-[48px]"
         >
           {isLoading ? (
             <>
-              <Loader2 className="w-4 h-4 animate-spin text-[#D4AF37]" />
-              <span>Verifying Password...</span>
+              <Loader2 className="w-4 h-4 animate-spin text-[#000000]" />
+              <span className="text-[#000000]">Verifying Password...</span>
             </>
           ) : (
             <>
-              <span>Login</span>
-              <Lock className="w-4 h-4 text-[#D4AF37]" />
+              <span className="text-[#000000]">Login</span>
+              <Lock className="w-4 h-4 text-[#000000]" />
             </>
           )}
         </button>
@@ -118,10 +118,10 @@ export default function PasswordStep({
         <button
           type="button"
           onClick={onSwitchToOtp}
-          className="w-full py-2.5 px-4 bg-[#FBF8F1] hover:bg-[#E8F2EE] text-[#0F3D2E] border border-[#D8E0DC] hover:border-[#0F3D2E] font-bold text-xs rounded-xl transition-colors flex items-center justify-center space-x-1.5"
+          className="w-full py-2.5 px-4 bg-[#FFFFFF] hover:bg-[#FFF3EC] text-[#000000] border border-[#EAE3DC] hover:border-[#FA661C] font-bold text-xs rounded-xl transition-colors flex items-center justify-center space-x-1.5"
         >
-          <KeyRound className="w-3.5 h-3.5 text-[#D4AF37]" />
-          <span>Login with OTP instead</span>
+          <KeyRound className="w-3.5 h-3.5 text-[#000000]" />
+          <span className="text-[#000000]">Login with OTP instead</span>
         </button>
       </form>
     </div>

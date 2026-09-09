@@ -22,7 +22,7 @@ export default function TwoFactorStep({
       <button
         type="button"
         onClick={onBackToLogin}
-        className="inline-flex items-center space-x-1 text-xs font-bold text-[#5C6B63] hover:text-[#0F3D2E] mb-4 transition-colors"
+        className="inline-flex items-center space-x-1 text-xs font-bold text-[#6B6058] hover:text-[#FA661C] mb-4 transition-colors"
       >
         <ArrowLeft className="w-4 h-4" />
         <span>Cancel & Back</span>
@@ -30,14 +30,14 @@ export default function TwoFactorStep({
 
       {/* Heading */}
       <div className="mb-4">
-        <div className="inline-flex items-center space-x-1.5 bg-[#FCF7E8] text-[#0F3D2E] border border-[#D4AF37]/40 px-2.5 py-1 rounded-full text-xs font-bold mb-2">
-          <ShieldAlert className="w-3.5 h-3.5 text-[#D4AF37]" />
+        <div className="inline-flex items-center space-x-1.5 bg-[#FFF8F2] text-[#FA661C] border border-[#FF811A]/40 px-2.5 py-1 rounded-full text-xs font-bold mb-2">
+          <ShieldAlert className="w-3.5 h-3.5 text-[#FF811A]" />
           <span>Two-Factor Authentication Enabled</span>
         </div>
-        <h2 className="font-['Outfit'] text-2xl sm:text-3xl font-extrabold text-[#0F3D2E] tracking-tight">
+        <h2 className="font-['Outfit'] text-2xl sm:text-3xl font-extrabold text-[#FA661C] tracking-tight">
           2-Step Verification
         </h2>
-        <p className="text-xs text-[#5C6B63] mt-1 leading-relaxed">
+        <p className="text-xs text-[#6B6058] mt-1 leading-relaxed">
           For enhanced security, enter the 6-digit code from your authenticator app (e.g. Google Authenticator) or security SMS.
         </p>
       </div>
@@ -45,7 +45,7 @@ export default function TwoFactorStep({
       {/* 2FA Form */}
       <form onSubmit={handleSubmit} noValidate className="space-y-5">
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-[#0F3D2E]">
+          <label className="block text-xs font-bold uppercase tracking-wider text-[#FA661C]">
             Enter 6-Digit Authenticator Code
           </label>
 
@@ -57,7 +57,7 @@ export default function TwoFactorStep({
           />
 
           {hasError && (
-            <div aria-live="polite" className="text-xs font-semibold text-[#C0392B] mt-1">
+            <div aria-live="polite" className="text-xs font-semibold text-[#D7263D] mt-1">
               {errorMessage || "Invalid security verification code. Please check your authenticator."}
             </div>
           )}
@@ -67,17 +67,17 @@ export default function TwoFactorStep({
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full py-3.5 px-4 bg-[#0F3D2E] hover:bg-[#155440] active:bg-[#0A2A1F] text-[#FBF8F1] font-bold text-sm rounded-xl transition-all duration-200 shadow-md flex items-center justify-center space-x-2 focus:outline-none focus:ring-2 focus:ring-[#D4AF37] min-h-[48px]"
+          className="w-full py-3.5 px-4 bg-[#FA661C] hover:bg-[#E0530B] active:bg-[#0A2A1F] text-[#FFFFFF] font-bold text-sm rounded-xl transition-all duration-200 shadow-md flex items-center justify-center space-x-2 focus:outline-none focus:ring-2 focus:ring-[#FF811A] min-h-[48px]"
         >
           {isLoading ? (
             <>
-              <Loader2 className="w-4 h-4 animate-spin text-[#D4AF37]" />
+              <Loader2 className="w-4 h-4 animate-spin text-[#FF811A]" />
               <span>Verifying Code...</span>
             </>
           ) : (
             <>
               <span>Verify & Complete Login</span>
-              <CheckCircle2 className="w-4 h-4 text-[#D4AF37]" />
+              <CheckCircle2 className="w-4 h-4 text-[#FF811A]" />
             </>
           )}
         </button>
@@ -86,9 +86,9 @@ export default function TwoFactorStep({
           <button
             type="button"
             onClick={() => alert("Fallback: SMS OTP triggered to registered phone")}
-            className="text-xs font-semibold text-[#5C6B63] hover:text-[#0F3D2E] hover:underline transition-colors flex items-center justify-center space-x-1.5 mx-auto"
+            className="text-xs font-semibold text-[#6B6058] hover:text-[#FA661C] hover:underline transition-colors flex items-center justify-center space-x-1.5 mx-auto"
           >
-            <Smartphone className="w-3.5 h-3.5 text-[#D4AF37]" />
+            <Smartphone className="w-3.5 h-3.5 text-[#FF811A]" />
             <span>Try another verification method (SMS)</span>
           </button>
         </div>

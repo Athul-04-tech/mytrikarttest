@@ -24,7 +24,7 @@ export default function ForgotPasswordStep({
       <button
         type="button"
         onClick={onBackToLogin}
-        className="inline-flex items-center space-x-1 text-xs font-bold text-[#5C6B63] hover:text-[#0F3D2E] mb-4 transition-colors"
+        className="inline-flex items-center space-x-1 text-xs font-bold text-[#6B6058] hover:text-[#FA661C] mb-4 transition-colors"
       >
         <ArrowLeft className="w-4 h-4" />
         <span>Back to Login</span>
@@ -32,27 +32,27 @@ export default function ForgotPasswordStep({
 
       {/* Heading */}
       <div className="mb-5">
-        <h2 className="font-['Outfit'] text-2xl sm:text-3xl font-extrabold text-[#0F3D2E] tracking-tight">
+        <h2 className="font-['Outfit'] text-2xl sm:text-3xl font-extrabold text-[#FA661C] tracking-tight">
           Reset Password
         </h2>
-        <p className="text-xs sm:text-sm text-[#5C6B63] mt-1">
+        <p className="text-xs sm:text-sm text-[#6B6058] mt-1">
           Enter your registered email address or mobile number to receive a secure password reset link or OTP.
         </p>
       </div>
 
       {isSent ? (
-        <div className="bg-[#E8F2EE] border border-[#0F3D2E]/20 p-5 rounded-2xl text-center space-y-3">
-          <div className="w-12 h-12 rounded-full bg-[#0F3D2E] text-[#D4AF37] flex items-center justify-center mx-auto shadow-sm">
+        <div className="bg-[#FFF3EC] border border-[#FA661C]/20 p-5 rounded-2xl text-center space-y-3">
+          <div className="w-12 h-12 rounded-full bg-[#FA661C] text-[#FF811A] flex items-center justify-center mx-auto shadow-sm">
             <Send className="w-6 h-6" />
           </div>
-          <h3 className="font-bold text-sm text-[#0F3D2E]">Reset Link Dispatched!</h3>
-          <p className="text-xs text-[#5C6B63]">
-            We've sent password reset instructions to <strong className="text-[#0F3D2E]">{resetIdentifier}</strong>.
+          <h3 className="font-bold text-sm text-[#FA661C]">Reset Link Dispatched!</h3>
+          <p className="text-xs text-[#6B6058]">
+            We've sent password reset instructions to <strong className="text-[#FA661C]">{resetIdentifier}</strong>.
           </p>
           <button
             type="button"
             onClick={onBackToLogin}
-            className="w-full py-2.5 bg-[#0F3D2E] text-[#FBF8F1] font-bold text-xs rounded-xl hover:bg-[#155440] transition-colors"
+            className="w-full py-2.5 bg-[#FA661C] text-[#FFFFFF] font-bold text-xs rounded-xl hover:bg-[#E0530B] transition-colors"
           >
             Return to Login
           </button>
@@ -62,7 +62,7 @@ export default function ForgotPasswordStep({
           <div>
             <label 
               htmlFor="reset-identifier" 
-              className="block text-xs font-bold uppercase tracking-wider text-[#0F3D2E] mb-1.5"
+              className="block text-xs font-bold uppercase tracking-wider text-[#FA661C] mb-1.5"
             >
               Email or Mobile Number
             </label>
@@ -76,13 +76,13 @@ export default function ForgotPasswordStep({
               aria-describedby={hasError ? "reset-error" : undefined}
               className={`w-full py-3 px-4 text-sm font-medium rounded-xl transition-all duration-200 bg-white border ${
                 hasError
-                  ? 'border-[#C0392B] ring-2 ring-[#C0392B]/20 text-[#0F3D2E]'
-                  : 'border-[#D8E0DC] text-[#0F3D2E] focus:border-[#0F3D2E] focus:ring-2 focus:ring-[#0F3D2E]/20'
+                  ? 'border-[#D7263D] ring-2 ring-[#D7263D]/20 text-[#FA661C]'
+                  : 'border-[#EAE3DC] text-[#FA661C] focus:border-[#FA661C] focus:ring-2 focus:ring-[#FA661C]/20'
               } focus:outline-none shadow-xs`}
             />
 
             {hasError && (
-              <div id="reset-error" aria-live="polite" className="text-xs font-semibold text-[#C0392B] mt-1.5">
+              <div id="reset-error" aria-live="polite" className="text-xs font-semibold text-[#D7263D] mt-1.5">
                 {errorMessage || "No account found matching this identifier. Please verify and retry."}
               </div>
             )}
@@ -91,17 +91,17 @@ export default function ForgotPasswordStep({
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-3.5 px-4 bg-[#0F3D2E] hover:bg-[#155440] active:bg-[#0A2A1F] text-[#FBF8F1] font-bold text-sm rounded-xl transition-all duration-200 shadow-md flex items-center justify-center space-x-2 focus:outline-none focus:ring-2 focus:ring-[#D4AF37] min-h-[48px]"
+            className="w-full py-3.5 px-4 bg-[#FA661C] hover:bg-[#E0530B] active:bg-[#0A2A1F] text-[#FFFFFF] font-bold text-sm rounded-xl transition-all duration-200 shadow-md flex items-center justify-center space-x-2 focus:outline-none focus:ring-2 focus:ring-[#FF811A] min-h-[48px]"
           >
             {isLoading ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin text-[#D4AF37]" />
+                <Loader2 className="w-4 h-4 animate-spin text-[#FF811A]" />
                 <span>Sending Reset Link...</span>
               </>
             ) : (
               <>
                 <span>Send Reset Link / OTP</span>
-                <Send className="w-4 h-4 text-[#D4AF37]" />
+                <Send className="w-4 h-4 text-[#FF811A]" />
               </>
             )}
           </button>

@@ -33,17 +33,17 @@ export default function ReportsModule() {
     <div className="space-y-6">
       
       {/* 1. Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#D8E0DC]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#EAE3DC]">
         <div>
           <div className="flex items-center space-x-2">
-            <span className="p-1 rounded-lg bg-[#E8F2EE] text-[#0F3D2E]">
+            <span className="p-1 rounded-lg bg-[#FFF3EC] text-[#FA661C]">
               <BarChart3 className="w-4 h-4" />
             </span>
-            <h2 className="font-['Outfit'] font-black text-xl text-[#0F3D2E]">
+            <h2 className="font-['Outfit'] font-black text-xl text-[#FA661C]">
               Financial Reports & BI Analytics
             </h2>
           </div>
-          <p className="text-xs text-[#5C6B63] mt-0.5">
+          <p className="text-xs text-[#6B6058] mt-0.5">
             Strict Multi-Period Arithmetic: 12 Monthly figures sum precisely to the annual audited figures.
           </p>
         </div>
@@ -51,59 +51,59 @@ export default function ReportsModule() {
         <button
           type="button"
           onClick={() => toast.success("BI Export Generated", "Full 12-month FY financial audit workbook exported.")}
-          className="px-4 py-2 bg-[#0F3D2E] text-[#FBF8F1] rounded-xl text-xs font-bold btn-interactive flex items-center space-x-1.5 cursor-pointer shadow-xs self-start sm:self-auto"
+          className="px-4 py-2 bg-[#FA661C] text-[#FFFFFF] rounded-xl text-xs font-bold btn-interactive flex items-center space-x-1.5 cursor-pointer shadow-xs self-start sm:self-auto"
         >
-          <Download className="w-4 h-4 text-[#D4AF37]" />
+          <Download className="w-4 h-4 text-[#FF811A]" />
           <span>Download Audit BI Pack</span>
         </button>
       </div>
 
       {/* 2. Annual Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-        <div className="p-4 bg-[#FCF7E8] rounded-2xl border border-[#D4AF37]/60">
-          <span className="text-[10px] font-bold text-[#0F3D2E] uppercase tracking-wider">
+        <div className="p-4 bg-[#FFF8F2] rounded-2xl border border-[#FF811A]/60">
+          <span className="text-[10px] font-bold text-[#FA661C] uppercase tracking-wider">
             Total Annual Audited GMV
           </span>
-          <div className="font-['Outfit'] font-black text-2xl text-[#0F3D2E] mt-1">
+          <div className="font-['Outfit'] font-black text-2xl text-[#FA661C] mt-1">
             {formatINR(totalAnnualGMV)}
           </div>
-          <span className="text-[10px] text-[#0F3D2E] font-bold mt-1 block">
+          <span className="text-[10px] text-[#FA661C] font-bold mt-1 block">
             Exact Sum of All 12 Months
           </span>
         </div>
 
-        <div className="p-4 bg-[#FBF8F1] rounded-2xl border border-[#D8E0DC]">
-          <span className="text-[10px] font-bold text-[#5C6B63] uppercase tracking-wider">
+        <div className="p-4 bg-[#FFFFFF] rounded-2xl border border-[#EAE3DC]">
+          <span className="text-[10px] font-bold text-[#6B6058] uppercase tracking-wider">
             Total Net Platform Commissions
           </span>
-          <div className="font-['Outfit'] font-black text-2xl text-[#0F3D2E] mt-1">
+          <div className="font-['Outfit'] font-black text-2xl text-[#FA661C] mt-1">
             {formatINR(totalAnnualCommission)}
           </div>
-          <span className="text-[10px] text-[#5C6B63] mt-1 block">
+          <span className="text-[10px] text-[#6B6058] mt-1 block">
             Avg Effective Take Rate: 11.0%
           </span>
         </div>
 
-        <div className="p-4 bg-[#FBF8F1] rounded-2xl border border-[#D8E0DC]">
-          <span className="text-[10px] font-bold text-[#5C6B63] uppercase tracking-wider">
+        <div className="p-4 bg-[#FFFFFF] rounded-2xl border border-[#EAE3DC]">
+          <span className="text-[10px] font-bold text-[#6B6058] uppercase tracking-wider">
             Annual Order Volume
           </span>
-          <div className="font-['Outfit'] font-black text-2xl text-[#0F3D2E] mt-1">
+          <div className="font-['Outfit'] font-black text-2xl text-[#FA661C] mt-1">
             {totalAnnualOrders.toLocaleString('en-IN')} Orders
           </div>
-          <span className="text-[10px] text-[#5C6B63] mt-1 block">
+          <span className="text-[10px] text-[#6B6058] mt-1 block">
             99.2% Fulfillment SLA
           </span>
         </div>
       </div>
 
       {/* 3. 12-Month Detailed Breakdown Table */}
-      <div className="bg-white rounded-2xl border border-[#D8E0DC] overflow-hidden shadow-xs">
-        <div className="p-4 border-b border-[#D8E0DC] bg-[#E8F2EE] flex items-center justify-between">
-          <h3 className="font-['Outfit'] font-black text-sm text-[#0F3D2E]">
+      <div className="bg-white rounded-2xl border border-[#EAE3DC] overflow-hidden shadow-xs">
+        <div className="p-4 border-b border-[#EAE3DC] bg-[#FFF3EC] flex items-center justify-between">
+          <h3 className="font-['Outfit'] font-black text-sm text-[#FA661C]">
             Financial Year 2025–2026 Monthly Breakdown
           </h3>
-          <span className="text-[10px] text-[#0F3D2E] font-bold bg-white px-2 py-0.5 rounded border border-[#D8E0DC]">
+          <span className="text-[10px] text-[#FA661C] font-bold bg-white px-2 py-0.5 rounded border border-[#EAE3DC]">
             12 Periods Audited
           </span>
         </div>
@@ -111,7 +111,7 @@ export default function ReportsModule() {
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="bg-[#FBF8F1] text-[#5C6B63] border-b border-[#D8E0DC] font-extrabold uppercase text-[10px] tracking-wider">
+              <tr className="bg-[#FFFFFF] text-[#6B6058] border-b border-[#EAE3DC] font-extrabold uppercase text-[10px] tracking-wider">
                 <th className="p-3">Fiscal Period</th>
                 <th className="p-3 text-right">Order Count</th>
                 <th className="p-3 text-right">Gross GMV</th>
@@ -119,23 +119,23 @@ export default function ReportsModule() {
                 <th className="p-3 text-center">Take Rate</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#D8E0DC]/60 font-medium">
+            <tbody className="divide-y divide-[#EAE3DC]/60 font-medium">
               {MONTHLY_SERIES.map((item, idx) => (
-                <tr key={idx} className="hover:bg-[#FBF8F1] transition-colors">
-                  <td className="p-3 font-bold text-[#0F3D2E]">
+                <tr key={idx} className="hover:bg-[#FFFFFF] transition-colors">
+                  <td className="p-3 font-bold text-[#FA661C]">
                     {item.month}
                   </td>
-                  <td className="p-3 text-right font-mono text-[#5C6B63]">
+                  <td className="p-3 text-right font-mono text-[#6B6058]">
                     {item.orders.toLocaleString('en-IN')}
                   </td>
-                  <td className="p-3 text-right font-mono font-bold text-[#0F3D2E]">
+                  <td className="p-3 text-right font-mono font-bold text-[#FA661C]">
                     {formatINR(item.gmv)}
                   </td>
-                  <td className="p-3 text-right font-mono font-bold text-[#D4AF37]">
+                  <td className="p-3 text-right font-mono font-bold text-[#FF811A]">
                     {formatINR(item.commission)}
                   </td>
                   <td className="p-3 text-center">
-                    <span className="bg-[#E8F2EE] text-[#0F3D2E] text-[10px] font-bold px-2 py-0.5 rounded-full">
+                    <span className="bg-[#FFF3EC] text-[#FA661C] text-[10px] font-bold px-2 py-0.5 rounded-full">
                       {((item.commission / item.gmv) * 100).toFixed(1)}%
                     </span>
                   </td>
@@ -143,13 +143,13 @@ export default function ReportsModule() {
               ))}
 
               {/* Strict Annual Total Footer Row */}
-              <tr className="bg-[#FCF7E8] font-black text-xs border-t-2 border-[#0F3D2E]">
-                <td className="p-3 text-[#0F3D2E] uppercase">Annual Total (Sum)</td>
+              <tr className="bg-[#FFF8F2] font-black text-xs border-t-2 border-[#FA661C]">
+                <td className="p-3 text-[#FA661C] uppercase">Annual Total (Sum)</td>
                 <td className="p-3 text-right font-mono">{totalAnnualOrders.toLocaleString('en-IN')}</td>
-                <td className="p-3 text-right font-mono text-[#0F3D2E]">{formatINR(totalAnnualGMV)}</td>
-                <td className="p-3 text-right font-mono text-[#0F3D2E]">{formatINR(totalAnnualCommission)}</td>
+                <td className="p-3 text-right font-mono text-[#FA661C]">{formatINR(totalAnnualGMV)}</td>
+                <td className="p-3 text-right font-mono text-[#FA661C]">{formatINR(totalAnnualCommission)}</td>
                 <td className="p-3 text-center">
-                  <span className="bg-[#0F3D2E] text-[#D4AF37] px-2 py-0.5 rounded text-[10px]">
+                  <span className="bg-[#FA661C] text-[#FF811A] px-2 py-0.5 rounded text-[10px]">
                     11.0%
                   </span>
                 </td>

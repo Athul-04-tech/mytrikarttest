@@ -47,19 +47,19 @@ export default function PopularPicks({ activeCategory = 'for-you', isLoading = f
       className="max-w-7xl mx-auto px-4 sm:px-8 py-4 transition-all duration-300"
     >
       {/* Category Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between mb-4 pb-3 border-b border-[#D8E0DC] gap-3">
+      <div className="flex flex-col md:flex-row md:items-end justify-between mb-4 pb-3 border-b border-[#EAE3DC] gap-3">
         <div>
-          <div className="flex items-center space-x-2 text-[#D4AF37] mb-1">
+          <div className="flex items-center space-x-2 text-[#FF811A] mb-1">
             <Sparkles className="w-3.5 h-3.5 fill-current" />
-            <span className="text-[10px] font-black uppercase tracking-widest text-[#0F3D2E]">
+            <span className="text-[10px] font-black uppercase tracking-widest text-[#FA661C]">
               {activeCategory === 'for-you' ? 'CURATED MARKETPLACE FEED' : `${currentCategoryObj.label.toUpperCase()} STORE`}
             </span>
-            <span className="text-[10px] bg-[#E8F2EE] text-[#0F3D2E] font-bold px-2 py-0.2 rounded-full border border-[#0F3D2E]/20">
+            <span className="text-[10px] bg-[#FFF3EC] text-[#FA661C] font-bold px-2 py-0.2 rounded-full border border-[#FA661C]/20">
               {displayProducts.length} Verified Products
             </span>
           </div>
 
-          <h2 id="popular-picks-title" className="font-['Outfit'] text-xl sm:text-2xl font-extrabold text-[#0F3D2E] tracking-tight">
+          <h2 id="popular-picks-title" className="font-['Outfit'] text-xl sm:text-2xl font-extrabold text-[#FA661C] tracking-tight">
             {activeCategory === 'for-you' 
               ? 'Handpicked Popular Picks & Flash Deals' 
               : `Explore Top Rated Products in ${currentCategoryObj.label}`}
@@ -84,11 +84,11 @@ export default function PopularPicks({ activeCategory = 'for-you', isLoading = f
                 onClick={() => handleFilterClick(flt.id, flt.label)}
                 className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer flex items-center space-x-1.5 shrink-0 btn-interactive ${
                   isSelected
-                    ? 'bg-[#0F3D2E] text-[#FBF8F1] shadow-2xs'
-                    : 'bg-white text-[#5C6B63] hover:text-[#0F3D2E] border border-[#D8E0DC] hover:border-[#D4AF37]'
+                    ? 'bg-[#FA661C] text-[#FFFFFF] shadow-2xs'
+                    : 'bg-white text-[#6B6058] hover:text-[#FA661C] border border-[#EAE3DC] hover:border-[#FF811A]'
                 }`}
               >
-                <Icon className={`w-3 h-3 ${isSelected ? 'text-[#D4AF37]' : 'text-[#5C6B63]'}`} />
+                <Icon className={`w-3 h-3 ${isSelected ? 'text-[#FF811A]' : 'text-[#6B6058]'}`} />
                 <span className="text-[11px]">{flt.label}</span>
               </button>
             );
@@ -100,12 +100,12 @@ export default function PopularPicks({ activeCategory = 'for-you', isLoading = f
       {isLoading ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 animate-pulse">
           {Array.from({ length: 10 }).map((_, idx) => (
-            <div key={idx} className="bg-white rounded-2xl border border-[#D8E0DC] p-3 space-y-3">
-              <div className="aspect-[4/3.2] w-full bg-[#E8F2EE] rounded-xl" />
-              <div className="h-3 w-16 bg-[#E8F2EE] rounded" />
-              <div className="h-4 w-full bg-[#E8F2EE] rounded" />
-              <div className="h-4 w-2/3 bg-[#E8F2EE] rounded" />
-              <div className="h-6 w-full bg-[#E8F2EE] rounded-lg mt-2" />
+            <div key={idx} className="bg-white rounded-2xl border border-[#EAE3DC] p-3 space-y-3">
+              <div className="aspect-[4/3.2] w-full bg-[#FFF3EC] rounded-xl" />
+              <div className="h-3 w-16 bg-[#FFF3EC] rounded" />
+              <div className="h-4 w-full bg-[#FFF3EC] rounded" />
+              <div className="h-4 w-2/3 bg-[#FFF3EC] rounded" />
+              <div className="h-6 w-full bg-[#FFF3EC] rounded-lg mt-2" />
             </div>
           ))}
         </div>
@@ -118,18 +118,18 @@ export default function PopularPicks({ activeCategory = 'for-you', isLoading = f
         </div>
       ) : (
         /* Empty Filter State */
-        <div className="p-12 text-center bg-white rounded-2xl border border-[#D8E0DC] space-y-3">
-          <Layers className="w-12 h-12 text-[#5C6B63] mx-auto" />
-          <h3 className="font-['Outfit'] font-bold text-base text-[#0F3D2E]">
+        <div className="p-12 text-center bg-white rounded-2xl border border-[#EAE3DC] space-y-3">
+          <Layers className="w-12 h-12 text-[#6B6058] mx-auto" />
+          <h3 className="font-['Outfit'] font-bold text-base text-[#FA661C]">
             No products match the selected filter
           </h3>
-          <p className="text-xs text-[#5C6B63]">
+          <p className="text-xs text-[#6B6058]">
             Try selecting "All Items" to view all available products in {currentCategoryObj.label}.
           </p>
           <button
             type="button"
             onClick={() => setActiveFilter('all')}
-            className="px-4 py-2 bg-[#0F3D2E] text-[#FBF8F1] text-xs font-bold rounded-xl btn-interactive cursor-pointer"
+            className="px-4 py-2 bg-[#FA661C] text-[#FFFFFF] text-xs font-bold rounded-xl btn-interactive cursor-pointer"
           >
             Reset Filters
           </button>

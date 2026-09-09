@@ -36,10 +36,10 @@ export default function ProductCard({ product }) {
     <div 
       itemScope 
       itemType="https://schema.org/Product" 
-      className="group bg-white rounded-2xl border border-[#D8E0DC] hover:border-[#D4AF37]/60 shadow-xs card-interactive flex flex-col overflow-hidden relative h-full cursor-pointer"
+      className="group bg-white rounded-2xl border border-[#EAE3DC] hover:border-[#FF811A]/60 shadow-xs card-interactive flex flex-col overflow-hidden relative h-full cursor-pointer"
     >
       {/* Product Image Container */}
-      <div className="relative aspect-[4/3.2] w-full bg-[#FBF8F1] overflow-hidden">
+      <div className="relative aspect-[4/3.2] w-full bg-[#FFFFFF] overflow-hidden">
         <img 
           itemProp="image"
           src={product.image} 
@@ -59,11 +59,11 @@ export default function ProductCard({ product }) {
         <div className="absolute top-2 left-2 right-2 flex items-start justify-between z-10 pointer-events-none">
           {/* Urgency Badge (BRICK RED) or Offer Badge */}
           {product.isUrgent ? (
-            <span className="pointer-events-auto bg-[#C0392B] text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded shadow-xs tracking-tight animate-pulse">
+            <span className="pointer-events-auto bg-[#D7263D] text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded shadow-xs tracking-tight animate-pulse">
               {product.urgencyBadge}
             </span>
           ) : product.offerText ? (
-            <span className="pointer-events-auto bg-[#0F3D2E] text-[#D4AF37] text-[9px] font-bold px-1.5 py-0.5 rounded shadow-xs">
+            <span className="pointer-events-auto bg-[#FA661C] text-[#FF811A] text-[9px] font-bold px-1.5 py-0.5 rounded shadow-xs">
               {product.offerText}
             </span>
           ) : (
@@ -76,8 +76,8 @@ export default function ProductCard({ product }) {
             onClick={toggleWishlist}
             className={`pointer-events-auto p-1.5 rounded-full backdrop-blur-md shadow-xs icon-interactive cursor-pointer ${
               isWishlisted 
-                ? 'bg-[#C0392B] text-white shadow-md' 
-                : 'bg-white/90 hover:bg-white text-[#5C6B63] hover:text-[#C0392B]'
+                ? 'bg-[#D7263D] text-white shadow-md' 
+                : 'bg-white/90 hover:bg-white text-[#6B6058] hover:text-[#D7263D]'
             }`}
             aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
           >
@@ -87,7 +87,7 @@ export default function ProductCard({ product }) {
 
         {/* Sponsored / AD tag indicator */}
         {product.sponsored && (
-          <span className="absolute bottom-1.5 left-1.5 text-[8px] font-bold text-[#5C6B63] bg-white/90 backdrop-blur-xs px-1 py-0.2 rounded border border-[#D8E0DC]">
+          <span className="absolute bottom-1.5 left-1.5 text-[8px] font-bold text-[#6B6058] bg-white/90 backdrop-blur-xs px-1 py-0.2 rounded border border-[#EAE3DC]">
             Sponsored
           </span>
         )}
@@ -98,41 +98,41 @@ export default function ProductCard({ product }) {
         <div>
           {/* Category & Ratings Row */}
           <div className="flex items-center justify-between text-xs mb-1">
-            <span className="text-[9px] font-bold uppercase tracking-wider text-[#5C6B63] truncate max-w-[90px]">
+            <span className="text-[9px] font-bold uppercase tracking-wider text-[#6B6058] truncate max-w-[90px]">
               {product.category}
             </span>
-            <div className="flex items-center space-x-1 bg-[#FCF7E8] px-1.5 py-0.2 rounded border border-[#D4AF37]/30">
-              <Star className="w-2.5 h-2.5 text-[#D4AF37] fill-[#D4AF37]" />
-              <span className="text-[10px] font-extrabold text-[#0F3D2E]">
+            <div className="flex items-center space-x-1 bg-[#FFF8F2] px-1.5 py-0.2 rounded border border-[#FF811A]/30">
+              <Star className="w-2.5 h-2.5 text-[#FF811A] fill-[#FF811A]" />
+              <span className="text-[10px] font-extrabold text-[#FA661C]">
                 {product.rating}
               </span>
-              <span className="text-[8px] text-[#5C6B63]">
+              <span className="text-[8px] text-[#6B6058]">
                 ({product.reviews})
               </span>
             </div>
           </div>
 
           {/* Title */}
-          <h3 className="font-bold text-xs text-[#0F3D2E] line-clamp-2 mb-1.5 group-hover:text-[#155440] transition-colors leading-snug">
+          <h3 className="font-bold text-xs text-[#FA661C] line-clamp-2 mb-1.5 group-hover:text-[#E0530B] transition-colors leading-snug">
             {product.name}
           </h3>
         </div>
 
         <div>
           {/* Price Row */}
-          <div className="flex items-baseline space-x-1.5 mt-1 pt-1.5 border-t border-[#D8E0DC]/50">
+          <div className="flex items-baseline space-x-1.5 mt-1 pt-1.5 border-t border-[#EAE3DC]/50">
             <span className={`text-xs sm:text-sm font-black ${
-              product.isUrgent ? 'text-[#C0392B]' : 'text-[#0F3D2E]'
+              product.isUrgent ? 'text-[#D7263D]' : 'text-[#FA661C]'
             }`}>
               {product.price}
             </span>
             {product.originalPrice && (
-              <span className="text-[10px] text-[#5C6B63] line-through">
+              <span className="text-[10px] text-[#6B6058] line-through">
                 {product.originalPrice}
               </span>
             )}
             {product.discount && (
-              <span className="text-[9px] font-bold text-[#0F3D2E] bg-[#E8F2EE] px-1 py-0.2 rounded">
+              <span className="text-[9px] font-bold text-[#FA661C] bg-[#FFF3EC] px-1 py-0.2 rounded">
                 {product.discount}
               </span>
             )}
@@ -140,22 +140,22 @@ export default function ProductCard({ product }) {
 
           {/* Quick Action Buttons Row */}
           <div className="grid grid-cols-2 gap-1.5 mt-2">
-            <button 
+            <button
               type="button"
               onClick={handlePreviewDetails}
-              className="py-1 px-1.5 bg-[#FBF8F1] hover:bg-[#E8F2EE] text-[#0F3D2E] border border-[#D8E0DC] hover:border-[#0F3D2E] rounded-lg text-[11px] font-bold btn-interactive flex items-center justify-center space-x-1 cursor-pointer"
+              className="py-1 px-1.5 bg-[#FFFFFF] hover:bg-[#FFF3EC] text-[#000000] border border-[#EAE3DC] hover:border-[#FA661C] rounded-lg text-[11px] font-bold btn-interactive flex items-center justify-center space-x-1 cursor-pointer"
             >
-              <Eye className="w-3 h-3 text-[#D4AF37]" />
-              <span className="truncate">Details</span>
+              <Eye className="w-3 h-3 text-[#000000]" />
+              <span className="truncate text-[#000000]">Details</span>
             </button>
 
             <button 
               type="button"
               onClick={handleAddToCart}
-              className="py-1 px-1.5 bg-[#0F3D2E] hover:bg-[#155440] text-[#FBF8F1] border border-[#0F3D2E] rounded-lg text-[11px] font-bold btn-interactive flex items-center justify-center space-x-1 shadow-xs group/cart cursor-pointer"
+              className="py-1 px-1.5 bg-[#FA661C] hover:bg-[#E0530B] text-[#000000] border border-[#FA661C] rounded-lg text-[11px] font-black btn-interactive flex items-center justify-center space-x-1 shadow-xs group/cart cursor-pointer"
             >
-              <ShoppingBag className="w-3 h-3 text-[#D4AF37] group-hover/cart:scale-110 transition-transform" />
-              <span className="truncate">Add</span>
+              <ShoppingBag className="w-3 h-3 text-[#000000] group-hover/cart:scale-110 transition-transform" />
+              <span className="truncate text-[#000000]">Add</span>
             </button>
           </div>
         </div>

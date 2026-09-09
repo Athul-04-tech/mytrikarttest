@@ -7,6 +7,7 @@ export default function OtpVerificationStep({
   otpValues,
   setOtpValues,
   onVerifyOtp,
+  onResendOtp,
   onChangeIdentifier,
   isLoading,
   hasError,
@@ -26,17 +27,19 @@ export default function OtpVerificationStep({
     return () => clearInterval(timer);
   }, [secondsLeft]);
 
-  const handleResend = () => {
+  const handleResend = async () => {
+    if (onResendOtp) {
+      await onResendOtp();
+    }
     setSecondsLeft(30);
     setCanResend(false);
-    alert("New dummy OTP sent: 123456");
   };
 
   const maskedIdentifier = identifier
     ? identifier.includes('@')
       ? identifier.replace(/(.{2})(.*)(?=@)/, (_, a, b) => a + '••••')
       : identifier.replace(/(\d{2})(\d+)(\d{2})/, (_, a, b, c) => a + '••••••' + c)
-    : '+91 98765•••••';
+    : 'Account Identifier';
 
   const isOtpComplete = otpValues.every((d) => d !== '');
 
@@ -51,7 +54,7 @@ export default function OtpVerificationStep({
       <button
         type="button"
         onClick={onChangeIdentifier}
-        className="inline-flex items-center space-x-1 text-xs font-bold text-[#5C6B63] hover:text-[#0F3D2E] mb-4 transition-colors"
+        className="inline-flex items-center space-x-1 text-xs font-bold text-[#6B6058] hover:text-[#FA661C] mb-4 transition-colors"
       >
         <ArrowLeft className="w-4 h-4" />
         <span>Back to Login</span>
@@ -59,16 +62,16 @@ export default function OtpVerificationStep({
 
       {/* Heading */}
       <div className="mb-4">
-        <h2 className="font-['Outfit'] text-2xl sm:text-3xl font-extrabold text-[#0F3D2E] tracking-tight">
+        <h2 className="font-['Outfit'] text-2xl sm:text-3xl font-extrabold text-[#FA661C] tracking-tight">
           Verify OTP
         </h2>
-        <div className="text-xs text-[#5C6B63] mt-1 flex flex-wrap items-center gap-1">
-          <span>OTP sent to</span>
-          <strong className="text-[#0F3D2E]">{maskedIdentifier}</strong>
+        <div className="text-xs text-[#6B6058] mt-1 flex flex-wrap items-center gap-1">
+          <span>OTP sent for</span>
+          <strong className="text-[#FA661C]">{maskedIdentifier}</strong>
           <button
             type="button"
             onClick={onChangeIdentifier}
-            className="text-[#D4AF37] hover:underline font-bold ml-1"
+            className="text-[#FF811A] hover:underline font-bold ml-1"
           >
             Change
           </button>
@@ -78,7 +81,7 @@ export default function OtpVerificationStep({
       {/* OTP Form */}
       <form onSubmit={handleSubmit} noValidate className="space-y-5">
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-[#0F3D2E]">
+          <label className="block text-xs font-bold uppercase tracking-wider text-[#FA661C]">
             Enter 6-Digit OTP
           </label>
 
@@ -92,26 +95,27 @@ export default function OtpVerificationStep({
 
           {/* Error Message */}
           {hasError && (
-            <div aria-live="polite" className="text-xs font-semibold text-[#C0392B] mt-1">
+            <div aria-live="polite" className="text-xs font-semibold text-[#D7263D] mt-1">
               {errorMessage || "Invalid OTP code entered. Please try again."}
             </div>
           )}
         </div>
 
         {/* Resend OTP Row */}
-        <div className="flex items-center justify-between text-xs text-[#5C6B63] pt-1">
+        <div className="flex items-center justify-between text-xs text-[#6B6058] pt-1">
           <span>Didn't receive code?</span>
           {canResend ? (
             <button
               type="button"
               onClick={handleResend}
-              className="text-xs font-bold text-[#D4AF37] hover:text-[#B59325] hover:underline flex items-center space-x-1"
+              disabled={isLoading}
+              className="text-xs font-bold text-[#FF811A] hover:text-[#E66E08] hover:underline flex items-center space-x-1 cursor-pointer disabled:opacity-50"
             >
-              <RefreshCw className="w-3.5 h-3.5" />
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
               <span>Resend OTP</span>
             </button>
           ) : (
-            <span className="font-medium text-[#C0392B]">
+            <span className="font-medium text-[#D7263D]">
               Resend OTP in 00:{secondsLeft < 10 ? `0${secondsLeft}` : secondsLeft}
             </span>
           )}
@@ -121,25 +125,20 @@ export default function OtpVerificationStep({
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full py-3.5 px-4 bg-[#0F3D2E] hover:bg-[#155440] active:bg-[#0A2A1F] text-[#FBF8F1] font-bold text-sm rounded-xl transition-all duration-200 shadow-md flex items-center justify-center space-x-2 focus:outline-none focus:ring-2 focus:ring-[#D4AF37] min-h-[48px]"
+          className="w-full py-3.5 px-4 bg-[#FA661C] hover:bg-[#E0530B] active:bg-[#0A2A1F] text-[#000000] font-black text-sm rounded-xl transition-all duration-200 shadow-md flex items-center justify-center space-x-2 focus:outline-none focus:ring-2 focus:ring-[#FF811A] min-h-[48px] cursor-pointer"
         >
           {isLoading ? (
             <>
-              <Loader2 className="w-4 h-4 animate-spin text-[#D4AF37]" />
-              <span>Verifying OTP...</span>
+              <Loader2 className="w-4 h-4 animate-spin text-[#000000]" />
+              <span className="text-[#000000]">Verifying OTP...</span>
             </>
           ) : (
             <>
-              <span>Verify & Continue</span>
-              <CheckCircle2 className="w-4 h-4 text-[#D4AF37]" />
+              <span className="text-[#000000]">Verify & Continue</span>
+              <CheckCircle2 className="w-4 h-4 text-[#000000]" />
             </>
           )}
         </button>
-
-        {/* Demo Hint */}
-        <p className="text-[11px] text-center text-[#5C6B63]/80">
-          Tip: You can paste any 6-digit code or type <strong className="text-[#0F3D2E]">123456</strong>
-        </p>
       </form>
     </div>
   );

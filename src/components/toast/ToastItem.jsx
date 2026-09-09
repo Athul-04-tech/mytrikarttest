@@ -24,22 +24,22 @@ export default function ToastItem({ toast, onDismiss }) {
 
   const variantStyles = {
     success: {
-      border: 'border-[#0F3D2E]/40',
-      iconBg: 'bg-[#E8F2EE] text-[#0F3D2E]',
+      border: 'border-[#FA661C]/40',
+      iconBg: 'bg-[#FFF3EC] text-[#FA661C]',
       icon: CheckCircle2,
-      progressColor: 'bg-[#0F3D2E]'
+      progressColor: 'bg-[#FA661C]'
     },
     info: {
-      border: 'border-[#D4AF37]/60',
-      iconBg: 'bg-[#FCF7E8] text-[#0F3D2E]',
+      border: 'border-[#FF811A]/60',
+      iconBg: 'bg-[#FFF8F2] text-[#FA661C]',
       icon: Info,
-      progressColor: 'bg-[#D4AF37]'
+      progressColor: 'bg-[#FF811A]'
     },
     error: {
-      border: 'border-[#C0392B]/40',
-      iconBg: 'bg-[#FDEDEC] text-[#C0392B]',
+      border: 'border-[#D7263D]/40',
+      iconBg: 'bg-[#FDE8EA] text-[#D7263D]',
       icon: AlertCircle,
-      progressColor: 'bg-[#C0392B]'
+      progressColor: 'bg-[#D7263D]'
     }
   };
 
@@ -57,7 +57,7 @@ export default function ToastItem({ toast, onDismiss }) {
           <img 
             src={toast.thumbnail} 
             alt="Thumbnail" 
-            className="w-10 h-10 rounded-xl object-cover border border-[#D8E0DC] shrink-0"
+            className="w-10 h-10 rounded-xl object-cover border border-[#EAE3DC] shrink-0"
           />
         ) : (
           <div className={`p-1.5 rounded-xl ${style.iconBg} shrink-0 mt-0.5`}>
@@ -68,11 +68,11 @@ export default function ToastItem({ toast, onDismiss }) {
         {/* Text Details */}
         <div className="flex-1 min-w-0 pr-1">
           {toast.title && (
-            <h4 className="font-extrabold text-[#0F3D2E] text-xs leading-snug truncate">
+            <h4 className="font-extrabold text-[#FA661C] text-xs leading-snug truncate">
               {toast.title}
             </h4>
           )}
-          <p className="text-[11px] text-[#5C6B63] mt-0.5 leading-tight">
+          <p className="text-[11px] text-[#6B6058] mt-0.5 leading-tight">
             {toast.message}
           </p>
         </div>
@@ -81,7 +81,7 @@ export default function ToastItem({ toast, onDismiss }) {
         <button
           type="button"
           onClick={onDismiss}
-          className="p-1 rounded-lg text-[#5C6B63] hover:text-[#0F3D2E] hover:bg-[#FBF8F1] transition-colors shrink-0 icon-interactive cursor-pointer"
+          className="p-1 rounded-lg text-[#6B6058] hover:text-[#FA661C] hover:bg-[#FFFFFF] transition-colors shrink-0 icon-interactive cursor-pointer"
           aria-label="Dismiss Notification"
         >
           <X className="w-3.5 h-3.5" />
@@ -90,7 +90,7 @@ export default function ToastItem({ toast, onDismiss }) {
 
       {/* Animated Auto-Dismiss Progress Sliver */}
       {toast.duration > 0 && (
-        <div className="w-full h-1 bg-[#E8F2EE] overflow-hidden">
+        <div className="w-full h-1 bg-[#FFF3EC] overflow-hidden">
           <div 
             className={`h-full ${style.progressColor} transition-all ease-linear`}
             style={{ width: `${progress}%` }}

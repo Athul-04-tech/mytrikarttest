@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useMemo, useCallback } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useToast } from './ToastContext';
+import { useAuth } from './AuthContext';
 
 const CartWishlistContext = createContext(null);
 
@@ -89,6 +91,11 @@ const VALID_COUPONS = {
 };
 
 export function CartWishlistProvider({ children }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { isLoggedIn } = useAuth();
+  const toast = useToast();
+
   const [wishlist, setWishlist] = useState(INITIAL_WISHLIST);
   const [cart, setCart] = useState(INITIAL_CART);
   const [savedForLater, setSavedForLater] = useState([]);
@@ -111,16 +118,30 @@ export function CartWishlistProvider({ children }) {
   // Placed Order Receipt State (for Order Confirmation)
   const [lastPlacedOrder, setLastPlacedOrder] = useState(null);
 
-  const toast = useToast();
+  // Auth requirement guard for guest users
+  const requireAuth = useCallback((actionDescription = 'add items to your shopping cart') => {
+    if (!isLoggedIn) {
+      toast.info(
+        "Login Required",
+        `Please sign in to ${actionDescription}.`
+      );
+      const currentPath = `${location.pathname}${location.search}`;
+      navigate('/login', { state: { from: currentPath } });
+      return false;
+    }
+    return true;
+  }, [isLoggedIn, toast, navigate, location.pathname, location.search]);
 
   // --- WISHLIST ACTIONS ---
   const addToWishlist = useCallback((product) => {
+    if (!requireAuth('save items to your wishlist')) return;
+
     setWishlist((prev) => {
       if (prev.some((item) => item.id === product.id)) return prev;
       return [product, ...prev];
     });
     toast.success("Added to Wishlist", `${product.name} saved to your favorites.`);
-  }, [toast]);
+  }, [requireAuth, toast]);
 
   const removeFromWishlist = useCallback((productId) => {
     setWishlist((prev) => prev.filter((item) => item.id !== productId));
@@ -128,6 +149,8 @@ export function CartWishlistProvider({ children }) {
   }, [toast]);
 
   const moveToCartFromWishlist = useCallback((product) => {
+    if (!requireAuth('add items to your shopping cart')) return;
+
     // 1. Remove from wishlist
     setWishlist((prev) => prev.filter((item) => item.id !== product.id));
     // 2. Add to cart with quantity 1 (or increment if existing)
@@ -154,10 +177,12 @@ export function CartWishlistProvider({ children }) {
       ];
     });
     toast.cart("Moved to Bag", `${product.name} is now in your shopping bag.`, product.image);
-  }, [toast]);
+  }, [requireAuth, toast]);
 
   // --- CART ACTIONS ---
   const addToCart = useCallback((product, qty = 1) => {
+    if (!requireAuth('add items to your shopping cart')) return;
+
     const rawPrice = typeof product.price === 'number' ? product.price : parseInt(String(product.price).replace(/[^\d]/g, ''), 10) || 2999;
     const rawOrig = typeof product.originalPrice === 'number' ? product.originalPrice : parseInt(String(product.originalPrice).replace(/[^\d]/g, ''), 10) || 5999;
 
@@ -184,7 +209,7 @@ export function CartWishlistProvider({ children }) {
       ];
     });
     toast.cart("Added to Bag", `${product.name} (Qty: ${qty}) added.`, product.image);
-  }, [toast]);
+  }, [requireAuth, toast]);
 
   const updateCartQuantity = useCallback((productId, delta) => {
     setCart((prev) => 
@@ -210,10 +235,12 @@ export function CartWishlistProvider({ children }) {
   }, [toast]);
 
   const moveToCartFromSaved = useCallback((product) => {
+    if (!requireAuth('add items to your shopping cart')) return;
+
     setSavedForLater((prev) => prev.filter((item) => item.id !== product.id));
     setCart((prev) => [{ ...product, quantity: product.quantity || 1 }, ...prev]);
     toast.cart("Moved to Bag", `${product.name} added back to shopping bag.`, product.image);
-  }, [toast]);
+  }, [requireAuth, toast]);
 
   const removeSavedForLater = useCallback((productId) => {
     setSavedForLater((prev) => prev.filter((item) => item.id !== productId));

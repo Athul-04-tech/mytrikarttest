@@ -18,33 +18,33 @@ export default function VendorHubModule() {
     <div className="space-y-6">
       
       {/* 1. Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#D8E0DC]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#EAE3DC]">
         <div>
           <div className="flex items-center space-x-2">
-            <span className="p-1 rounded-lg bg-[#FCF7E8] text-[#0F3D2E]">
-              <Store className="w-4 h-4 text-[#D4AF37]" />
+            <span className="p-1 rounded-lg bg-[#FFF8F2] text-[#FA661C]">
+              <Store className="w-4 h-4 text-[#FF811A]" />
             </span>
-            <h2 className="font-['Outfit'] font-black text-xl text-[#0F3D2E]">
+            <h2 className="font-['Outfit'] font-black text-xl text-[#FA661C]">
               Vendor & Seller Hub Directory
             </h2>
           </div>
-          <p className="text-xs text-[#5C6B63] mt-0.5">
+          <p className="text-xs text-[#6B6058] mt-0.5">
             Merchant Governance: Registration Approvals, GSTIN/PAN Verification, Commission Tiers & SLA Compliance.
           </p>
         </div>
 
-        <span className="text-xs font-bold text-[#C0392B] bg-[#FDEDEC] border border-[#C0392B]/30 px-3 py-1.5 rounded-xl self-start sm:self-auto flex items-center space-x-1.5">
+        <span className="text-xs font-bold text-[#D7263D] bg-[#FDE8EA] border border-[#D7263D]/30 px-3 py-1.5 rounded-xl self-start sm:self-auto flex items-center space-x-1.5">
           <AlertCircle className="w-4 h-4" />
           <span>{pendingCount} Pending KYC Approvals</span>
         </span>
       </div>
 
       {/* 2. Vendor Table */}
-      <div className="bg-white rounded-2xl border border-[#D8E0DC] overflow-hidden shadow-xs">
+      <div className="bg-white rounded-2xl border border-[#EAE3DC] overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="bg-[#E8F2EE] text-[#0F3D2E] border-b border-[#D8E0DC] font-extrabold uppercase text-[10px] tracking-wider">
+              <tr className="bg-[#FFF3EC] text-[#FA661C] border-b border-[#EAE3DC] font-extrabold uppercase text-[10px] tracking-wider">
                 <th className="p-3">Merchant Name</th>
                 <th className="p-3">Jurisdiction & GSTIN</th>
                 <th className="p-3">Category</th>
@@ -54,36 +54,36 @@ export default function VendorHubModule() {
                 <th className="p-3 text-center">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#D8E0DC]/60 font-medium">
+            <tbody className="divide-y divide-[#EAE3DC]/60 font-medium">
               {vendors.map((vendor) => {
                 const isPending = vendor.kycStatus === 'Pending Review';
 
                 return (
-                  <tr key={vendor.id} className="hover:bg-[#FBF8F1] transition-colors">
+                  <tr key={vendor.id} className="hover:bg-[#FFFFFF] transition-colors">
                     <td className="p-3">
-                      <div className="font-bold text-[#0F3D2E] text-xs">{vendor.name}</div>
-                      <div className="text-[10px] text-[#5C6B63]">{vendor.bankAccount}</div>
+                      <div className="font-bold text-[#FA661C] text-xs">{vendor.name}</div>
+                      <div className="text-[10px] text-[#6B6058]">{vendor.bankAccount}</div>
                     </td>
                     <td className="p-3">
-                      <span className="font-bold text-[#0F3D2E] block">{vendor.state} ({vendor.stateCode})</span>
-                      <span className="font-mono text-[10px] text-[#5C6B63]">{vendor.gstin}</span>
+                      <span className="font-bold text-[#FA661C] block">{vendor.state} ({vendor.stateCode})</span>
+                      <span className="font-mono text-[10px] text-[#6B6058]">{vendor.gstin}</span>
                     </td>
-                    <td className="p-3 text-[#5C6B63]">
+                    <td className="p-3 text-[#6B6058]">
                       {vendor.category}
                     </td>
-                    <td className="p-3 text-center font-black text-[#0F3D2E]">
+                    <td className="p-3 text-center font-black text-[#FA661C]">
                       {(vendor.commissionRate * 100).toFixed(0)}%
                     </td>
                     <td className="p-3 text-center">
-                      <span className="bg-[#FCF7E8] text-[#0F3D2E] font-extrabold px-2 py-0.5 rounded-full border border-[#D4AF37]/40">
+                      <span className="bg-[#FFF8F2] text-[#FA661C] font-extrabold px-2 py-0.5 rounded-full border border-[#FF811A]/40">
                         {vendor.slaScore}%
                       </span>
                     </td>
                     <td className="p-3 text-center">
                       <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
                         isPending
-                          ? 'bg-[#FDEDEC] text-[#C0392B] border border-[#C0392B]/40 animate-pulse'
-                          : 'bg-[#E8F2EE] text-[#0F3D2E]'
+                          ? 'bg-[#FDE8EA] text-[#D7263D] border border-[#D7263D]/40 animate-pulse'
+                          : 'bg-[#FFF3EC] text-[#FA661C]'
                       }`}>
                         {vendor.kycStatus}
                       </span>
@@ -93,12 +93,12 @@ export default function VendorHubModule() {
                         <button
                           type="button"
                           onClick={() => handleApproveKYC(vendor)}
-                          className="px-3 py-1.5 rounded-xl bg-[#0F3D2E] text-[#D4AF37] font-bold text-[10px] btn-interactive cursor-pointer shadow-xs"
+                          className="px-3 py-1.5 rounded-xl bg-[#FA661C] text-[#FF811A] font-bold text-[10px] btn-interactive cursor-pointer shadow-xs"
                         >
                           Approve KYC
                         </button>
                       ) : (
-                        <span className="text-[10px] text-[#0F3D2E] font-bold">Verified ✓</span>
+                        <span className="text-[10px] text-[#FA661C] font-bold">Verified ✓</span>
                       )}
                     </td>
                   </tr>

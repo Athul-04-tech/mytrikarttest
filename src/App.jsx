@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
+import React, { useEffect, useRef } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, Link, useNavigate, useLocation } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import ProfilePage from './pages/ProfilePage';
@@ -7,122 +7,50 @@ import SellerRegisterPage from './pages/SellerRegisterPage';
 import AdminHomePage from './pages/AdminHomePage';
 import SellerDashboardPage from './pages/SellerDashboardPage';
 import SellerAddProductPage from './pages/SellerAddProductPage';
+import SellerProductDetailPage from './pages/SellerProductDetailPage';
 import WishlistPage from './pages/WishlistPage';
 import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
 import ScrollToTop from './components/routing/ScrollToTop';
 import PageTransitionWrapper from './components/routing/PageTransitionWrapper';
+import ProtectedRoute from './components/routing/ProtectedRoute';
 import { ToastProvider, useToast } from './context/ToastContext';
 import { CartWishlistProvider } from './context/CartWishlistContext';
-import { Sparkles, LogOut, LogIn, Store, LayoutDashboard } from 'lucide-react';
-
-function ReviewerTopBar({ isLoggedIn, setIsLoggedIn, currentUser }) {
-  const toast = useToast();
-
-  return (
-    <aside 
-      aria-label="Design Review Controls"
-      className="bg-[#0A2A1F] text-[#FBF8F1] px-4 py-1.5 text-xs border-b border-[#D4AF37]/40 flex items-center justify-between z-50 sticky top-0"
-    >
-      <div className="flex items-center space-x-2">
-        <Sparkles className="w-3.5 h-3.5 text-[#D4AF37]" />
-        <span className="font-bold hidden sm:inline text-[#D4AF37]">UX Prototype:</span>
-        <span className="font-semibold text-[11px] sm:text-xs">
-          {isLoggedIn ? (
-            <span className="text-[#A2E3C4] flex items-center space-x-1">
-              <span>● Customer:</span>
-              <strong className="text-white">{currentUser.name}</strong>
-              <span className="text-[10px] bg-[#D4AF37] text-[#0F3D2E] font-bold px-1 rounded uppercase">PLUS</span>
-            </span>
-          ) : (
-            <span className="text-[#F4EFE6]">○ Pre-Login Guest Mode</span>
-          )}
-        </span>
-      </div>
-
-      <div className="flex items-center space-x-1.5 sm:space-x-2">
-        {/* Quick Jump to Seller Dashboard */}
-        <Link
-          to="/seller/dashboard"
-          className="px-2.5 py-0.5 rounded-lg text-[11px] font-bold bg-[#D4AF37] hover:bg-[#E3BE46] text-[#0F3D2E] transition-all flex items-center space-x-1 shadow-2xs btn-interactive cursor-pointer"
-        >
-          <Store className="w-3 h-3 text-[#0F3D2E]" />
-          <span>Seller Hub</span>
-        </Link>
-
-        {/* Quick Jump to Admin Dashboard */}
-        <Link
-          to="/admin"
-          className="px-2.5 py-0.5 rounded-lg text-[11px] font-bold bg-[#155440] hover:bg-[#1A624B] text-[#FBF8F1] border border-[#D4AF37]/30 transition-all flex items-center space-x-1 shadow-2xs btn-interactive cursor-pointer"
-        >
-          <LayoutDashboard className="w-3 h-3 text-[#D4AF37]" />
-          <span className="hidden sm:inline">Admin Ops</span>
-        </Link>
-
-        <button
-          type="button"
-          onClick={() => {
-            const nextState = !isLoggedIn;
-            setIsLoggedIn(nextState);
-            if (nextState) {
-              toast.success("Simulated Login", "Signed in as Aarav Sharma (Gold Plus).");
-            } else {
-              toast.info("Simulated Guest", "Browsing as guest visitor.");
-            }
-          }}
-          className="px-2 py-0.5 rounded-lg text-[11px] font-bold bg-[#155440] hover:bg-[#1A624B] text-[#FBF8F1] border border-[#D4AF37]/30 transition-all flex items-center space-x-1 shadow-2xs btn-interactive cursor-pointer"
-        >
-          {isLoggedIn ? (
-            <>
-              <LogOut className="w-3 h-3" />
-              <span className="hidden sm:inline">Guest</span>
-            </>
-          ) : (
-            <>
-              <LogIn className="w-3 h-3" />
-              <span className="hidden sm:inline">User</span>
-            </>
-          )}
-        </button>
-      </div>
-    </aside>
-  );
-}
-
+import { SellerProductsProvider } from './context/SellerProductsContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { getHomeRouteForRole, getAllowedRolesForRoute } from './utils/authRouting';
 function MarketplaceRouter() {
   const toast = useToast();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { isLoggedIn, currentUser, isResolving, logout } = useAuth();
+  const hasRehydratedRedirected = useRef(false);
 
-  // Simulated Global Authentication State
-  const [isLoggedIn, setIsLoggedIn] = useState(true);
-  const [currentUser, setCurrentUser] = useState({
-    name: 'Aarav Sharma',
-    email: 'aarav.sharma@example.com',
-    isPlus: true
-  });
+  useEffect(() => {
+    if (!isResolving && isLoggedIn && currentUser && !hasRehydratedRedirected.current) {
+      hasRehydratedRedirected.current = true;
+      if (location.pathname === '/') {
+        const homeRoute = getHomeRouteForRole(currentUser.role);
+        if (homeRoute !== '/') {
+          navigate(homeRoute, { replace: true });
+        }
+      }
+    }
+  }, [isResolving, isLoggedIn, currentUser, location.pathname, navigate]);
 
   const handleLoginSuccess = (userData) => {
-    setIsLoggedIn(true);
-    if (userData) {
-      setCurrentUser(prev => ({ ...prev, ...userData }));
-    }
-    toast.success("Welcome back!", `Signed in as ${userData?.name || currentUser.name}`);
+    toast.success("Welcome back!", `Signed in as ${userData?.name || userData?.username || 'Customer'}`);
   };
 
-  const handleLogout = () => {
-    setIsLoggedIn(false);
-    toast.info("Logged Out", "You have securely signed out of your account.");
+  const handleLogout = async () => {
+    await logout();
+    navigate('/');
+    toast.info("Logged Out", "Signed out successfully. Returned to marketplace home in guest mode.");
   };
 
   return (
     <>
       <ScrollToTop />
-      
-      {/* Reviewer Top Bar */}
-      <ReviewerTopBar 
-        isLoggedIn={isLoggedIn}
-        setIsLoggedIn={setIsLoggedIn}
-        currentUser={currentUser}
-      />
 
       <Routes>
         {/* 1. Customer Homepage & Category Deep-links */}
@@ -236,25 +164,51 @@ function MarketplaceRouter() {
         <Route 
           path="/seller/dashboard" 
           element={
-            <PageTransitionWrapper>
-              <SellerDashboardPage />
-            </PageTransitionWrapper>
+            <ProtectedRoute allowedRoles={getAllowedRolesForRoute('/seller/dashboard')}>
+              <PageTransitionWrapper>
+                <SellerDashboardPage />
+              </PageTransitionWrapper>
+            </ProtectedRoute>
           } 
         />
         <Route 
           path="/seller/products" 
           element={
-            <PageTransitionWrapper>
-              <SellerDashboardPage />
-            </PageTransitionWrapper>
+            <ProtectedRoute allowedRoles={getAllowedRolesForRoute('/seller/dashboard')}>
+              <PageTransitionWrapper>
+                <SellerDashboardPage />
+              </PageTransitionWrapper>
+            </ProtectedRoute>
           } 
         />
         <Route 
           path="/seller/products/new" 
           element={
-            <PageTransitionWrapper>
-              <SellerAddProductPage />
-            </PageTransitionWrapper>
+            <ProtectedRoute allowedRoles={getAllowedRolesForRoute('/seller/dashboard')}>
+              <PageTransitionWrapper>
+                <SellerAddProductPage />
+              </PageTransitionWrapper>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/seller/products/:id/edit" 
+          element={
+            <ProtectedRoute allowedRoles={getAllowedRolesForRoute('/seller/dashboard')}>
+              <PageTransitionWrapper>
+                <SellerAddProductPage />
+              </PageTransitionWrapper>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/seller/products/:id" 
+          element={
+            <ProtectedRoute allowedRoles={getAllowedRolesForRoute('/seller/dashboard')}>
+              <PageTransitionWrapper>
+                <SellerProductDetailPage />
+              </PageTransitionWrapper>
+            </ProtectedRoute>
           } 
         />
         <Route path="/seller/add-product" element={<Navigate to="/seller/products/new" replace />} />
@@ -262,33 +216,41 @@ function MarketplaceRouter() {
         <Route 
           path="/seller/orders" 
           element={
-            <PageTransitionWrapper>
-              <SellerDashboardPage />
-            </PageTransitionWrapper>
+            <ProtectedRoute allowedRoles={getAllowedRolesForRoute('/seller/dashboard')}>
+              <PageTransitionWrapper>
+                <SellerDashboardPage />
+              </PageTransitionWrapper>
+            </ProtectedRoute>
           } 
         />
         <Route 
           path="/seller/settlements" 
           element={
-            <PageTransitionWrapper>
-              <SellerDashboardPage />
-            </PageTransitionWrapper>
+            <ProtectedRoute allowedRoles={getAllowedRolesForRoute('/seller/dashboard')}>
+              <PageTransitionWrapper>
+                <SellerDashboardPage />
+              </PageTransitionWrapper>
+            </ProtectedRoute>
           } 
         />
         <Route 
           path="/seller/settings" 
           element={
-            <PageTransitionWrapper>
-              <SellerDashboardPage />
-            </PageTransitionWrapper>
+            <ProtectedRoute allowedRoles={getAllowedRolesForRoute('/seller/dashboard')}>
+              <PageTransitionWrapper>
+                <SellerDashboardPage />
+              </PageTransitionWrapper>
+            </ProtectedRoute>
           } 
         />
         <Route 
           path="/seller/profile" 
           element={
-            <PageTransitionWrapper>
-              <SellerDashboardPage />
-            </PageTransitionWrapper>
+            <ProtectedRoute allowedRoles={getAllowedRolesForRoute('/seller/dashboard')}>
+              <PageTransitionWrapper>
+                <SellerDashboardPage />
+              </PageTransitionWrapper>
+            </ProtectedRoute>
           } 
         />
 
@@ -296,17 +258,21 @@ function MarketplaceRouter() {
         <Route 
           path="/admin" 
           element={
-            <PageTransitionWrapper>
-              <AdminHomePage />
-            </PageTransitionWrapper>
+            <ProtectedRoute allowedRoles={getAllowedRolesForRoute('/admin')}>
+              <PageTransitionWrapper>
+                <AdminHomePage />
+              </PageTransitionWrapper>
+            </ProtectedRoute>
           } 
         />
         <Route 
           path="/admin/:moduleId" 
           element={
-            <PageTransitionWrapper>
-              <AdminHomePage />
-            </PageTransitionWrapper>
+            <ProtectedRoute allowedRoles={getAllowedRolesForRoute('/admin')}>
+              <PageTransitionWrapper>
+                <AdminHomePage />
+              </PageTransitionWrapper>
+            </ProtectedRoute>
           } 
         />
         <Route path="/admin/dashboard" element={<Navigate to="/admin" replace />} />
@@ -323,9 +289,13 @@ export default function App() {
   return (
     <BrowserRouter>
       <ToastProvider>
-        <CartWishlistProvider>
-          <MarketplaceRouter />
-        </CartWishlistProvider>
+        <AuthProvider>
+          <CartWishlistProvider>
+            <SellerProductsProvider>
+              <MarketplaceRouter />
+            </SellerProductsProvider>
+          </CartWishlistProvider>
+        </AuthProvider>
       </ToastProvider>
     </BrowserRouter>
   );

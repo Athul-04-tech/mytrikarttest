@@ -1,6 +1,6 @@
 import React from 'react';
-import { ShoppingBag, ArrowRight, CheckCircle2, Clock, AlertTriangle, Truck } from 'lucide-react';
-import { ORDERS_WIDGET_DATA, formatSellerINR } from '../../data/sellerDashboardData';
+import { ShoppingBag, ArrowRight } from 'lucide-react';
+import { formatCurrencyValue } from '../../data/sellerDashboardData';
 import { useCountUp } from '../../hooks/useCountUp';
 import { useToast } from '../../context/ToastContext';
 
@@ -9,21 +9,37 @@ function AnimatedCount({ target }) {
   return <span>{count}</span>;
 }
 
-export default function SellerOrdersWidget({ onNavigateToOrders }) {
+export default function SellerOrdersWidget({ orderStatusCounts, recentOrders, onNavigateToOrders }) {
   const toast = useToast();
-  const data = ORDERS_WIDGET_DATA;
+
+  const countsList = [
+    { id: 'pending', label: 'Pending', count: Number(orderStatusCounts?.pending || 0), isHighlight: true },
+    { id: 'processing', label: 'Processing', count: Number(orderStatusCounts?.processing || 0), isHighlight: false },
+    { id: 'shipped', label: 'Shipped', count: Number(orderStatusCounts?.shipped || 0), isHighlight: false },
+    { id: 'delivered', label: 'Delivered', count: Number(orderStatusCounts?.delivered || 0), isHighlight: false },
+    { id: 'cancelled', label: 'Cancelled', count: Number(orderStatusCounts?.cancelled || 0), isUrgent: false }
+  ];
+
+  const recentList = (recentOrders || []).map(order => ({
+    id: order.id,
+    orderNumber: order.order_number || `#ORD-${order.id}`,
+    productName: Array.isArray(order.product_names) ? order.product_names.join(', ') : (order.productName || 'Order Item'),
+    amount: order.amount,
+    currency: order.currency || 'INR',
+    status: order.status
+  }));
 
   return (
-    <section aria-labelledby="orders-widget-heading" className="bg-white rounded-3xl border border-[#D8E0DC] p-5 sm:p-6 shadow-xs flex flex-col justify-between h-full">
+    <section aria-labelledby="orders-widget-heading" className="bg-white rounded-3xl border border-[#EAE3DC] p-5 sm:p-6 shadow-xs flex flex-col justify-between h-full">
       <div>
         
         {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-[#D8E0DC]">
+        <div className="flex items-center justify-between pb-3 border-b border-[#EAE3DC]">
           <div className="flex items-center space-x-2">
-            <span className="p-1 rounded-lg bg-[#E8F2EE] text-[#0F3D2E]">
-              <ShoppingBag className="w-4 h-4 text-[#0F3D2E]" />
+            <span className="p-1 rounded-lg bg-[#FFF3EC] text-[#FA661C]">
+              <ShoppingBag className="w-4 h-4 text-[#FA661C]" />
             </span>
-            <h3 id="orders-widget-heading" className="font-['Outfit'] font-extrabold text-base text-[#0F3D2E]">
+            <h3 id="orders-widget-heading" className="font-['Outfit'] font-extrabold text-base text-[#FA661C]">
               Orders Fulfillment Queue
             </h3>
           </div>
@@ -31,7 +47,7 @@ export default function SellerOrdersWidget({ onNavigateToOrders }) {
           <button
             type="button"
             onClick={onNavigateToOrders}
-            className="text-xs font-bold text-[#0F3D2E] hover:text-[#D4AF37] link-interactive flex items-center space-x-0.5 cursor-pointer"
+            className="text-xs font-bold text-[#FA661C] hover:text-[#FF811A] link-interactive flex items-center space-x-0.5 cursor-pointer"
           >
             <span>View All Orders</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -40,89 +56,89 @@ export default function SellerOrdersWidget({ onNavigateToOrders }) {
 
         {/* 5 Status Count Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 my-3 text-xs">
-          {data.counts.map((st) => (
+          {countsList.map((st) => (
             <div
               key={st.id}
               className={`p-2.5 rounded-xl border flex flex-col justify-between ${
                 st.isHighlight
-                  ? 'bg-[#FCF7E8] border-[#D4AF37]/60 shadow-2xs'
+                  ? 'bg-[#FFF8F2] border-[#FF811A]/60 shadow-2xs'
                   : st.isUrgent
-                  ? 'bg-[#FDEDEC]/40 border-[#C0392B]/30'
-                  : 'bg-[#FBF8F1] border-[#D8E0DC]'
+                  ? 'bg-[#FDE8EA]/40 border-[#D7263D]/30'
+                  : 'bg-[#FFFFFF] border-[#EAE3DC]'
               }`}
             >
-              <span className="text-[10px] font-bold text-[#5C6B63] truncate">
+              <span className="text-[10px] font-bold text-[#6B6058] truncate">
                 {st.label}
               </span>
               <div className={`font-['Outfit'] font-black text-lg mt-0.5 ${
-                st.isHighlight ? 'text-[#0F3D2E]' : st.isUrgent ? 'text-[#C0392B]' : 'text-[#0F3D2E]'
+                st.isHighlight ? 'text-[#FA661C]' : st.isUrgent ? 'text-[#D7263D]' : 'text-[#FA661C]'
               }`}>
-                <AnimatedCount target={st.count} />
+                {orderStatusCounts ? <AnimatedCount target={st.count} /> : '—'}
               </div>
             </div>
           ))}
         </div>
 
-        {/* Mini Recent Orders List (5-6 Rows) */}
+        {/* Mini Recent Orders List */}
         <div className="mt-4 space-y-2">
-          <span className="text-[10px] font-bold text-[#5C6B63] uppercase tracking-wider block">
+          <span className="text-[10px] font-bold text-[#6B6058] uppercase tracking-wider block">
             Recent Order Dispatches
           </span>
 
-          <div className="space-y-2 divide-y divide-[#D8E0DC]/40">
-            {data.recentOrders.map((ord) => (
-              <div
-                key={ord.id}
-                onClick={() => toast.info("Order Details", `Inspecting shipment for ${ord.id}`)}
-                className="pt-2 first:pt-0 flex items-center justify-between gap-2.5 hover:bg-[#FBF8F1] p-1.5 rounded-xl transition-colors cursor-pointer group"
-              >
-                <div className="flex items-center space-x-2.5 truncate">
-                  <img
-                    src={ord.thumbnail}
-                    alt={ord.productName}
-                    className="w-9 h-9 rounded-lg object-cover border border-[#D8E0DC] shrink-0"
-                  />
-                  <div className="truncate">
-                    <div className="flex items-center space-x-1.5">
-                      <span className="font-mono font-bold text-xs text-[#0F3D2E]">{ord.id}</span>
-                      <span className="text-[10px] text-[#5C6B63]">• {ord.customerName}</span>
+          {recentList.length === 0 ? (
+            <div className="p-4 bg-[#FFF3EC]/40 rounded-xl border border-[#EAE3DC] text-center text-xs text-[#6B6058]">
+              No recent orders
+            </div>
+          ) : (
+            <div className="space-y-2 divide-y divide-[#EAE3DC]/40">
+              {recentList.map((ord) => (
+                <div
+                  key={ord.id}
+                  onClick={() => toast.info("Order Details", `Inspecting shipment for ${ord.orderNumber}`)}
+                  className="pt-2 first:pt-0 flex items-center justify-between gap-2.5 hover:bg-[#FFFFFF] p-1.5 rounded-xl transition-colors cursor-pointer group"
+                >
+                  <div className="flex items-center space-x-2.5 truncate">
+                    <div className="truncate">
+                      <div className="flex items-center space-x-1.5">
+                        <span className="font-mono font-bold text-xs text-[#FA661C]">{ord.orderNumber}</span>
+                      </div>
+                      <p className="text-[10px] text-[#6B6058] truncate max-w-[200px]">
+                        {ord.productName}
+                      </p>
                     </div>
-                    <p className="text-[10px] text-[#5C6B63] truncate max-w-[200px]">
-                      {ord.productName}
-                    </p>
+                  </div>
+
+                  <div className="text-right shrink-0">
+                    <span className="font-mono font-black text-xs text-[#FA661C] block">
+                      {formatCurrencyValue(ord.amount, ord.currency)}
+                    </span>
+                    <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded-full uppercase ${
+                      ord.status === 'delivered' || ord.status === 'Delivered'
+                        ? 'bg-[#FFF3EC] text-[#FA661C]'
+                        : ord.status === 'shipped' || ord.status === 'Shipped'
+                        ? 'bg-[#FFF3EC] text-[#FA661C]'
+                        : ord.status === 'pending' || ord.status === 'New'
+                        ? 'bg-[#FFF8F2] text-[#FA661C] border border-[#FF811A]/50'
+                        : 'bg-[#FFFFFF] text-[#6B6058]'
+                    }`}>
+                      {ord.status}
+                    </span>
                   </div>
                 </div>
-
-                <div className="text-right shrink-0">
-                  <span className="font-mono font-black text-xs text-[#0F3D2E] block">
-                    {formatSellerINR(ord.amount)}
-                  </span>
-                  <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded-full uppercase ${
-                    ord.status === 'Delivered'
-                      ? 'bg-[#E8F2EE] text-[#0F3D2E]'
-                      : ord.status === 'Shipped'
-                      ? 'bg-[#E8F2EE] text-[#0F3D2E]'
-                      : ord.status === 'New'
-                      ? 'bg-[#FCF7E8] text-[#0F3D2E] border border-[#D4AF37]/50'
-                      : 'bg-[#FBF8F1] text-[#5C6B63]'
-                  }`}>
-                    {ord.status}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
       </div>
 
-      <div className="mt-3 pt-2.5 border-t border-[#D8E0DC]/60 text-right">
+      <div className="mt-3 pt-2.5 border-t border-[#EAE3DC]/60 text-right">
         <button
           type="button"
-          onClick={() => toast.success("Batch Manifest Generated", "Print shipping labels for 6 new orders.")}
-          className="text-[11px] font-bold text-[#0F3D2E] hover:text-[#D4AF37] link-interactive cursor-pointer"
+          onClick={() => toast.success("Batch Manifest Generated", "Print shipping labels for orders.")}
+          className="text-[11px] font-bold text-[#FA661C] hover:text-[#FF811A] link-interactive cursor-pointer"
         >
-          Print Shipping Manifest (6 Orders) →
+          Print Shipping Manifest →
         </button>
       </div>
     </section>

@@ -5,38 +5,43 @@
   --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
   --font-heading: 'Outfit', 'Plus Jakarta Sans', system-ui, sans-serif;
 
-  --color-primary: #0F3D2E;
-  --color-primary-hover: #155440;
-  --color-primary-light: #1E6B52;
-  --color-primary-subtle: #E8F2EE;
+  --color-primary: #FA661C;
+  --color-primary-hover: #E0530B;
+  --color-primary-light: #FF811A;
+  --color-primary-subtle: #FFF3EC;
   
-  --color-accent: #D4AF37;
-  --color-accent-hover: #E3BE46;
-  --color-accent-light: #FCF7E8;
-  --color-accent-gold-dark: #B59325;
+  --color-accent: #FF811A;
+  --color-accent-hover: #E66E08;
+  --color-accent-light: #FFF8F2;
+  --color-accent-gold-dark: #D45D00;
 
-  --color-cream: #FBF8F1;
+  --color-dark: #1A1A1A;
+  --color-dark-nav: #1A1A1A;
+  --color-wordmark-black: #000000;
+
+  --color-cream: #FFFFFF;
   --color-surface: #FFFFFF;
-  --color-surface-soft: #F4EFE6;
+  --color-surface-soft: #F9F6F0;
 
-  --color-urgency: #C0392B;
-  --color-urgency-hover: #D94435;
-  --color-urgency-light: #FDEDEC;
+  --color-urgency: #D7263D;
+  --color-urgency-hover: #B81D31;
+  --color-urgency-light: #FDE8EA;
 
-  --color-sage: #5C6B63;
-  --color-sage-dark: #37433D;
-  --color-sage-light: #87988F;
-  --color-sage-border: #D8E0DC;
-  --color-sage-bg: #F0F4F2;
+  --color-sage: #6B6058;
+  --color-sage-dark: #3D3630;
+  --color-sage-light: #948880;
+  --color-sage-border: #EAE3DC;
+  --color-sage-bg: #F5F1EC;
 }
 
 :root {
   /* Color Values */
-  --color-primary-val: #0F3D2E;
-  --color-accent-val: #D4AF37;
-  --color-bg-val: #FBF8F1;
-  --color-highlight-val: #C0392B;
-  --color-sage-val: #5C6B63;
+  --color-primary-val: #FA661C;
+  --color-accent-val: #FF811A;
+  --color-dark-val: #1A1A1A;
+  --color-bg-val: #FFFFFF;
+  --color-highlight-val: #D7263D;
+  --color-sage-val: #6B6058;
 
   /* Global Animation & Motion Standard Tokens (Optimized for instant responsiveness) */
   --ease-premium: cubic-bezier(0.16, 1, 0.3, 1);
@@ -69,16 +74,16 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #F4EFE6;
+  background: #F9F6F0;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #D8E0DC;
+  background: #EAE3DC;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #5C6B63;
+  background: #6B6058;
 }
 
 /* Focus Ring Customization */
@@ -89,10 +94,10 @@ body {
 
 /* Glassmorphism panel utility */
 .glass-panel {
-  background: rgba(251, 248, 241, 0.85);
+  background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(212, 175, 55, 0.2);
+  border: 1px solid rgba(255, 129, 26, 0.2);
 }
 
 /* =========================================================================
@@ -145,12 +150,12 @@ body {
 
 .card-interactive:hover {
   transform: translateY(-3px);
-  box-shadow: 0 12px 24px -6px rgba(15, 61, 46, 0.08), 0 4px 8px -2px rgba(15, 61, 46, 0.04);
+  box-shadow: 0 12px 24px -6px rgba(250, 102, 28, 0.08), 0 4px 8px -2px rgba(250, 102, 28, 0.04);
 }
 
 .card-interactive:active {
   transform: translateY(-1px) scale(0.995);
-  box-shadow: 0 4px 8px -2px rgba(15, 61, 46, 0.06);
+  box-shadow: 0 4px 8px -2px rgba(250, 102, 28, 0.06);
 }
 
 /* Image Zoom within Card */
@@ -215,7 +220,7 @@ body {
 
 .input-interactive:focus {
   border-color: var(--color-accent-val);
-  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.18);
+  box-shadow: 0 0 0 3px rgba(255, 129, 26, 0.18);
   background-color: #FFFFFF;
 }
 
@@ -228,7 +233,7 @@ body {
 
 .avatar-interactive:hover {
   transform: scale(1.08);
-  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
+  box-shadow: 0 4px 12px rgba(255, 129, 26, 0.3);
 }
 
 .avatar-interactive:active {
@@ -241,10 +246,10 @@ body {
 
 @keyframes pulseGoldGlow {
   0%, 100% {
-    box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.4);
+    box-shadow: 0 0 0 0 rgba(255, 129, 26, 0.4);
   }
   50% {
-    box-shadow: 0 0 0 8px rgba(212, 175, 55, 0);
+    box-shadow: 0 0 0 8px rgba(255, 129, 26, 0);
   }
 }
 
@@ -273,8 +278,18 @@ body {
 }
 
 @keyframes fadeInReveal {
-  from { opacity: 0.85; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0.85; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleUp {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 .animate-dropdown {
@@ -289,7 +304,15 @@ body {
 
 .animate-reveal {
   animation: fadeInReveal var(--duration-page) var(--ease-premium) forwards;
-  will-change: transform, opacity;
+  will-change: opacity;
+}
+
+.animate-fadeIn {
+  animation: fadeIn var(--duration-panel) var(--ease-premium) forwards;
+}
+
+.animate-scaleUp {
+  animation: scaleUp var(--duration-panel) var(--ease-spring) forwards;
 }
 
 /* Scroll reveal initial state */
@@ -328,3 +351,92 @@ body {
     transform: none !important;
   }
 }
+
+/* =========================================================================
+   GLOBAL BUTTON COLOR & CONTRAST SPECIFICATION
+   - Orange background button -> BLACK text (#000000) & icons
+   - White background button  -> BLACK text (#000000) & icons
+   - Black background button  -> WHITE text (#FFFFFF) & icons (BLACK text on hover to orange)
+   ========================================================================= */
+
+/* 1. Orange background buttons and triggers */
+button.bg-\[\#FA661C\],
+button.bg-\[\#FF811A\],
+button.bg-\[\#E0530B\],
+a.bg-\[\#FA661C\],
+a.bg-\[\#FF811A\],
+a.bg-\[\#E0530B\] {
+  color: #000000 !important;
+}
+
+button.bg-\[\#FA661C\] svg,
+button.bg-\[\#FF811A\] svg,
+button.bg-\[\#E0530B\] svg,
+a.bg-\[\#FA661C\] svg,
+a.bg-\[\#FF811A\] svg,
+a.bg-\[\#E0530B\] svg {
+  color: #000000 !important;
+}
+
+/* 2. White background buttons */
+button.bg-white,
+button.bg-\[\#FFFFFF\],
+a.bg-white,
+a.bg-\[\#FFFFFF\] {
+  color: #000000 !important;
+}
+
+/* 3. Black/Dark background buttons */
+button.bg-\[\#1A1A1A\],
+button.bg-black,
+a.bg-\[\#1A1A1A\],
+a.bg-black {
+  color: #FFFFFF !important;
+}
+
+/* Hover transitions on buttons turning Orange */
+button.hover\:bg-\[\#FA661C\]:hover,
+button.hover\:bg-\[\#FF811A\]:hover,
+button.hover\:bg-\[\#E0530B\]:hover,
+a.hover\:bg-\[\#FA661C\]:hover,
+a.hover\:bg-\[\#FF811A\]:hover,
+a.hover\:bg-\[\#E0530B\]:hover {
+  color: #000000 !important;
+}
+
+button.hover\:bg-\[\#FA661C\]:hover svg,
+button.hover\:bg-\[\#FF811A\]:hover svg,
+button.hover\:bg-\[\#E0530B\]:hover svg,
+a.hover\:bg-\[\#FA661C\]:hover svg,
+a.hover\:bg-\[\#FF811A\]:hover svg,
+a.hover\:bg-\[\#E0530B\]:hover svg {
+  color: #000000 !important;
+}
+
+/* =========================================================================
+   ORANGE TO BLACK FONT SPECIFICATION ON WHITE BACKGROUNDS
+   - Every font color from orange to black which comes on white/light background
+   ========================================================================= */
+
+.text-\[\#FA661C\],
+.text-\[\#FF811A\],
+.text-\[\#E0530B\],
+.text-\[\#D45D00\],
+.text-orange-500,
+.text-orange-600,
+.text-orange-700 {
+  color: #000000 !important;
+}
+
+/* Retain high-contrast gold/orange text strictly on deep dark emerald/black container backgrounds */
+.bg-\[\#0A2A1F\] .text-\[\#FA661C\],
+.bg-\[\#0A2A1F\] .text-\[\#FF811A\],
+.bg-\[\#0A2A1F\] .text-\[\#E0530B\],
+.bg-\[\#0A2A1F\] .text-orange-500,
+.bg-\[\#1A1A1A\] .text-\[\#FA661C\],
+.bg-\[\#1A1A1A\] .text-\[\#FF811A\],
+.bg-black .text-\[\#FA661C\],
+.bg-black .text-\[\#FF811A\] {
+  color: #FF811A !important;
+}
+

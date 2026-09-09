@@ -3,31 +3,30 @@ import { ArrowLeft, ShieldCheck } from 'lucide-react';
 
 export default function AuthHeader({ onBackToHome }) {
   return (
-    <header className="bg-[#FBF8F1] border-b border-[#D8E0DC]/80 py-3 px-4 sm:px-8 flex items-center justify-between sticky top-0 z-30 shadow-2xs">
+    <header className="bg-[#FFFFFF] border-b border-[#EAE3DC]/80 py-3 px-4 sm:px-8 flex items-center justify-between sticky top-0 z-30 shadow-2xs">
       <div className="max-w-7xl mx-auto w-full flex items-center justify-between">
         
         {/* Brand Logo (Links to Homepage) */}
         <button
           type="button"
           onClick={onBackToHome}
-          className="flex items-center space-x-1.5 group focus:outline-none focus:ring-2 focus:ring-[#0F3D2E] rounded-md px-1 py-0.5"
+          className="flex items-center group focus:outline-none focus:ring-2 focus:ring-[#FA661C] rounded-md px-1 py-0.5"
           aria-label="Return to MytriKart Homepage"
         >
-          <span className="font-['Outfit'] font-extrabold text-2xl text-[#0F3D2E] tracking-tight group-hover:opacity-90 transition-opacity">
-            Mytri<span className="text-[#D4AF37]">Kart</span>
-          </span>
-          <span className="hidden sm:inline-block text-[9px] uppercase font-bold tracking-widest bg-[#0F3D2E]/10 text-[#0F3D2E] px-1.5 py-0.5 rounded border border-[#0F3D2E]/20">
-            MARKETPLACE
-          </span>
+          <img 
+            src="/mytrikart-logo.png" 
+            alt="MytriKart Logo" 
+            className="h-8 md:h-10 w-auto object-contain max-w-[200px]"
+          />
         </button>
 
         {/* Back to Home Quick Action */}
         <button
           type="button"
           onClick={onBackToHome}
-          className="flex items-center space-x-1.5 text-xs font-bold text-[#5C6B63] hover:text-[#0F3D2E] transition-colors group px-3 py-1.5 rounded-xl hover:bg-[#E8F2EE]"
+          className="flex items-center space-x-1.5 text-xs font-bold text-[#6B6058] hover:text-[#FA661C] transition-colors group px-3 py-1.5 rounded-xl hover:bg-[#FFF3EC]"
         >
-          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform text-[#D4AF37]" />
+          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform text-[#FF811A]" />
           <span>Back to Marketplace</span>
         </button>
 

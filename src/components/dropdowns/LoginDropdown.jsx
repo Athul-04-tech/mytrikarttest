@@ -54,7 +54,7 @@ export default function LoginDropdown({ isOpen, onClose, onOpenLoginModal }) {
     <>
       {/* Mobile Backdrop Sheet Modal overlay */}
       <div 
-        className="fixed inset-0 bg-[#0F3D2E]/40 backdrop-blur-xs z-40 md:hidden"
+        className="fixed inset-0 bg-[#FA661C]/40 backdrop-blur-xs z-40 md:hidden"
         onClick={onClose}
         aria-hidden="true"
       />
@@ -63,17 +63,17 @@ export default function LoginDropdown({ isOpen, onClose, onOpenLoginModal }) {
       <div className="fixed inset-x-0 bottom-0 z-50 md:z-50 md:absolute md:top-full md:right-0 md:left-auto md:bottom-auto md:w-80 md:mt-2 animate-bottom-sheet md:animate-dropdown">
         
         {/* Card Surface */}
-        <div className="bg-[#FBF8F1] border border-[#D4AF37]/30 rounded-t-2xl md:rounded-2xl shadow-2xl overflow-hidden glass-panel">
+        <div className="bg-[#FFFFFF] border border-[#FF811A]/30 rounded-t-2xl md:rounded-2xl shadow-2xl overflow-hidden glass-panel">
           
           {/* Mobile Handle & Close Bar */}
-          <div className="md:hidden flex items-center justify-between px-4 py-2.5 border-b border-[#D8E0DC] bg-[#E8F2EE]/50">
+          <div className="md:hidden flex items-center justify-between px-4 py-2.5 border-b border-[#EAE3DC] bg-[#FFF3EC]/50">
             <div className="flex items-center space-x-2">
-              <Sparkles className="w-4 h-4 text-[#D4AF37]" />
-              <span className="text-xs font-bold text-[#0F3D2E] uppercase tracking-wider">Account Options</span>
+              <Sparkles className="w-4 h-4 text-[#FF811A]" />
+              <span className="text-xs font-bold text-[#FA661C] uppercase tracking-wider">Account Options</span>
             </div>
             <button 
               onClick={onClose} 
-              className="p-1 rounded-full text-[#5C6B63] hover:text-[#0F3D2E] hover:bg-[#D8E0DC]/50 transition-colors"
+              className="p-1 rounded-full text-[#6B6058] hover:text-[#FA661C] hover:bg-[#EAE3DC]/50 transition-colors"
               aria-label="Close Login Menu"
             >
               <X className="w-5 h-5" />
@@ -81,22 +81,22 @@ export default function LoginDropdown({ isOpen, onClose, onOpenLoginModal }) {
           </div>
 
           {/* Top Row: New customer? Sign Up */}
-          <div className="p-4 bg-gradient-to-r from-[#FBF8F1] via-[#F4EFE6] to-[#FBF8F1] flex items-center justify-between border-b border-[#D8E0DC]">
-            <span className="text-xs font-semibold text-[#5C6B63]">
+          <div className="p-4 bg-gradient-to-r from-[#FFFFFF] via-[#F9F6F0] to-[#FFFFFF] flex items-center justify-between border-b border-[#EAE3DC]">
+            <span className="text-xs font-semibold text-[#6B6058]">
               New customer?
             </span>
             <button 
               type="button"
               onClick={handleSignUpClick}
-              className="text-xs font-bold text-[#D4AF37] hover:text-[#B59325] hover:underline flex items-center space-x-1 transition-colors px-2.5 py-1 bg-[#0F3D2E] rounded-md shadow-xs cursor-pointer"
+              className="text-xs font-bold text-[#FF811A] hover:text-[#E66E08] hover:underline flex items-center space-x-1 transition-colors px-2.5 py-1 bg-[#FA661C] rounded-md shadow-xs cursor-pointer"
             >
               <span>Sign Up</span>
-              <ChevronRight className="w-3 h-3 text-[#D4AF37]" />
+              <ChevronRight className="w-3 h-3 text-[#FF811A]" />
             </button>
           </div>
 
           {/* Menu Items List */}
-          <div className="max-h-[65vh] md:max-h-96 overflow-y-auto py-1 divide-y divide-[#D8E0DC]/40">
+          <div className="max-h-[65vh] md:max-h-96 overflow-y-auto py-1 divide-y divide-[#EAE3DC]/40">
             {LOGIN_MENU_ITEMS.map((item) => {
               const IconComponent = ICON_MAP[item.iconName] || UserCheck;
               const isHighlight = item.isHighlight;
@@ -109,18 +109,18 @@ export default function LoginDropdown({ isOpen, onClose, onOpenLoginModal }) {
                   onClick={(e) => handleMenuItemClick(e, item)}
                   className={`w-full text-left flex items-center justify-between px-4 py-2.5 text-xs transition-all group ${
                     isHighlight 
-                      ? 'bg-[#FCF7E8] hover:bg-[#D4AF37]/20 border-l-4 border-[#D4AF37]' 
-                      : 'hover:bg-[#FCF7E8]/80 hover:pl-5'
+                      ? 'bg-[#FFF8F2] hover:bg-[#FF811A]/20 border-l-4 border-[#FF811A]' 
+                      : 'hover:bg-[#FFF8F2]/80 hover:pl-5'
                   }`}
                 >
                   <div className="flex items-center space-x-3">
                     {/* Icon container */}
                     <div className={`p-1.5 rounded-lg transition-colors ${
                       isHighlight 
-                        ? 'bg-[#0F3D2E] text-[#D4AF37] shadow-xs' 
+                        ? 'bg-[#FA661C] text-[#FF811A] shadow-xs' 
                         : isPlus
-                        ? 'bg-[#D4AF37]/20 text-[#D4AF37]'
-                        : 'text-[#5C6B63] group-hover:text-[#0F3D2E] group-hover:bg-[#E8F2EE]'
+                        ? 'bg-[#FF811A]/20 text-[#FF811A]'
+                        : 'text-[#6B6058] group-hover:text-[#FA661C] group-hover:bg-[#FFF3EC]'
                     }`}>
                       <IconComponent className="w-4 h-4" />
                     </div>
@@ -128,8 +128,8 @@ export default function LoginDropdown({ isOpen, onClose, onOpenLoginModal }) {
                     {/* Label */}
                     <span className={`font-medium ${
                       isHighlight 
-                        ? 'font-bold text-[#0F3D2E] text-xs' 
-                        : 'text-[#0F3D2E] group-hover:text-[#0F3D2E]'
+                        ? 'font-bold text-[#FA661C] text-xs' 
+                        : 'text-[#FA661C] group-hover:text-[#FA661C]'
                     }`}>
                       {item.label}
                     </span>
@@ -137,13 +137,13 @@ export default function LoginDropdown({ isOpen, onClose, onOpenLoginModal }) {
 
                   {/* Optional Plus Badge or Arrow */}
                   {isPlus && (
-                    <span className="text-[10px] font-bold text-[#0F3D2E] bg-[#D4AF37] px-1.5 py-0.5 rounded shadow-2xs uppercase">
+                    <span className="text-[10px] font-bold text-[#FA661C] bg-[#FF811A] px-1.5 py-0.5 rounded shadow-2xs uppercase">
                       PLUS
                     </span>
                   )}
 
                   {isHighlight && (
-                    <span className="text-[10px] font-bold text-[#0F3D2E] bg-[#D4AF37]/30 px-1.5 py-0.5 rounded uppercase">
+                    <span className="text-[10px] font-bold text-[#FA661C] bg-[#FF811A]/30 px-1.5 py-0.5 rounded uppercase">
                       SELLER HUB
                     </span>
                   )}
@@ -153,8 +153,8 @@ export default function LoginDropdown({ isOpen, onClose, onOpenLoginModal }) {
           </div>
 
           {/* Bottom Card Footer */}
-          <div className="p-3 bg-[#E8F2EE]/40 border-t border-[#D8E0DC] text-center">
-            <p className="text-[11px] text-[#5C6B63] flex items-center justify-center space-x-1">
+          <div className="p-3 bg-[#FFF3EC]/40 border-t border-[#EAE3DC] text-center">
+            <p className="text-[11px] text-[#6B6058] flex items-center justify-center space-x-1">
               <span>Experience fast & trusted shopping</span>
             </p>
           </div>
