@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Building2, User, Users, FileText, ArrowRight, ArrowLeft, Calendar, ShieldCheck, Briefcase } from 'lucide-react';
+import { Building2, User, Users, FileText, ArrowRight, ArrowLeft, Calendar, ShieldCheck, Briefcase, Sparkles } from 'lucide-react';
 
 const BUSINESS_TYPES = [
   {
@@ -112,6 +112,43 @@ export default function Step2BusinessInfo({ formData, updateFormData, onNext, on
           })}
         </div>
         {errors.businessType && <p className="text-[10px] text-[#D7263D] font-bold mt-1.5">{errors.businessType}</p>}
+      </div>
+
+      {/* Women-Owned / Women-Led Business Optional Toggle Card */}
+      <div 
+        onClick={() => updateFormData({ isWomenOwned: !formData.isWomenOwned })}
+        className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between shadow-2xs ${
+          formData.isWomenOwned 
+            ? 'bg-[#FFF8F2] border-[#FF811A] ring-2 ring-[#FF811A]/20' 
+            : 'bg-white border-[#EAE3DC] hover:border-[#6B6058]/50'
+        }`}
+      >
+        <div className="flex items-center space-x-3 pr-2">
+          <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+            formData.isWomenOwned ? 'bg-[#FA661C] text-[#FF811A]' : 'bg-[#FFF8F2] text-[#FA661C]'
+          }`}>
+            <Sparkles className="w-5 h-5" />
+          </div>
+          <div>
+            <h4 className="font-bold text-xs sm:text-sm text-[#FA661C] flex items-center space-x-2">
+              <span>This business is women-owned / women-led</span>
+              <span className="text-[10px] font-extrabold text-[#FA661C] bg-[#FFF3EC] px-2 py-0.5 rounded-full border border-[#FA661C]/20">
+                Optional
+              </span>
+            </h4>
+            <p className="text-[11px] text-[#6B6058] mt-0.5 leading-snug">
+              Help us recognize and support women entrepreneurs on MytriKart
+            </p>
+          </div>
+        </div>
+
+        <input
+          type="checkbox"
+          checked={Boolean(formData.isWomenOwned)}
+          onChange={(e) => updateFormData({ isWomenOwned: e.target.checked })}
+          onClick={(e) => e.stopPropagation()}
+          className="w-4.5 h-4.5 text-[#FA661C] rounded border-[#EAE3DC] focus:ring-[#FA661C] cursor-pointer shrink-0"
+        />
       </div>
 
       {/* Main Business Inputs Grid */}

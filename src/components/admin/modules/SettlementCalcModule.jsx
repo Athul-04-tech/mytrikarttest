@@ -1,247 +1,312 @@
-import React, { useState } from 'react';
-import { 
-  MASTER_ORDERS, 
-  calculateOrderSettlement, 
-  getMasterFinancialSummaries, 
-  formatINR 
-} from '../../../data/adminFinanceEngine';
-import { Landmark, ArrowRight, CheckCircle2, Calculator, Info, FileSpreadsheet } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Calculator, RefreshCw, AlertCircle, CheckCircle2, Layers } from 'lucide-react';
 import { useToast } from '../../../context/ToastContext';
+import { apiRequest } from '../../../utils/api';
 
 export default function SettlementCalcModule() {
-  const [selectedSettlement, setSelectedSettlement] = useState(null);
+  const [vendorOrders, setVendorOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [filterState, setFilterState] = useState('all'); // 'all' | 'pending' | 'calculated'
+
+  // Selected calculation audit modal state
+  const [calculatingId, setCalculatingId] = useState(null);
+  const [activeLedgerResult, setActiveLedgerResult] = useState(null);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+
   const toast = useToast();
 
-  const summary = getMasterFinancialSummaries();
-  const settlements = MASTER_ORDERS.map(calculateOrderSettlement);
+  const fetchVendorOrders = async (showLoading = true) => {
+    if (showLoading) setLoading(true);
+    setError(null);
+    try {
+      const data = await apiRequest('/api/settlements/admin/vendor-orders/');
+      setVendorOrders(data);
+    } catch (err) {
+      console.error(err);
+      setError(err.message || 'Failed to fetch vendor orders');
+    } finally {
+      if (showLoading) setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchVendorOrders(true);
+  }, []);
+
+  const handleCalculateSettlement = async (vOrder) => {
+    setCalculatingId(vOrder.id);
+    try {
+      const ledgerEntries = await apiRequest(`/api/settlements/vendor-orders/${vOrder.id}/calculate/`, {
+        method: 'POST',
+        body: JSON.stringify({})
+      });
+
+      toast.success('Settlement Calculated', `Successfully calculated ledger entries for Vendor Order #${vOrder.id}`);
+      
+      setSelectedOrder(vOrder);
+      setActiveLedgerResult(ledgerEntries);
+      fetchVendorOrders(false);
+    } catch (err) {
+      console.error('CALCULATION_ERROR:', err);
+      const msg = err.data?.detail
+        ? (Array.isArray(err.data.detail) ? err.data.detail[0] : err.data.detail)
+        : (err.message || 'Calculation failed');
+      toast.error('Calculation Error', msg);
+    } finally {
+      setCalculatingId(null);
+    }
+  };
+
+  const filteredOrders = vendorOrders.filter(o => {
+    if (filterState === 'pending') return o.settlement_state === 'pending';
+    if (filterState === 'calculated') return o.settlement_state === 'calculated';
+    return true;
+  });
+
+  const formatINR = (val) => {
+    const num = parseFloat(val || 0);
+    return `₹${num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+
+  const entryTypeLabels = {
+    gross_sale: { label: 'Gross Sale', color: 'text-emerald-700 bg-emerald-50' },
+    commission: { label: 'Commission Deduction', color: 'text-red-700 bg-red-50' },
+    commission_tax: { label: 'Tax on Commission (GST)', color: 'text-red-700 bg-red-50' },
+    platform_fee: { label: 'Platform Fee Deduction', color: 'text-red-700 bg-red-50' },
+    platform_fee_tax: { label: 'Tax on Platform Fee (GST)', color: 'text-red-700 bg-red-50' },
+    logistics: { label: 'Logistics Courier Deduction', color: 'text-red-700 bg-red-50' },
+    logistics_tax: { label: 'Tax on Logistics', color: 'text-red-700 bg-red-50' },
+    gateway: { label: 'Payment Gateway Charge', color: 'text-red-700 bg-red-50' },
+    gateway_tax: { label: 'Tax on Gateway Fee', color: 'text-red-700 bg-red-50' },
+    tds: { label: 'TDS Withholding (194-O)', color: 'text-amber-700 bg-amber-50' },
+    tcs: { label: 'TCS Withholding (Sec 52)', color: 'text-amber-700 bg-amber-50' },
+    net_settlement: { label: 'Net Vendor Settlement', color: 'text-brand font-black bg-brand/10' },
+    wallet_credit: { label: 'Wallet Credit', color: 'text-emerald-700 bg-emerald-50' },
+  };
 
   return (
     <div className="space-y-6">
-      
-      {/* 1. Header & Financial Summary Ribbon */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#EAE3DC]">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#EAE3DC]">
         <div>
           <div className="flex items-center space-x-2">
-            <span className="p-1 rounded-lg bg-[#FFF3EC] text-[#FA661C]">
-              <Calculator className="w-4 h-4" />
+            <span className="p-1.5 rounded-xl bg-[#FFF3EC] text-[#FA661C]">
+              <Calculator className="w-5 h-5" />
             </span>
-            <h2 className="font-['Outfit'] font-black text-xl text-[#FA661C]">
-              Settlement Calculation & Deduction Engine
+            <h2 className="font-['Outfit'] font-black text-xl text-[#2D231D]">
+              Settlement Calculation & Ledger Engine
             </h2>
           </div>
-          <p className="text-xs text-[#6B6058] mt-0.5">
-            Strict Formula: Gross Sales − Commission − Logistics − Platform Fee − Gateway − TDS (1%) − TCS (1%) = Final Settlement
+          <p className="text-xs text-[#6B6058] mt-1">
+            Real-time settlement calculation feeding live ledger entries (Gross Sale − Commission − Tax − TDS − TCS = Net Settlement).
           </p>
         </div>
 
         <button
           type="button"
-          onClick={() => toast.success("Ledger Exported", "Settlement calculation waterfall exported to CSV.")}
-          className="px-4 py-2 bg-[#FA661C] text-[#FFFFFF] rounded-xl text-xs font-bold btn-interactive flex items-center space-x-1.5 cursor-pointer shadow-xs self-start sm:self-auto"
+          onClick={() => fetchVendorOrders(true)}
+          className="px-3.5 py-2 bg-[#FFFFFF] border border-[#EAE3DC] text-[#2D231D] rounded-xl text-xs font-bold hover:border-[#FA661C] transition-colors flex items-center space-x-1.5 shadow-xs cursor-pointer self-start sm:self-auto"
         >
-          <FileSpreadsheet className="w-4 h-4 text-[#FF811A]" />
-          <span>Export Settlement Sheet</span>
+          <RefreshCw className={`w-3.5 h-3.5 text-[#6B6058] ${loading ? 'animate-spin' : ''}`} />
+          <span>Refresh List</span>
         </button>
       </div>
 
-      {/* 2. Top Aggregate Vitals */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5 text-xs">
-        <div className="p-3 bg-[#FFFFFF] rounded-2xl border border-[#EAE3DC]">
-          <span className="text-[10px] font-bold text-[#6B6058] uppercase">Gross Sales</span>
-          <div className="font-['Outfit'] font-black text-sm text-[#FA661C] mt-0.5">
-            {formatINR(summary.totalGrossSales)}
-          </div>
+      {/* Filter Tabs & Stats */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center space-x-1 bg-[#FFF8F2] p-1 rounded-2xl border border-[#EAE3DC]">
+          {[
+            { id: 'all', label: 'All Orders' },
+            { id: 'pending', label: 'Pending Settlement' },
+            { id: 'calculated', label: 'Calculated' },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setFilterState(tab.id)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                filterState === tab.id
+                  ? 'bg-[#FA661C] text-[#FFFFFF] shadow-xs'
+                  : 'text-[#6B6058] hover:text-[#2D231D]'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
 
-        <div className="p-3 bg-[#FFFFFF] rounded-2xl border border-[#EAE3DC]">
-          <span className="text-[10px] font-bold text-[#6B6058] uppercase">− Commissions</span>
-          <div className="font-['Outfit'] font-black text-sm text-[#D7263D] mt-0.5">
-            {formatINR(summary.totalCommissions)}
-          </div>
-        </div>
-
-        <div className="p-3 bg-[#FFFFFF] rounded-2xl border border-[#EAE3DC]">
-          <span className="text-[10px] font-bold text-[#6B6058] uppercase">− Logistics</span>
-          <div className="font-['Outfit'] font-black text-sm text-[#D7263D] mt-0.5">
-            {formatINR(summary.totalLogistics)}
-          </div>
-        </div>
-
-        <div className="p-3 bg-[#FFFFFF] rounded-2xl border border-[#EAE3DC]">
-          <span className="text-[10px] font-bold text-[#6B6058] uppercase">− Platform Fee</span>
-          <div className="font-['Outfit'] font-black text-sm text-[#D7263D] mt-0.5">
-            {formatINR(summary.totalPlatformFees)}
-          </div>
-        </div>
-
-        <div className="p-3 bg-[#FFFFFF] rounded-2xl border border-[#EAE3DC]">
-          <span className="text-[10px] font-bold text-[#6B6058] uppercase">− Gateway Fee</span>
-          <div className="font-['Outfit'] font-black text-sm text-[#D7263D] mt-0.5">
-            {formatINR(summary.totalGateway)}
-          </div>
-        </div>
-
-        <div className="p-3 bg-[#FFFFFF] rounded-2xl border border-[#EAE3DC]">
-          <span className="text-[10px] font-bold text-[#6B6058] uppercase">− TDS & TCS</span>
-          <div className="font-['Outfit'] font-black text-sm text-[#D7263D] mt-0.5">
-            {formatINR(summary.totalTDS + summary.totalTCS)}
-          </div>
-        </div>
-
-        <div className="p-3 bg-[#FFF8F2] rounded-2xl border border-[#FF811A]/60 col-span-2 sm:col-span-1">
-          <span className="text-[10px] font-bold text-[#FA661C] uppercase">Net Vendor Payout</span>
-          <div className="font-['Outfit'] font-black text-sm text-[#FA661C] mt-0.5">
-            {formatINR(summary.totalNetSettlements)}
-          </div>
+        <div className="text-xs text-[#6B6058] font-medium">
+          Showing <span className="font-bold text-[#2D231D]">{filteredOrders.length}</span> vendor orders
         </div>
       </div>
 
-      {/* 3. Detailed Waterfall Table */}
+      {/* Error Banner */}
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-2xl flex items-center space-x-3 text-red-700 text-xs">
+          <AlertCircle className="w-5 h-5 shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      {/* Vendor Orders Table */}
       <div className="bg-white rounded-2xl border border-[#EAE3DC] overflow-hidden shadow-xs">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr className="bg-[#FFF3EC] text-[#FA661C] border-b border-[#EAE3DC] font-extrabold uppercase text-[10px] tracking-wider">
-                <th className="p-3">Order ID</th>
-                <th className="p-3">Merchant / Product</th>
-                <th className="p-3 text-right">Gross</th>
-                <th className="p-3 text-right">Comm.</th>
-                <th className="p-3 text-right">Logistics</th>
-                <th className="p-3 text-right">Platform</th>
-                <th className="p-3 text-right">Gateway</th>
-                <th className="p-3 text-right">TDS (1%)</th>
-                <th className="p-3 text-right">TCS (1%)</th>
-                <th className="p-3 text-right font-black text-[#FA661C] bg-[#FFF8F2]">Net Settlement</th>
-                <th className="p-3 text-center">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#EAE3DC]/60 font-medium">
-              {settlements.map((item) => (
-                <tr key={item.orderId} className="hover:bg-[#FFFFFF] transition-colors group">
-                  <td className="p-3 font-mono font-bold text-[#FA661C]">
-                    {item.orderId}
-                  </td>
-                  <td className="p-3">
-                    <div className="font-bold text-[#FA661C] truncate max-w-[180px]">{item.vendorName}</div>
-                    <div className="text-[10px] text-[#6B6058] truncate max-w-[180px]">{item.productName}</div>
-                  </td>
-                  <td className="p-3 text-right font-black text-[#FA661C]">
-                    {formatINR(item.grossAmount)}
-                  </td>
-                  <td className="p-3 text-right text-[#D7263D]">
-                    -{formatINR(item.commissionAmount)}
-                    <span className="text-[9px] text-[#6B6058] block">({item.commissionRatePercent})</span>
-                  </td>
-                  <td className="p-3 text-right text-[#D7263D]">
-                    -{formatINR(item.logisticsFee)}
-                  </td>
-                  <td className="p-3 text-right text-[#D7263D]">
-                    -{formatINR(item.platformFee)}
-                  </td>
-                  <td className="p-3 text-right text-[#D7263D]">
-                    -{formatINR(item.gatewayCharges)}
-                  </td>
-                  <td className="p-3 text-right text-[#6B6058]">
-                    -{formatINR(item.tds)}
-                  </td>
-                  <td className="p-3 text-right text-[#6B6058]">
-                    -{formatINR(item.tcs)}
-                  </td>
-                  <td className="p-3 text-right font-black text-[#FA661C] bg-[#FFF8F2]/60">
-                    {formatINR(item.finalSettlement)}
-                  </td>
-                  <td className="p-3 text-center">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedSettlement(item)}
-                      className="px-2 py-1 rounded-lg bg-[#FA661C] text-[#FF811A] font-bold text-[10px] btn-interactive cursor-pointer shadow-2xs"
-                    >
-                      Audit
-                    </button>
-                  </td>
+        {loading ? (
+          <div className="p-12 text-center text-xs text-[#6B6058] space-y-2">
+            <RefreshCw className="w-6 h-6 animate-spin mx-auto text-[#FA661C]" />
+            <p>Loading vendor orders...</p>
+          </div>
+        ) : filteredOrders.length === 0 ? (
+          <div className="p-12 text-center text-xs text-[#6B6058] space-y-1">
+            <Layers className="w-8 h-8 text-[#A89F91] mx-auto mb-2" />
+            <p className="font-bold text-[#2D231D]">No vendor orders found</p>
+            <p className="text-[11px]">There are no vendor orders matching the selected filter state.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="bg-[#FFF3EC] text-[#FA661C] border-b border-[#EAE3DC] font-extrabold uppercase text-[10px] tracking-wider">
+                  <th className="p-3.5">Vendor Order ID</th>
+                  <th className="p-3.5">Order ID</th>
+                  <th className="p-3.5">Merchant / Vendor</th>
+                  <th className="p-3.5">Order Status</th>
+                  <th className="p-3.5 text-right">Grand Total</th>
+                  <th className="p-3.5">Settlement State</th>
+                  <th className="p-3.5 text-center">Action</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-[#EAE3DC]/60 font-medium">
+                {filteredOrders.map((vOrder) => {
+                  const isCalculated = vOrder.settlement_state === 'calculated';
+                  const isCalculating = calculatingId === vOrder.id;
+
+                  return (
+                    <tr key={vOrder.id} className="hover:bg-[#FFF8F2]/40 transition-colors">
+                      <td className="p-3.5 font-mono font-bold text-[#FA661C]">
+                        VO-#{vOrder.id}
+                      </td>
+                      <td className="p-3.5 font-mono text-[#6B6058]">
+                        #{vOrder.order_id}
+                      </td>
+                      <td className="p-3.5 font-bold text-[#2D231D]">
+                        {vOrder.vendor_name || `Vendor #${vOrder.vendor}`}
+                      </td>
+                      <td className="p-3.5">
+                        <span className="capitalize text-[11px] font-semibold text-[#6B6058] bg-gray-100 px-2 py-0.5 rounded border border-gray-200">
+                          {vOrder.status}
+                        </span>
+                      </td>
+                      <td className="p-3.5 text-right font-['Outfit'] font-black text-sm text-[#2D231D]">
+                        {formatINR(vOrder.grand_total)}
+                      </td>
+                      <td className="p-3.5">
+                        {isCalculated ? (
+                          <span className="px-2.5 py-1 rounded-lg text-[10px] font-extrabold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center space-x-1 w-fit">
+                            <CheckCircle2 className="w-3 h-3" />
+                            <span>Calculated</span>
+                          </span>
+                        ) : (
+                          <span className="px-2.5 py-1 rounded-lg text-[10px] font-extrabold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-300 w-fit">
+                            Pending
+                          </span>
+                        )}
+                      </td>
+                      <td className="p-3.5 text-center">
+                        <button
+                          type="button"
+                          data-testid={`calc-btn-${vOrder.id}`}
+                          disabled={isCalculating}
+                          onClick={() => handleCalculateSettlement(vOrder)}
+                          className={`px-3 py-1.5 rounded-xl font-bold text-xs transition-colors cursor-pointer flex items-center space-x-1 mx-auto shadow-2xs ${
+                            isCalculated
+                              ? 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
+                              : 'bg-[#FA661C] text-white hover:bg-[#D75210]'
+                          } ${isCalculating ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        >
+                          {isCalculating ? (
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Calculator className="w-3.5 h-3.5" />
+                          )}
+                          <span>{isCalculated ? 'Re-calculate' : 'Calculate'}</span>
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
-      {/* 4. Detailed Deduction Inspection Modal */}
-      {selectedSettlement && (
-        <div className="fixed inset-0 bg-[#FA661C]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border border-[#FF811A] max-w-lg w-full p-6 shadow-2xl space-y-4 animate-dropdown text-xs">
+      {/* Ledger Results Breakdown Modal */}
+      {activeLedgerResult && selectedOrder && (
+        <div className="fixed inset-0 bg-[#2D231D]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl border border-[#EAE3DC] max-w-xl w-full p-6 shadow-2xl space-y-4 animate-dropdown text-xs">
             <div className="flex items-center justify-between pb-3 border-b border-[#EAE3DC]">
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-[#FF811A] bg-[#FA661C] px-2 py-0.5 rounded">
-                  ARITHMETIC WATERFALL AUDIT
+                <span className="text-[10px] font-bold uppercase tracking-widest text-[#FA661C] bg-[#FFF3EC] px-2 py-0.5 rounded border border-[#FF811A]/30">
+                  REAL-TIME LEDGER ENTRIES
                 </span>
-                <h3 className="font-['Outfit'] font-black text-lg text-[#FA661C] mt-1">
-                  Settlement Breakdown: {selectedSettlement.orderId}
+                <h3 className="font-['Outfit'] font-black text-lg text-[#2D231D] mt-1">
+                  Settlement Breakdown: Vendor Order #{selectedOrder.id}
                 </h3>
               </div>
               <button
                 type="button"
-                onClick={() => setSelectedSettlement(null)}
-                className="p-1 rounded-lg text-[#6B6058] hover:text-[#FA661C]"
+                onClick={() => {
+                  setActiveLedgerResult(null);
+                  setSelectedOrder(null);
+                }}
+                className="text-[#6B6058] hover:text-[#2D231D] font-bold"
               >
                 ✕
               </button>
             </div>
 
-            <div className="space-y-2 font-mono text-xs">
-              <div className="flex justify-between py-1 border-b border-[#EAE3DC]/50 font-bold text-[#FA661C]">
-                <span>Gross Customer Payment</span>
-                <span>+{formatINR(selectedSettlement.grossAmount)}</span>
-              </div>
-              <div className="flex justify-between py-1 text-[#D7263D]">
-                <span>Less Commission ({selectedSettlement.commissionRatePercent})</span>
-                <span>−{formatINR(selectedSettlement.commissionAmount)}</span>
-              </div>
-              <div className="flex justify-between py-1 text-[#D7263D]">
-                <span>Less Logistics Courier Fee</span>
-                <span>−{formatINR(selectedSettlement.logisticsFee)}</span>
-              </div>
-              <div className="flex justify-between py-1 text-[#D7263D]">
-                <span>Less Marketplace Platform Fee (2%)</span>
-                <span>−{formatINR(selectedSettlement.platformFee)}</span>
-              </div>
-              <div className="flex justify-between py-1 text-[#D7263D]">
-                <span>Less Payment Gateway Fee (2% + 18% GST)</span>
-                <span>−{formatINR(selectedSettlement.gatewayCharges)}</span>
-              </div>
-              <div className="flex justify-between py-1 text-[#6B6058]">
-                <span>Less TDS u/s 194-O (1% of Gross)</span>
-                <span>−{formatINR(selectedSettlement.tds)}</span>
-              </div>
-              <div className="flex justify-between py-1 text-[#6B6058]">
-                <span>Less TCS under GST Sec 52 (1% Taxable)</span>
-                <span>−{formatINR(selectedSettlement.tcs)}</span>
-              </div>
+            <div className="space-y-2 font-mono text-xs max-h-[360px] overflow-y-auto pr-1">
+              {activeLedgerResult.map((entry) => {
+                const meta = entryTypeLabels[entry.entry_type] || { label: entry.entry_type, color: 'text-gray-700 bg-gray-50' };
+                const isPositive = parseFloat(entry.amount) > 0;
 
-              <div className="flex justify-between py-2 border-t-2 border-[#FA661C] font-black text-sm text-[#FA661C] bg-[#FFF8F2] px-3 rounded-xl mt-2">
-                <span>Final Net Merchant Payout</span>
-                <span>{formatINR(selectedSettlement.finalSettlement)}</span>
-              </div>
+                return (
+                  <div
+                    key={entry.id}
+                    className={`flex items-center justify-between p-2.5 rounded-xl border border-[#EAE3DC]/60 ${meta.color}`}
+                  >
+                    <div>
+                      <div className="font-bold">{meta.label}</div>
+                      <div className="text-[10px] text-[#6B6058] font-sans">{entry.description} {entry.rate_applied ? `(Rate: ${entry.rate_applied})` : ''}</div>
+                    </div>
+                    <div className="font-['Outfit'] font-black text-sm text-right">
+                      {isPositive ? '+' : ''}{formatINR(entry.amount)}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
-            <div className="text-[11px] text-[#6B6058] bg-[#FFFFFF] p-3 rounded-xl border border-[#EAE3DC]">
-              <span className="font-bold text-[#FA661C]">Direct Bank Remittance:</span> Scheduled for {selectedSettlement.bankAccount} via NEFT batch.
-            </div>
+            <div className="flex items-center justify-between pt-3 border-t border-[#EAE3DC]">
+              <span className="text-[11px] text-[#6B6058]">
+                Vendor: <strong className="text-[#2D231D]">{selectedOrder.vendor_name}</strong>
+              </span>
 
-            <button
-              type="button"
-              onClick={() => {
-                toast.success("Disbursement Released", `Transferred ${formatINR(selectedSettlement.finalSettlement)} to ${selectedSettlement.vendorName}`);
-                setSelectedSettlement(null);
-              }}
-              className="w-full py-2.5 bg-[#FA661C] text-[#FFFFFF] font-bold text-xs rounded-xl btn-interactive cursor-pointer shadow-sm"
-            >
-              Approve & Release NEFT Payout
-            </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveLedgerResult(null);
+                  setSelectedOrder(null);
+                }}
+                className="px-4 py-2 bg-[#FA661C] text-white rounded-xl font-bold text-xs hover:bg-[#D75210] transition-colors cursor-pointer shadow-sm"
+              >
+                Done / Close Audit
+              </button>
+            </div>
           </div>
         </div>
       )}
-
     </div>
   );
 }

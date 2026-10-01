@@ -1,17 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { 
-  ShieldCheck, 
   ArrowLeft, 
-  Wallet, 
-  Award, 
   Lock, 
   UserCheck, 
   UserX,
-  Loader2
+  Loader2,
+  AlertCircle
 } from 'lucide-react';
 import { useCart } from '../context/CartWishlistContext';
-import ShippingAddressSection, { SAVED_ADDRESSES } from '../components/checkout/ShippingAddressSection';
+import ShippingAddressSection, { DEFAULT_FALLBACK_ADDRESS } from '../components/checkout/ShippingAddressSection';
 import PaymentMethodSection from '../components/checkout/PaymentMethodSection';
 import OrderSummarySidebar from '../components/cart/OrderSummarySidebar';
 import OrderSuccessConfirmation from '../components/checkout/OrderSuccessConfirmation';
@@ -20,13 +18,6 @@ export default function CheckoutPage() {
   const {
     cart,
     calculations,
-    walletBalance,
-    rewardPointsBalance,
-    rewardPointsValue,
-    useWallet,
-    setUseWallet,
-    useRewardPoints,
-    setUseRewardPoints,
     placeOrder,
     lastPlacedOrder
   } = useCart();
@@ -34,10 +25,11 @@ export default function CheckoutPage() {
   const navigate = useNavigate();
 
   const [isGuest, setIsGuest] = useState(false);
-  const [selectedAddress, setSelectedAddress] = useState(SAVED_ADDRESSES[0]);
+  const [selectedAddress, setSelectedAddress] = useState(DEFAULT_FALLBACK_ADDRESS);
   const [sameAsShipping, setSameAsShipping] = useState(true);
   const [paymentMethod, setPaymentMethod] = useState('upi');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [checkoutError, setCheckoutError] = useState('');
   const [confirmedOrder, setConfirmedOrder] = useState(lastPlacedOrder);
 
   // SEO Standard
@@ -45,17 +37,22 @@ export default function CheckoutPage() {
     document.title = "Secure Checkout — MytriKart";
   }, []);
 
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
     setIsProcessing(true);
-    setTimeout(() => {
-      const order = placeOrder({
+    setCheckoutError('');
+    try {
+      const order = await placeOrder({
         shippingAddress: selectedAddress,
         paymentMethod
       });
       setConfirmedOrder(order);
-      setIsProcessing(false);
       window.scrollTo({ top: 0, behavior: 'smooth' });
-    }, 1200);
+    } catch (err) {
+      const detailMsg = err?.data?.detail || err?.message || 'Checkout failed. Please verify your address and cart stock.';
+      setCheckoutError(detailMsg);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   // If order was just completed, show Confirmation screen
@@ -122,12 +119,12 @@ export default function CheckoutPage() {
                 </div>
                 <div>
                   <span className="font-bold text-[#FA661C] block">
-                    {isGuest ? 'Checking out as Guest Visitor' : 'Logged in as Aarav Sharma (Plus Member)'}
+                    {isGuest ? 'Checking out as Guest Visitor' : 'Logged in Customer Checkout'}
                   </span>
                   <p className="text-[10px] text-[#6B6058]">
                     {isGuest 
-                      ? 'Saved addresses and loyalty points are hidden in guest mode.' 
-                      : 'Addresses and wallet balances are automatically pre-filled.'}
+                      ? 'Saved addresses are hidden in guest mode.' 
+                      : 'Saved delivery addresses are automatically loaded.'}
                   </p>
                 </div>
               </div>
@@ -143,14 +140,14 @@ export default function CheckoutPage() {
 
             {/* 2. Shipping Address & Same as Shipping Billing */}
             <ShippingAddressSection
-              selectedAddressId={selectedAddress.id}
+              selectedAddressId={selectedAddress?.id}
               onSelectAddress={(addr) => setSelectedAddress(addr)}
               sameAsShipping={sameAsShipping}
               onToggleSameAsShipping={setSameAsShipping}
               isGuest={isGuest}
             />
 
-            {/* 4. Payment Method Selection (with PIN COD Check & EMI) */}
+            {/* 3. Payment Method Selection */}
             <PaymentMethodSection
               selectedMethod={paymentMethod}
               onSelectMethod={(m) => setPaymentMethod(m)}
@@ -158,78 +155,23 @@ export default function CheckoutPage() {
               payableAmount={calculations.amountPayable}
             />
 
-            {/* 5 & 6. Wallet Usage & Reward Points Redemption */}
-            <div className="bg-white rounded-3xl border border-[#EAE3DC] p-5 sm:p-6 shadow-xs space-y-4 text-xs">
-              <div className="flex items-center space-x-2 pb-2 border-b border-[#EAE3DC]">
-                <span className="w-6 h-6 rounded-full bg-[#FA661C] text-[#FF811A] font-black text-xs flex items-center justify-center">
-                  3
-                </span>
-                <h3 className="font-['Outfit'] font-extrabold text-base text-[#FA661C]">
-                  Wallet & Loyalty Redemptions
-                </h3>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                
-                {/* 5. Wallet Usage */}
-                <div className={`p-4 rounded-2xl border transition-all ${
-                  useWallet ? 'bg-[#FFF8F2] border-[#FF811A]' : 'bg-[#FFFFFF] border-[#EAE3DC]'
-                }`}>
-                  <label className="flex items-start justify-between cursor-pointer">
-                    <div className="flex items-start space-x-2.5">
-                      <Wallet className="w-4 h-4 text-[#FF811A] mt-0.5" />
-                      <div>
-                        <span className="font-bold text-[#FA661C] block">
-                          Use Mytri Wallet Balance
-                        </span>
-                        <p className="text-[10px] text-[#6B6058]">
-                          Available balance: <strong className="text-[#FA661C]">₹{walletBalance.toFixed(2)}</strong>
-                        </p>
-                      </div>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={useWallet}
-                      onChange={(e) => setUseWallet(e.target.checked)}
-                      className="w-4 h-4 text-[#FA661C] rounded border-[#EAE3DC] focus:ring-[#FF811A] cursor-pointer mt-1"
-                    />
-                  </label>
-                </div>
-
-                {/* 6. Reward Points Redemption */}
-                <div className={`p-4 rounded-2xl border transition-all ${
-                  useRewardPoints ? 'bg-[#FFF8F2] border-[#FF811A]' : 'bg-[#FFFFFF] border-[#EAE3DC]'
-                }`}>
-                  <label className="flex items-start justify-between cursor-pointer">
-                    <div className="flex items-start space-x-2.5">
-                      <Award className="w-4 h-4 text-[#FA661C] mt-0.5" />
-                      <div>
-                        <span className="font-bold text-[#FA661C] block">
-                          Redeem Plus Points
-                        </span>
-                        <p className="text-[10px] text-[#6B6058]">
-                          {rewardPointsBalance} Points = <strong className="text-[#FA661C]">₹{rewardPointsValue.toFixed(2)}</strong>
-                        </p>
-                      </div>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={useRewardPoints}
-                      onChange={(e) => setUseRewardPoints(e.target.checked)}
-                      className="w-4 h-4 text-[#FA661C] rounded border-[#EAE3DC] focus:ring-[#FF811A] cursor-pointer mt-1"
-                    />
-                  </label>
-                </div>
-
-              </div>
-            </div>
-
           </div>
 
           {/* RIGHT COLUMN: Sticky Order Summary & Primary Place Order CTA */}
           <div className="lg:col-span-5 xl:col-span-4 space-y-4">
             
             <OrderSummarySidebar isCheckoutPage={true} />
+
+            {/* Error Callout Banner if API fails */}
+            {checkoutError && (
+              <div className="p-3 bg-[#FFF0F0] border border-[#D7263D]/40 rounded-2xl flex items-start space-x-2 text-xs text-[#D7263D] animate-reveal">
+                <AlertCircle className="w-4 h-4 text-[#D7263D] shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold block">Checkout Failed</span>
+                  <p className="text-[11px] mt-0.5">{checkoutError}</p>
+                </div>
+              </div>
+            )}
 
             {/* Place Order Primary Action Button */}
             <div className="p-4 bg-white rounded-3xl border border-[#EAE3DC] space-y-3 text-center">
@@ -242,7 +184,7 @@ export default function CheckoutPage() {
                 {isProcessing ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin text-[#FF811A]" />
-                    <span>Processing Payment...</span>
+                    <span>Creating Real Backend Order...</span>
                   </>
                 ) : (
                   <>
@@ -262,7 +204,7 @@ export default function CheckoutPage() {
         </div>
 
       </main>
-
     </div>
   );
 }
+

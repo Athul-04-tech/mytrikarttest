@@ -8,15 +8,12 @@ import DeliveryModal from '../components/modals/DeliveryModal';
 import ProfileCompletionBanner from '../components/layout/ProfileCompletionBanner';
 import Footer from '../components/layout/Footer';
 import { Zap, ShieldCheck, Tag, Gift, Sparkles, ChevronRight } from 'lucide-react';
-import { CATEGORIES } from '../data/mockData';
 
 export default function HomePage({ isLoggedIn, currentUser, onLogout }) {
   const { categorySlug } = useParams();
   const navigate = useNavigate();
 
-  // Validate if category exists, else default to 'for-you'
-  const isCategoryValid = categorySlug ? CATEGORIES.some(c => c.id === categorySlug) : true;
-  const validCategory = isCategoryValid && categorySlug ? categorySlug : 'for-you';
+  const validCategory = categorySlug || 'for-you';
 
   const [activeCategory, setActiveCategory] = useState(validCategory);
   const [deliveryLocation, setDeliveryLocation] = useState(null);
@@ -25,8 +22,7 @@ export default function HomePage({ isLoggedIn, currentUser, onLogout }) {
   // Sync with URL parameter instantly without delay
   useEffect(() => {
     if (categorySlug) {
-      const isValid = CATEGORIES.some(c => c.id === categorySlug);
-      setActiveCategory(isValid ? categorySlug : 'for-you');
+      setActiveCategory(categorySlug);
     } else {
       setActiveCategory('for-you');
     }

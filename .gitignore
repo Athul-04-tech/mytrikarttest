@@ -12,6 +12,14 @@ dist
 dist-ssr
 *.local
 
+# Environment & Scratch files
+.env
+.env.*
+!.env.production.example
+scratch/
+scratch_*
+*.zip
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

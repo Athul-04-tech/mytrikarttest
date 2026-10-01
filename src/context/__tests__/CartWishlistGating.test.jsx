@@ -15,6 +15,7 @@ function CartGatingHarness() {
 
   const sampleProduct = {
     id: 'test-item-1',
+    variantId: 101,
     name: 'Sample High-End Headphones',
     price: 4999,
     originalPrice: 7999,
@@ -156,8 +157,29 @@ describe('Cart & Wishlist Guest Login Gating & Return Location Behavior', () => 
   });
 
   it('4. allows authenticated logged-in users to add items to cart seamlessly without redirection', async () => {
+    let items = [
+      {
+        id: 1,
+        product_variant: 100,
+        quantity: 1,
+        added_at: '2026-09-15T10:00:00Z',
+        product_details: {
+          product_id: 1,
+          product_name: 'Sample High-End Headphones',
+          primary_image_url: '/test.png',
+          unit_price: '4999.00',
+          currency: 'INR',
+          vendor_display_name: 'Test Merchant',
+          stock_quantity: 10,
+          is_active: true,
+          attributes: {},
+          sku_code: 'SKU-TEST'
+        }
+      }
+    ];
+
     vi.spyOn(api, 'getTokens').mockReturnValue({ access: 'valid-access-token', refresh: 'valid-refresh' });
-    vi.spyOn(api, 'apiRequest').mockImplementation(async (url) => {
+    vi.spyOn(api, 'apiRequest').mockImplementation(async (url, options) => {
       if (url.includes('/api/accounts/me/')) {
         return {
           id: 42,
@@ -167,6 +189,33 @@ describe('Cart & Wishlist Guest Login Gating & Return Location Behavior', () => 
           email: 'test@mytrikart.com',
           role: 'customer'
         };
+      }
+      if (url.includes('/api/orders/cart/')) {
+        if (options?.method === 'POST') {
+          items = [
+            ...items,
+            {
+              id: 2,
+              product_variant: 101,
+              quantity: 1,
+              added_at: '2026-09-15T10:01:00Z',
+              product_details: {
+                product_id: 2,
+                product_name: 'Another Item',
+                primary_image_url: '/test2.png',
+                unit_price: '1999.00',
+                currency: 'INR',
+                vendor_display_name: 'Test Merchant',
+                stock_quantity: 5,
+                is_active: true,
+                attributes: {},
+                sku_code: 'SKU-TEST2'
+              }
+            }
+          ];
+          return { id: 2, message: 'Added' };
+        }
+        return items;
       }
       return {};
     });
@@ -186,9 +235,10 @@ describe('Cart & Wishlist Guest Login Gating & Return Location Behavior', () => 
       </MemoryRouter>
     );
 
-    // Wait for session rehydration
+    // Wait for session rehydration & initial cart fetch
     await waitFor(() => {
       expect(screen.getByTestId('auth-status').textContent).toBe('LOGGED_IN');
+      expect(screen.getByTestId('cart-count').textContent).toBe('1');
     });
 
     const initialCartCount = parseInt(screen.getByTestId('cart-count').textContent, 10);

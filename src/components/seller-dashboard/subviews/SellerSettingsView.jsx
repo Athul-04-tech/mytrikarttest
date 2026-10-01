@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Store, Bell, ShieldCheck, Save, Info } from 'lucide-react';
+import { Settings, Store, Bell, ShieldCheck, Save, Info, Sparkles } from 'lucide-react';
 import { useToast } from '../../../context/ToastContext';
 import { apiRequest } from '../../../utils/api';
 
 export default function SellerSettingsView() {
   const [storeName, setStoreName] = useState('');
   const [storeDescription, setStoreDescription] = useState('');
+  const [isWomenOwned, setIsWomenOwned] = useState(false);
   const [dispatchTime, setDispatchTime] = useState('24');
   const [autoAcceptOrders, setAutoAcceptOrders] = useState(true);
   const [holidayMode, setHolidayMode] = useState(false);
@@ -21,6 +22,7 @@ export default function SellerSettingsView() {
         if (isMounted) {
           setStoreName(profile.store_name || '');
           setStoreDescription(profile.store_description || '');
+          setIsWomenOwned(Boolean(profile.is_women_owned));
         }
       } catch (err) {
         console.warn("Failed to load vendor settings:", err);
@@ -40,7 +42,8 @@ export default function SellerSettingsView() {
         method: 'PATCH',
         body: JSON.stringify({
           store_name: storeName,
-          store_description: storeDescription
+          store_description: storeDescription,
+          is_women_owned: isWomenOwned
         })
       });
       toast.success("Settings Saved", "Store profile preferences updated on live server.");
@@ -87,6 +90,27 @@ export default function SellerSettingsView() {
             />
           </div>
         </div>
+
+        {/* Women-Owned / Women-Led Business Preference Toggle */}
+        <label className="flex items-center justify-between p-4 bg-[#FFF8F2] border border-[#FF811A]/40 rounded-2xl cursor-pointer hover:border-[#FA661C] transition-colors shadow-2xs">
+          <div className="flex items-center space-x-3 pr-2">
+            <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+              isWomenOwned ? 'bg-[#FA661C] text-[#FF811A]' : 'bg-[#FFFFFF] text-[#FA661C] border border-[#EAE3DC]'
+            }`}>
+              <Sparkles className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="font-bold text-[#FA661C] block text-xs">This business is women-owned / women-led</span>
+              <span className="text-[10px] text-[#6B6058]">Help us recognize and support women entrepreneurs on MytriKart</span>
+            </div>
+          </div>
+          <input
+            type="checkbox"
+            checked={isWomenOwned}
+            onChange={(e) => setIsWomenOwned(e.target.checked)}
+            className="w-4.5 h-4.5 text-[#FA661C] rounded border-[#EAE3DC] focus:ring-[#FA661C] cursor-pointer shrink-0"
+          />
+        </label>
 
         {/* Feature Notice for Unsupported Backend Controls */}
         <div className="p-3 bg-[#FFF8F2] border border-[#FF811A]/40 rounded-2xl flex items-center space-x-2 text-xs text-[#FA661C]">

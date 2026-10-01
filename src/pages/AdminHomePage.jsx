@@ -3,14 +3,11 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import AdminSidebar from '../components/admin/AdminSidebar';
 import AdminTopBar from '../components/admin/AdminTopBar';
 import AdminStatCardsGrid from '../components/admin/AdminStatCardsGrid';
-import AdminSalesChartPanel from '../components/admin/AdminSalesChartPanel';
-import AdminActivityFeed from '../components/admin/AdminActivityFeed';
-import AdminTopListsPanel from '../components/admin/AdminTopListsPanel';
 import AdminUrgentAlertsPanel from '../components/admin/AdminUrgentAlertsPanel';
-import AdminSystemHealthPanel from '../components/admin/AdminSystemHealthPanel';
 
 // Operational Detail Modules with Arithmetically Consistent Math
 import SettlementCalcModule from '../components/admin/modules/SettlementCalcModule';
+import WithdrawalManagementModule from '../components/admin/modules/WithdrawalManagementModule';
 import TaxManagementModule from '../components/admin/modules/TaxManagementModule';
 import CommissionModule from '../components/admin/modules/CommissionModule';
 import WalletModule from '../components/admin/modules/WalletModule';
@@ -18,9 +15,15 @@ import OrderOpsModule from '../components/admin/modules/OrderOpsModule';
 import VendorHubModule from '../components/admin/modules/VendorHubModule';
 import RmaModule from '../components/admin/modules/RmaModule';
 import ReportsModule from '../components/admin/modules/ReportsModule';
+import ProductReviewModule from '../components/admin/modules/ProductReviewModule';
+import GovernanceQueueModule from '../components/admin/modules/GovernanceQueueModule';
+import CmsModule from '../components/admin/modules/CmsModule';
+import UserManagementModule from '../components/admin/modules/UserManagementModule';
+import CatalogSchemaModule from '../components/admin/modules/CatalogSchemaModule';
 
 import { ADMIN_NAV_GROUPS } from '../data/adminMockData';
-import { Boxes, Sparkles, ShieldCheck, ArrowLeft } from 'lucide-react';
+import { apiRequest } from '../utils/api';
+import { Boxes, ArrowLeft } from 'lucide-react';
 
 export default function AdminHomePage() {
   const { moduleId } = useParams();
@@ -29,6 +32,43 @@ export default function AdminHomePage() {
   const [activeSection, setActiveSection] = useState(moduleId || 'dashboard');
   const [searchQuery, setSearchQuery] = useState('');
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
+  // Real API Overview State
+  const [overviewData, setOverviewData] = useState(null);
+  const [ordersSummary, setOrdersSummary] = useState(null);
+  const [rmaSummary, setRmaSummary] = useState(null);
+  const [settlementSummary, setSettlementSummary] = useState(null);
+  const [overviewLoading, setOverviewLoading] = useState(true);
+  const [overviewError, setOverviewError] = useState(null);
+
+  const fetchOverview = async () => {
+    setOverviewLoading(true);
+    setOverviewError(null);
+    try {
+      const [ovData, ordData, rmaData, stlData] = await Promise.all([
+        apiRequest('/api/reports/admin/overview/').catch(() => null),
+        apiRequest('/api/orders/admin/summary/').catch(() => null),
+        apiRequest('/api/rma/admin/summary/').catch(() => null),
+        apiRequest('/api/settlements/admin/summary/').catch(() => null),
+      ]);
+      setOverviewData(ovData);
+      setOrdersSummary(ordData);
+      setRmaSummary(rmaData);
+      setSettlementSummary(stlData);
+    } catch (err) {
+      console.error("Failed to fetch admin overview metrics:", err);
+      setOverviewError(err.data?.detail || err.message || "Failed to load admin overview metrics.");
+    } finally {
+      setOverviewLoading(false);
+    }
+  };
+
+  // Fetch overview whenever on root dashboard
+  useEffect(() => {
+    if (activeSection === 'dashboard') {
+      fetchOverview();
+    }
+  }, [activeSection]);
 
   // Sync with moduleId param
   useEffect(() => {
@@ -61,6 +101,18 @@ export default function AdminHomePage() {
   // Render specific financial/operational module based on selection
   const renderActiveModuleContent = () => {
     switch (activeSection) {
+      case 'products':
+        return <ProductReviewModule />;
+      case 'catalog-schema':
+        return <CatalogSchemaModule />;
+      case 'categories':
+        return <GovernanceQueueModule defaultTab="attributes" />;
+      case 'brands':
+        return <GovernanceQueueModule defaultTab="brands" />;
+      case 'order-ops':
+        return <OrderOpsModule />;
+      case 'rma':
+        return <RmaModule />;
       case 'settlement-calc':
       case 'settlement-dash':
         return <SettlementCalcModule />;
@@ -69,55 +121,43 @@ export default function AdminHomePage() {
       case 'commission':
         return <CommissionModule />;
       case 'wallets':
-      case 'withdrawals':
       case 'payments':
         return <WalletModule />;
-      case 'order-ops':
-      case 'logistics':
-        return <OrderOpsModule />;
+      case 'withdrawals':
+        return <WithdrawalManagementModule />;
       case 'vendors':
-      case 'staff':
         return <VendorHubModule />;
-      case 'rma':
-        return <RmaModule />;
+      case 'cms':
+        return <CmsModule />;
+      case 'customers':
+        return <UserManagementModule defaultTab="customers" />;
+      case 'staff':
+        return <UserManagementModule defaultTab="staff" />;
+      case 'users':
+        return <UserManagementModule defaultTab="all" />;
       case 'reports':
         return <ReportsModule />;
+
       default:
         return (
-          /* Generic Specification Workspace Card */
-          <div className="bg-white rounded-3xl border border-[#EAE3DC] p-6 sm:p-10 shadow-xs space-y-6 animate-reveal">
-            <div className="flex items-center justify-between pb-4 border-b border-[#EAE3DC]">
-              <div>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-[#FF811A] bg-[#FA661C] px-2.5 py-0.5 rounded-full">
-                  SPECIFICATION MODULE
-                </span>
-                <h2 className="font-['Outfit'] text-2xl sm:text-3xl font-extrabold text-[#FA661C] mt-2">
-                  {activeSectionLabel}
-                </h2>
-                <p className="text-xs sm:text-sm text-[#6B6058] mt-1">
-                  Governance rules, automated bulk tools, and compliance logs for this module.
-                </p>
-              </div>
-
+          <div className="bg-white rounded-3xl border border-[#EAE3DC] p-8 sm:p-12 text-center space-y-4 animate-reveal">
+            <div className="w-14 h-14 rounded-2xl bg-[#FFF3EC] text-[#FA661C] mx-auto flex items-center justify-center">
+              <Boxes className="w-7 h-7" />
+            </div>
+            <h2 className="font-['Outfit'] font-extrabold text-2xl text-[#FA661C]">
+              Module Not Found
+            </h2>
+            <p className="text-xs sm:text-sm text-[#6B6058] max-w-md mx-auto">
+              The requested administrative module is not available or has been removed.
+            </p>
+            <div className="pt-2">
               <Link
                 to="/admin"
-                className="px-4 py-2 bg-[#FFFFFF] hover:bg-[#FFF3EC] border border-[#EAE3DC] rounded-xl text-xs font-bold text-[#FA661C] btn-interactive flex items-center space-x-1.5 cursor-pointer"
+                className="inline-flex items-center space-x-2 px-5 py-2.5 bg-[#FA661C] hover:bg-[#E0530B] text-white font-bold text-xs rounded-xl transition-colors shadow-xs"
               >
-                <ArrowLeft className="w-4 h-4 text-[#FF811A]" />
+                <ArrowLeft className="w-4 h-4" />
                 <span>Back to Overview</span>
               </Link>
-            </div>
-
-            <div className="p-8 bg-[#FFFFFF] border border-dashed border-[#EAE3DC] rounded-2xl text-center space-y-3">
-              <div className="w-14 h-14 rounded-2xl bg-[#FFF3EC] text-[#FA661C] mx-auto flex items-center justify-center">
-                <Boxes className="w-7 h-7" />
-              </div>
-              <h3 className="font-['Outfit'] font-bold text-lg text-[#FA661C]">
-                {activeSectionLabel} Console View
-              </h3>
-              <p className="text-xs text-[#6B6058] max-w-md mx-auto">
-                Ready for administrative bulk uploads, webhook synchronization, and audit logging.
-              </p>
             </div>
           </div>
         );
@@ -150,29 +190,20 @@ export default function AdminHomePage() {
           {/* If on Root Overview Dashboard */}
           {activeSection === 'dashboard' ? (
             <>
-              {/* Stat Cards Grid (Derived dynamically from Master Financial Engine) */}
-              <AdminStatCardsGrid />
+              {/* Stat Cards Grid (Wired dynamically to real backend endpoints) */}
+              <AdminStatCardsGrid 
+                overviewData={overviewData}
+                ordersSummary={ordersSummary}
+                rmaSummary={rmaSummary}
+                settlementSummary={settlementSummary}
+                loading={overviewLoading}
+                error={overviewError}
+              />
 
-              {/* Middle Grid: Financial Performance Trend Panel + Live Activity Feed */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                <div className="lg:col-span-8 space-y-6">
-                  <AdminSalesChartPanel />
-                </div>
-                <div className="lg:col-span-4 space-y-6">
-                  <AdminActivityFeed />
-                </div>
-              </div>
-
-              {/* Bottom Operational Grid: Urgent Compliance Alerts + Top Ranking Tables + System Health */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                <div className="lg:col-span-4">
-                  <AdminUrgentAlertsPanel />
-                </div>
-                <div className="lg:col-span-5">
-                  <AdminTopListsPanel />
-                </div>
-                <div className="lg:col-span-3">
-                  <AdminSystemHealthPanel />
+              {/* Bottom Operational Grid: Urgent Compliance Alerts */}
+              <div className="grid grid-cols-1 gap-6">
+                <div>
+                  <AdminUrgentAlertsPanel overviewData={overviewData} />
                 </div>
               </div>
             </>

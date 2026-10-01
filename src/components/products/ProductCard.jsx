@@ -1,13 +1,15 @@
 import React from 'react';
 import { Star, Heart, ShoppingBag, Eye } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useToast } from '../../context/ToastContext';
 import { useCart } from '../../context/CartWishlistContext';
 
 export default function ProductCard({ product }) {
+  const navigate = useNavigate();
   const { wishlist, addToWishlist, removeFromWishlist, addToCart } = useCart();
   const toast = useToast();
 
-  const isWishlisted = wishlist.some(item => item.id === product.id);
+  const isWishlisted = wishlist.some(item => item.id === product.id || item.productId === product.id);
 
   const toggleWishlist = (e) => {
     e.stopPropagation();
@@ -26,14 +28,19 @@ export default function ProductCard({ product }) {
     addToCart(product, 1);
   };
 
-  const handlePreviewDetails = (e) => {
+  const handleNavigateToDetail = (e) => {
     e.stopPropagation();
     e.preventDefault();
-    toast.info("Quick Product Preview", `Viewing details for ${product.name}`);
+    if (product && product.id) {
+      navigate(`/product/${product.id}`);
+    }
   };
+
+  const hasReviews = Number(product.reviews || 0) > 0 && product.rating != null;
 
   return (
     <div 
+      onClick={handleNavigateToDetail}
       itemScope 
       itemType="https://schema.org/Product" 
       className="group bg-white rounded-2xl border border-[#EAE3DC] hover:border-[#FF811A]/60 shadow-xs card-interactive flex flex-col overflow-hidden relative h-full cursor-pointer"
@@ -57,14 +64,10 @@ export default function ProductCard({ product }) {
 
         {/* Top Badges overlay */}
         <div className="absolute top-2 left-2 right-2 flex items-start justify-between z-10 pointer-events-none">
-          {/* Urgency Badge (BRICK RED) or Offer Badge */}
-          {product.isUrgent ? (
+          {/* Real Stock Urgency Badge (BRICK RED) */}
+          {product.isUrgent && product.urgencyBadge ? (
             <span className="pointer-events-auto bg-[#D7263D] text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded shadow-xs tracking-tight animate-pulse">
               {product.urgencyBadge}
-            </span>
-          ) : product.offerText ? (
-            <span className="pointer-events-auto bg-[#FA661C] text-[#FF811A] text-[9px] font-bold px-1.5 py-0.5 rounded shadow-xs">
-              {product.offerText}
             </span>
           ) : (
             <span />
@@ -84,13 +87,6 @@ export default function ProductCard({ product }) {
             <Heart className={`w-3 h-3 transition-transform duration-150 ${isWishlisted ? 'fill-current scale-110' : ''}`} />
           </button>
         </div>
-
-        {/* Sponsored / AD tag indicator */}
-        {product.sponsored && (
-          <span className="absolute bottom-1.5 left-1.5 text-[8px] font-bold text-[#6B6058] bg-white/90 backdrop-blur-xs px-1 py-0.2 rounded border border-[#EAE3DC]">
-            Sponsored
-          </span>
-        )}
       </div>
 
       {/* Product Content Details */}
@@ -101,15 +97,21 @@ export default function ProductCard({ product }) {
             <span className="text-[9px] font-bold uppercase tracking-wider text-[#6B6058] truncate max-w-[90px]">
               {product.category}
             </span>
-            <div className="flex items-center space-x-1 bg-[#FFF8F2] px-1.5 py-0.2 rounded border border-[#FF811A]/30">
-              <Star className="w-2.5 h-2.5 text-[#FF811A] fill-[#FF811A]" />
-              <span className="text-[10px] font-extrabold text-[#FA661C]">
-                {product.rating}
+            {hasReviews ? (
+              <div className="flex items-center space-x-1 bg-[#FFF8F2] px-1.5 py-0.2 rounded border border-[#FF811A]/30">
+                <Star className="w-2.5 h-2.5 text-[#FF811A] fill-[#FF811A]" />
+                <span className="text-[10px] font-extrabold text-[#FA661C]">
+                  {Number(product.rating).toFixed(1)}
+                </span>
+                <span className="text-[8px] text-[#6B6058]">
+                  ({product.reviews})
+                </span>
+              </div>
+            ) : (
+              <span className="text-[9px] font-medium text-[#6B6058] bg-[#F7F4F0] px-1.5 py-0.2 rounded border border-[#EAE3DC]">
+                No reviews yet
               </span>
-              <span className="text-[8px] text-[#6B6058]">
-                ({product.reviews})
-              </span>
-            </div>
+            )}
           </div>
 
           {/* Title */}
@@ -142,7 +144,7 @@ export default function ProductCard({ product }) {
           <div className="grid grid-cols-2 gap-1.5 mt-2">
             <button
               type="button"
-              onClick={handlePreviewDetails}
+              onClick={handleNavigateToDetail}
               className="py-1 px-1.5 bg-[#FFFFFF] hover:bg-[#FFF3EC] text-[#000000] border border-[#EAE3DC] hover:border-[#FA661C] rounded-lg text-[11px] font-bold btn-interactive flex items-center justify-center space-x-1 cursor-pointer"
             >
               <Eye className="w-3 h-3 text-[#000000]" />
@@ -164,3 +166,4 @@ export default function ProductCard({ product }) {
     </div>
   );
 }
+

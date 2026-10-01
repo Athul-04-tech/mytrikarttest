@@ -3,18 +3,7 @@ import { Link } from 'react-router-dom';
 import { Trash2, AlertCircle, Loader2, Search, Filter } from 'lucide-react';
 import { apiRequest } from '../../../utils/api';
 import { useToast } from '../../../context/ToastContext';
-
-// Helper to recursively gather all descendant category IDs (node + children + grandchildren)
-function getDescendantCategoryIds(node) {
-  if (!node) return [];
-  let ids = [node.id];
-  if (Array.isArray(node.children)) {
-    node.children.forEach(child => {
-      ids = ids.concat(getDescendantCategoryIds(child));
-    });
-  }
-  return ids;
-}
+import { getDescendantCategoryIds } from '../../../utils/categoryUtils';
 
 export default function SellerProductsView({ onNavigateToAddProduct }) {
   const toast = useToast();

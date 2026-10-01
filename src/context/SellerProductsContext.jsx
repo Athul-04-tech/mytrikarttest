@@ -5,16 +5,20 @@ const SellerProductsContext = createContext(null);
 
 export function SellerProductsProvider({ children }) {
   const [pendingRequests, setPendingRequests] = useState([]);
+  const [pendingBrandRequests, setPendingBrandRequests] = useState([]);
   const [isLoadingRequests, setIsLoadingRequests] = useState(false);
 
   const refreshPendingRequests = async () => {
     setIsLoadingRequests(true);
     try {
-      const data = await apiRequest('/api/products/vendor/attribute-value-requests/');
-      setPendingRequests(Array.isArray(data) ? data : []);
+      const [attrData, brandData] = await Promise.all([
+        apiRequest('/api/products/vendor/attribute-value-requests/').catch(() => []),
+        apiRequest('/api/products/vendor/brand-requests/').catch(() => [])
+      ]);
+      setPendingRequests(Array.isArray(attrData) ? attrData : []);
+      setPendingBrandRequests(Array.isArray(brandData) ? brandData : []);
     } catch (err) {
-      console.warn('Failed to fetch vendor attribute value requests:', err);
-      setPendingRequests([]);
+      console.warn('Failed to fetch vendor requests:', err);
     } finally {
       setIsLoadingRequests(false);
     }
@@ -40,13 +44,30 @@ export function SellerProductsProvider({ children }) {
     return newReq;
   };
 
+  const requestBrand = async ({ name, reason }) => {
+    const payload = {
+      requested_name: name,
+      reason: reason || 'Vendor catalog requirement for official distribution.'
+    };
+
+    const newReq = await apiRequest('/api/products/vendor/brand-requests/', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+
+    setPendingBrandRequests(prev => [newReq, ...prev]);
+    return newReq;
+  };
+
   return (
     <SellerProductsContext.Provider
       value={{
         pendingRequests,
+        pendingBrandRequests,
         isLoadingRequests,
         refreshPendingRequests,
         requestAttributeValue,
+        requestBrand,
       }}
     >
       {children}
@@ -61,3 +82,4 @@ export function useSellerProducts() {
   }
   return ctx;
 }
+

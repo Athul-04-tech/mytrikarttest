@@ -3,19 +3,10 @@ import { useNavigate, Link } from 'react-router-dom';
 import { 
   ShoppingBag, 
   ArrowLeft, 
-  Gift, 
-  Truck, 
-  Calendar, 
-  MessageSquare, 
-  Bookmark, 
-  Sparkles, 
-  ArrowRight,
-  ShieldCheck,
-  CheckCircle2
+  Sparkles
 } from 'lucide-react';
 import { useCart } from '../context/CartWishlistContext';
 import CartItemRow from '../components/cart/CartItemRow';
-import CouponApplyBox from '../components/cart/CouponApplyBox';
 import OrderSummarySidebar from '../components/cart/OrderSummarySidebar';
 
 export default function CartPage() {
@@ -27,15 +18,7 @@ export default function CartPage() {
     removeFromCart,
     saveForLaterItem,
     moveToCartFromSaved,
-    removeSavedForLater,
-    isGiftWrap,
-    setIsGiftWrap,
-    shippingMethod,
-    setShippingMethod,
-    deliveryDate,
-    setDeliveryDate,
-    orderNotes,
-    setOrderNotes
+    removeSavedForLater
   } = useCart();
 
   const navigate = useNavigate();
@@ -89,7 +72,7 @@ export default function CartPage() {
         {cart.length > 0 ? (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
             
-            {/* LEFT COLUMN: Cart Items & Delivery Options (8 Cols) */}
+            {/* LEFT COLUMN: Cart Items (8 Cols) */}
             <div className="lg:col-span-7 xl:col-span-8 space-y-5">
               
               {/* Value Header Banner */}
@@ -97,7 +80,7 @@ export default function CartPage() {
                 <div className="flex items-center space-x-2">
                   <Sparkles className="w-4 h-4 text-[#FF811A] shrink-0" />
                   <span className="font-semibold">
-                    Gold Plus Privilege: Free Standard Delivery on all orders above ₹499.
+                    Free Standard Delivery on all marketplace orders.
                   </span>
                 </div>
               </div>
@@ -117,118 +100,6 @@ export default function CartPage() {
                     onSaveForLater={saveForLaterItem}
                   />
                 ))}
-              </div>
-
-              {/* Delivery Date Selection */}
-              <div className="p-4 sm:p-5 bg-white rounded-2xl border border-[#EAE3DC] space-y-3 text-xs">
-                <div className="flex items-center space-x-2 text-[#FA661C] font-bold">
-                  <Calendar className="w-4 h-4 text-[#FF811A]" />
-                  <span>Choose Delivery Schedule</span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  {[
-                    { id: 'tomorrow', label: 'Tomorrow by 2 PM', sub: 'Fastest Delivery', isHot: true },
-                    { id: '2days', label: 'In 2 Days (Standard)', sub: 'Regular Dispatch', isHot: false },
-                    { id: 'custom', label: 'Weekend Delivery', sub: 'Saturday 10 AM - 6 PM', isHot: false }
-                  ].map((del) => (
-                    <button
-                      key={del.id}
-                      type="button"
-                      onClick={() => setDeliveryDate(del.id)}
-                      className={`p-3 rounded-xl border text-left transition-all cursor-pointer btn-interactive ${
-                        deliveryDate === del.id
-                          ? 'bg-[#FFF8F2] border-[#FF811A] shadow-2xs'
-                          : 'bg-[#FFFFFF] border-[#EAE3DC] hover:border-[#FF811A]/50'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-[#FA661C]">{del.label}</span>
-                        {del.isHot && (
-                          <span className="text-[9px] font-black bg-[#FA661C] text-[#FF811A] px-1.5 py-0.2 rounded">
-                            HOT
-                          </span>
-                        )}
-                      </div>
-                      <span className="text-[10px] text-[#6B6058] block mt-0.5">{del.sub}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Shipping Method Selection */}
-              <div className="p-4 sm:p-5 bg-white rounded-2xl border border-[#EAE3DC] space-y-3 text-xs">
-                <div className="flex items-center space-x-2 text-[#FA661C] font-bold">
-                  <Truck className="w-4 h-4 text-[#FF811A]" />
-                  <span>Select Shipping Method</span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  {[
-                    { id: 'standard', title: 'Standard Delivery', price: 'FREE', desc: '3-5 business days' },
-                    { id: 'express', title: 'Express Air Cargo', price: '+ ₹99', desc: 'Guaranteed 24-48 hrs' },
-                    { id: 'priority', title: 'Priority Same-Day', price: '+ ₹199', desc: 'Dispatched in 4 hrs' }
-                  ].map((shp) => (
-                    <button
-                      key={shp.id}
-                      type="button"
-                      onClick={() => setShippingMethod(shp.id)}
-                      className={`p-3 rounded-xl border text-left transition-all cursor-pointer btn-interactive ${
-                        shippingMethod === shp.id
-                          ? 'bg-[#FFF8F2] border-[#FF811A] shadow-2xs'
-                          : 'bg-[#FFFFFF] border-[#EAE3DC] hover:border-[#FF811A]/50'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between font-bold text-[#FA661C]">
-                        <span>{shp.title}</span>
-                        <span className="font-black text-[11px]">{shp.price}</span>
-                      </div>
-                      <span className="text-[10px] text-[#6B6058] block mt-0.5">{shp.desc}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Gift Wrap Toggle */}
-              <div className="p-4 bg-white rounded-2xl border border-[#EAE3DC] flex items-center justify-between text-xs">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 rounded-xl bg-[#FFF8F2] text-[#FF811A]">
-                    <Gift className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <span className="font-bold text-[#FA661C] block">
-                      Add Artisan Gold Gift Wrapping (+₹49)
-                    </span>
-                    <p className="text-[10px] text-[#6B6058]">
-                      Personalized greeting card & emerald ribbon wrap included.
-                    </p>
-                  </div>
-                </div>
-
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={isGiftWrap}
-                    onChange={(e) => setIsGiftWrap(e.target.checked)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-[#EAE3DC] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[#EAE3DC] after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#FA661C]" />
-                </label>
-              </div>
-
-              {/* Order Notes Textarea */}
-              <div className="p-4 bg-white rounded-2xl border border-[#EAE3DC] space-y-2 text-xs">
-                <div className="flex items-center space-x-2 text-[#FA661C] font-bold">
-                  <MessageSquare className="w-4 h-4 text-[#FF811A]" />
-                  <span>Order Notes for Seller (Optional)</span>
-                </div>
-                <textarea
-                  rows={2}
-                  value={orderNotes}
-                  onChange={(e) => setOrderNotes(e.target.value)}
-                  placeholder="e.g. Leave package with front security gate, or ring bell twice."
-                  className="w-full p-2.5 bg-[#FFFFFF] border border-[#EAE3DC] rounded-xl text-xs text-[#FA661C] focus:ring-1 focus:ring-[#FF811A] outline-none"
-                />
               </div>
 
               {/* Saved for Later Section */}
@@ -255,7 +126,7 @@ export default function CartPage() {
                               {sv.name}
                             </h4>
                             <span className="font-black text-xs text-[#FA661C] mt-0.5 block">
-                              ₹{sv.price.toLocaleString('en-IN')}
+                              ₹{typeof sv.price === 'number' ? sv.price.toLocaleString('en-IN') : sv.price}
                             </span>
                           </div>
                         </div>
@@ -284,9 +155,8 @@ export default function CartPage() {
 
             </div>
 
-            {/* RIGHT COLUMN: Coupon + Sticky Order Summary (4-5 Cols) */}
+            {/* RIGHT COLUMN: Sticky Order Summary (4-5 Cols) */}
             <div className="lg:col-span-5 xl:col-span-4 space-y-4">
-              <CouponApplyBox />
               <OrderSummarySidebar onProceedToCheckout={() => navigate('/checkout')} />
             </div>
 
@@ -321,3 +191,4 @@ export default function CartPage() {
     </div>
   );
 }
+

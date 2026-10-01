@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import { 
   Sliders, 
   Sparkles, 
@@ -8,8 +8,19 @@ import {
   CheckCircle2, 
   Info,
   ShieldCheck,
-  Loader2 
+  Loader2,
+  UploadCloud,
+  AlertCircle,
+  FileText
 } from 'lucide-react';
+
+const FALLBACK_OFFICIAL_BRANDS = [
+  { id: 1, name: 'Nike' },
+  { id: 2, name: 'Samsung' },
+  { id: 3, name: 'Apple' },
+  { id: 4, name: 'Sony' },
+  { id: 5, name: 'Adidas' }
+];
 
 export default function DynamicAttributesSection({
   selectedCategory,
@@ -17,9 +28,32 @@ export default function DynamicAttributesSection({
   isLoadingAttributes = false,
   attributeValues,
   onChangeAttribute,
-  onRequestNewValue
+  onRequestNewValue,
+  // Official Brand props
+  officialBrands = [],
+  selectedOfficialBrandId = '',
+  onChangeOfficialBrand,
+  onOfficialBrandChange,
+  freeTextBrand = '',
+  onChangeFreeTextBrand,
+  onRequestBrand,
+  onRequestNewBrand,
+  brandAuthDocument = null,
+  onUploadBrandAuthDocument,
+  isUploadingBrandAuth = false,
+  brandAuthError = null
 }) {
+  const brandAuthInputRef = useRef(null);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const handleRequestBrand = onRequestBrand || onRequestNewBrand;
+  const handleOfficialBrandSelect = onOfficialBrandChange || onChangeOfficialBrand;
+
   if (!selectedCategory) return null;
+
+  // Use live backend brands if available, fallback to default official brands list
+  const displayOfficialBrands = (officialBrands && officialBrands.length > 0) 
+    ? officialBrands 
+    : FALLBACK_OFFICIAL_BRANDS;
 
   // Normalize attributes list (either passed from backend or selectedCategory.attributes)
   const attributesList = (categoryAttributes && categoryAttributes.length > 0)
@@ -49,6 +83,189 @@ export default function DynamicAttributesSection({
           <ShieldCheck className="w-3.5 h-3.5 text-[#FF811A]" />
           <span>Admin Data Governance Active</span>
         </div>
+      </div>
+
+      {/* Official Brand & Authorization Document Section */}
+      <div className="mt-6 p-5 sm:p-6 rounded-3xl border-2 border-[#FF811A]/40 bg-[#FFF8F2]/60 space-y-4 animate-fadeIn">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#FF811A]/20">
+          <div>
+            <div className="flex items-center space-x-2">
+              <label htmlFor="official-brand-select" className="text-xs font-black text-[#FA661C] uppercase tracking-wider">
+                Official Brand Selection (Platform Verified)
+              </label>
+              <span className="text-[9px] font-extrabold bg-[#FA661C] text-white px-2 py-0.5 rounded-full uppercase tracking-wider">
+                Catalog Rule
+              </span>
+            </div>
+            <p className="text-[11px] text-[#6B6058] mt-0.5">
+              Select an admin-recognized brand if applicable. Generic or unbranded items should use the free-text Brand field below.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleRequestBrand}
+            className="text-xs font-bold text-[#FA661C] hover:text-[#E0530B] hover:underline flex items-center space-x-1.5 shrink-0 cursor-pointer bg-white px-3.5 py-1.5 rounded-xl border border-[#FF811A]/40 shadow-2xs btn-interactive"
+          >
+            <PlusCircle className="w-4 h-4 text-[#FF811A]" />
+            <span>Request Brand</span>
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* 1. Official Brand Dropdown */}
+          <div>
+            <label htmlFor="official-brand-select" className="block text-xs font-bold text-[#FA661C] mb-1.5">
+              Official Catalog Brand
+            </label>
+            <select
+              id="official-brand-select"
+              aria-label="Official Brand Selection"
+              value={selectedOfficialBrandId || ''}
+              onChange={(e) => handleOfficialBrandSelect && handleOfficialBrandSelect(e.target.value)}
+              className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#EAE3DC] text-[#FA661C] text-xs font-bold focus:border-[#FA661C] focus:ring-1 focus:ring-[#FA661C] outline-none input-interactive"
+            >
+              <option value="">-- None / Generic (Free-Text Brand) --</option>
+              {displayOfficialBrands.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* 2. Free-Text Brand Field */}
+          <div>
+            <label htmlFor="freetext-brand-input" className="block text-xs font-bold text-[#6B6058] mb-1.5">
+              Free-Text Brand Name (Generic / Custom)
+            </label>
+            <input
+              id="freetext-brand-input"
+              type="text"
+              value={freeTextBrand || ''}
+              onChange={(e) => onChangeFreeTextBrand && onChangeFreeTextBrand(e.target.value)}
+              placeholder="Enter brand name (e.g. Generic, Custom Brand)"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#EAE3DC] text-[#FA661C] text-xs font-bold focus:border-[#FA661C] focus:ring-1 focus:ring-[#FA661C] outline-none input-interactive"
+              disabled={Boolean(selectedOfficialBrandId)}
+            />
+            {selectedOfficialBrandId && (
+              <p className="text-[10px] text-[#6B6058] mt-1 italic">
+                Official brand selected. Free-text brand is auto-synchronized to official brand name.
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* CONDITIONAL REQUIRED AUTHORIZATION DOCUMENT UPLOAD DROPZONE */}
+        {selectedOfficialBrandId && (
+          <div className="pt-4 border-t-2 border-dashed border-[#FF811A]/30 space-y-3 animate-fadeIn">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <ShieldCheck className="w-4 h-4 text-[#FF811A]" />
+                <h4 className="text-xs font-black text-[#FA661C] uppercase tracking-wider">
+                  Official Brand Authorization Document <span className="text-[#D7263D]">*</span>
+                </h4>
+              </div>
+              <span className="text-[10px] font-bold text-[#D7263D] bg-[#FDE8EA] border border-[#D7263D]/30 px-2.5 py-0.5 rounded-full">
+                Required for Publishing
+              </span>
+            </div>
+            
+            <p className="text-[11px] text-[#6B6058] leading-relaxed">
+              An official authorization document (reseller authorization letter, distribution certificate, or trademark license) is required when listing under an official brand. Accepted formats: PDF, JPEG, PNG (Max 10 MiB).
+            </p>
+
+            {/* DROPZONE CONTAINER (REUSED FROM PRODUCT MEDIA GALLERY / KYC PATTERN) */}
+            <div
+              onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+              onDragLeave={() => setIsDragOver(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setIsDragOver(false);
+                if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                  if (onUploadBrandAuthDocument) onUploadBrandAuthDocument(e.dataTransfer.files[0]);
+                }
+              }}
+              onClick={() => brandAuthInputRef.current?.click()}
+              className={`p-5 rounded-2xl border-2 border-dashed text-center transition-all flex flex-col items-center justify-center space-y-2 cursor-pointer ${
+                brandAuthError
+                  ? 'border-[#D7263D] bg-[#FDE8EA]/50'
+                  : isDragOver
+                  ? 'border-[#FA661C] bg-[#FFF3EC]'
+                  : brandAuthDocument
+                  ? 'border-[#16523F] bg-[#E8F4F0]'
+                  : 'border-[#FF811A]/50 bg-white hover:border-[#FA661C] hover:bg-[#FFF3EC]/30'
+              }`}
+            >
+              <input
+                type="file"
+                ref={brandAuthInputRef}
+                accept=".pdf,.jpg,.jpeg,.png,image/jpeg,image/png,application/pdf"
+                onChange={(e) => {
+                  if (e.target.files && e.target.files.length > 0) {
+                    if (onUploadBrandAuthDocument) onUploadBrandAuthDocument(e.target.files[0]);
+                  }
+                }}
+                className="hidden"
+              />
+
+              {isUploadingBrandAuth ? (
+                <div className="flex items-center space-x-2 text-xs font-bold text-[#FA661C]">
+                  <Loader2 className="w-6 h-6 animate-spin text-[#FA661C]" />
+                  <span>Uploading brand authorization document...</span>
+                </div>
+              ) : brandAuthDocument ? (
+                <div className="flex items-center space-x-3 text-xs w-full justify-between px-2">
+                  <div className="flex items-center space-x-2.5 truncate">
+                    <div className="p-2 rounded-xl bg-[#16523F] text-white shrink-0">
+                      <FileText className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="text-left truncate">
+                      <p className="font-extrabold text-[#16523F] text-xs flex items-center space-x-1">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-[#16523F] inline mr-1" />
+                        <span>Authorization Document Verified</span>
+                      </p>
+                      <p className="text-[11px] text-[#6B6058] truncate max-w-[300px]">
+                        {brandAuthDocument.file_name || brandAuthDocument.name || 'brand_authorization_doc.pdf'}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      brandAuthInputRef.current?.click();
+                    }}
+                    className="px-3.5 py-1.5 rounded-xl text-[11px] font-bold text-[#FA661C] bg-white border border-[#FA661C] hover:bg-[#FFF3EC] btn-interactive shrink-0"
+                  >
+                    Replace Document
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="p-2.5 rounded-full bg-[#FFF3EC] border border-[#FF811A]/40 text-[#FA661C]">
+                    <UploadCloud className="w-6 h-6 text-[#FA661C]" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-extrabold text-[#FA661C]">
+                      Upload Authorization Document
+                    </p>
+                    <p className="text-[10px] text-[#6B6058] mt-0.5">
+                      Click or Drag & Drop PDF, JPEG, or PNG (Max size: 10 MiB)
+                    </p>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {brandAuthError && (
+              <div className="p-3 rounded-xl bg-[#FDE8EA] border border-[#D7263D] text-[#D7263D] text-xs font-bold flex items-center space-x-2 animate-fadeIn">
+                <AlertCircle className="w-4.5 h-4.5 shrink-0" />
+                <span>{brandAuthError}</span>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {isLoadingAttributes ? (

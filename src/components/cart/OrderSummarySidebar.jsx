@@ -1,20 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { ShieldCheck, ArrowRight, Sparkles, CheckCircle2, Gift, Truck } from 'lucide-react';
+import { ShieldCheck, ArrowRight, CheckCircle2, Truck } from 'lucide-react';
 import { useCart } from '../../context/CartWishlistContext';
 
 export default function OrderSummarySidebar({ onProceedToCheckout, isCheckoutPage = false }) {
-  const { calculations, cart, appliedCoupon, isGiftWrap, shippingMethod } = useCart();
+  const { calculations, cart } = useCart();
   const [highlightPulse, setHighlightPulse] = useState(false);
 
-  // Trigger subtle gold pulse animation on value update
+  // Trigger subtle pulse animation on value update
   useEffect(() => {
     setHighlightPulse(true);
     const timer = setTimeout(() => setHighlightPulse(false), 500);
     return () => clearTimeout(timer);
   }, [
     calculations.cartSubtotal, 
-    calculations.couponDiscount, 
-    calculations.giftWrapFee, 
     calculations.shippingFee, 
     calculations.taxAmount, 
     calculations.amountPayable
@@ -35,7 +33,7 @@ export default function OrderSummarySidebar({ onProceedToCheckout, isCheckoutPag
         </span>
       </div>
 
-      {/* Breakdown Lines (Strict Arithmetic) */}
+      {/* Breakdown Lines */}
       <div className="space-y-2.5 divide-y divide-[#EAE3DC]/40 text-[#6B6058]">
         
         {/* Subtotal */}
@@ -46,52 +44,20 @@ export default function OrderSummarySidebar({ onProceedToCheckout, isCheckoutPag
           </span>
         </div>
 
-        {/* Coupon Discount */}
-        {calculations.couponDiscount > 0 && (
-          <div className="flex items-center justify-between pt-2.5 text-[#FA661C] font-medium animate-reveal">
-            <span className="flex items-center space-x-1">
-              <span>Coupon Discount</span>
-              <strong className="text-[10px] bg-[#FFF3EC] px-1.5 py-0.2 rounded font-mono">
-                {appliedCoupon?.code}
-              </strong>
-            </span>
-            <span className="font-bold text-[#FA661C]">
-              − {formatINR(calculations.couponDiscount)}
-            </span>
-          </div>
-        )}
-
-        {/* Gift Wrap Fee */}
-        {calculations.giftWrapFee > 0 && (
-          <div className="flex items-center justify-between pt-2.5 text-[#FA661C] animate-reveal">
-            <span className="flex items-center space-x-1">
-              <Gift className="w-3 h-3 text-[#FF811A]" />
-              <span>Premium Gift Wrapping</span>
-            </span>
-            <span className="font-bold text-[#FA661C]">
-              + {formatINR(calculations.giftWrapFee)}
-            </span>
-          </div>
-        )}
-
-        {/* Estimated Shipping */}
+        {/* Shipping */}
         <div className="flex items-center justify-between pt-2.5">
           <span className="flex items-center space-x-1">
             <Truck className="w-3 h-3 text-[#6B6058]" />
-            <span>Shipping ({shippingMethod === 'express' ? 'Express' : shippingMethod === 'priority' ? 'Priority' : 'Standard'})</span>
+            <span>Standard Delivery</span>
           </span>
           <span className="font-bold text-[#FA661C]">
-            {calculations.shippingFee === 0 ? (
-              <span className="text-[#FA661C] uppercase text-[10px] font-black bg-[#FFF3EC] px-1.5 py-0.2 rounded">
-                FREE
-              </span>
-            ) : (
-              `+ ${formatINR(calculations.shippingFee)}`
-            )}
+            <span className="text-[#FA661C] uppercase text-[10px] font-black bg-[#FFF3EC] px-1.5 py-0.2 rounded">
+              FREE
+            </span>
           </span>
         </div>
 
-        {/* Tax (GST with Rate Pair) */}
+        {/* Estimated Tax */}
         <div className="flex items-center justify-between pt-2.5">
           <span>Estimated Tax (GST 5%)</span>
           <span className="font-bold text-[#FA661C]">
@@ -99,29 +65,9 @@ export default function OrderSummarySidebar({ onProceedToCheckout, isCheckoutPag
           </span>
         </div>
 
-        {/* Wallet Deduction (if applied on checkout) */}
-        {calculations.walletDeduction > 0 && (
-          <div className="flex items-center justify-between pt-2.5 text-[#FA661C] font-medium animate-reveal">
-            <span>Wallet Balance Applied</span>
-            <span className="font-bold text-[#FA661C]">
-              − {formatINR(calculations.walletDeduction)}
-            </span>
-          </div>
-        )}
-
-        {/* Reward Points Deduction (if applied on checkout) */}
-        {calculations.rewardPointsDeduction > 0 && (
-          <div className="flex items-center justify-between pt-2.5 text-[#FA661C] font-medium animate-reveal">
-            <span>Reward Points Redeemed</span>
-            <span className="font-bold text-[#FA661C]">
-              − {formatINR(calculations.rewardPointsDeduction)}
-            </span>
-          </div>
-        )}
-
       </div>
 
-      {/* TOTAL AMOUNT PAYABLE (Exact Sum with Gold Pulse) */}
+      {/* TOTAL AMOUNT PAYABLE */}
       <div className={`pt-3 border-t-2 border-[#FA661C]/20 flex items-center justify-between transition-colors duration-300 ${
         highlightPulse ? 'bg-[#FFF8F2] p-2 rounded-xl border-[#FF811A]' : ''
       }`}>
@@ -129,21 +75,13 @@ export default function OrderSummarySidebar({ onProceedToCheckout, isCheckoutPag
           <span className="font-['Outfit'] font-black text-sm text-[#FA661C] block">
             {isCheckoutPage ? 'Amount Payable' : 'Estimated Total'}
           </span>
-          <span className="text-[10px] text-[#6B6058]">Inclusive of all taxes</span>
+          <span className="text-[10px] text-[#6B6058]">Calculated at checkout</span>
         </div>
 
         <div className="text-right font-['Outfit'] font-black text-xl text-[#FA661C]">
           {formatINR(calculations.amountPayable)}
         </div>
       </div>
-
-      {/* Total Savings Callout */}
-      {calculations.totalSavings > 0 && (
-        <div className="p-2.5 bg-[#FFF3EC] text-[#FA661C] rounded-xl border border-[#FA661C]/20 flex items-center justify-center space-x-1 text-[11px] font-bold text-center">
-          <Sparkles className="w-3.5 h-3.5 text-[#FF811A]" />
-          <span>You are saving {formatINR(calculations.totalSavings)} on this order!</span>
-        </div>
-      )}
 
       {/* Primary CTA (if in Cart view) */}
       {!isCheckoutPage && (
@@ -173,3 +111,4 @@ export default function OrderSummarySidebar({ onProceedToCheckout, isCheckoutPag
     </div>
   );
 }
+

@@ -11,7 +11,8 @@ export default function ProductBasicInfoSection({
   description,
   setDescription,
   baseSku,
-  setBaseSku
+  setBaseSku,
+  isOfficialBrandSelected = false
 }) {
   return (
     <section className="bg-white rounded-3xl border border-[#EAE3DC] p-6 sm:p-8 shadow-xs relative animate-fadeIn">
@@ -57,9 +58,17 @@ export default function ProductBasicInfoSection({
           </div>
 
           <div>
-            <label htmlFor="prod-brand" className="block text-xs font-bold text-[#FA661C] mb-1.5">
-              Brand / Manufacturer <span className="text-[#D7263D]">*</span>
-            </label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label htmlFor="prod-brand" className="block text-xs font-bold text-[#FA661C]">
+                Brand / Manufacturer <span className="text-[#D7263D]">*</span>
+              </label>
+              {isOfficialBrandSelected && (
+                <span className="text-[9px] font-extrabold text-[#16523F] bg-[#E8F4F0] border border-[#16523F]/30 px-1.5 py-0.2 rounded flex items-center space-x-1">
+                  <CheckCircle2 className="w-2.5 h-2.5 text-[#16523F]" />
+                  <span>Official Brand</span>
+                </span>
+              )}
+            </div>
             <div className="relative">
               <Building2 className="w-4 h-4 text-[#6B6058] absolute left-3.5 top-3 pointer-events-none" />
               <input
@@ -67,8 +76,9 @@ export default function ProductBasicInfoSection({
                 type="text"
                 value={brand}
                 onChange={(e) => setBrand(e.target.value)}
-                placeholder="e.g. Apex Electronics Direct"
-                className="w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-white border border-[#EAE3DC] text-[#FA661C] text-xs font-bold focus:border-[#FA661C] focus:ring-1 focus:ring-[#FA661C] outline-none input-interactive"
+                placeholder="Enter brand name (e.g. Generic, Custom Brand)"
+                className="w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-white border border-[#EAE3DC] text-[#FA661C] text-xs font-bold focus:border-[#FA661C] focus:ring-1 focus:ring-[#FA661C] outline-none input-interactive disabled:bg-[#FFF8F2]"
+                disabled={isOfficialBrandSelected}
                 required
               />
             </div>

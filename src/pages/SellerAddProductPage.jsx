@@ -28,7 +28,9 @@ import ShippingComplianceSection from '../components/seller-add-product/Shipping
 import SeoMetadataSection from '../components/seller-add-product/SeoMetadataSection';
 import PendingRequestsSidebarWidget from '../components/seller-add-product/PendingRequestsSidebarWidget';
 import RequestValueModal from '../components/seller-add-product/RequestValueModal';
+import RequestBrandModal from '../components/seller-add-product/RequestBrandModal';
 import StickyActionBar from '../components/seller-add-product/StickyActionBar';
+import { useSellerProducts } from '../context/SellerProductsContext';
 
 export default function SellerAddProductPage() {
   const toast = useToast();
@@ -53,15 +55,38 @@ export default function SellerAddProductPage() {
   // 2. Dynamic Attribute Selections State
   const [attributeValues, setAttributeValues] = useState({});
 
-  // 3. Basic Identity State (Initialized empty when editing, default demo strings when adding)
+  // 3. Basic Identity State (Initialized empty when editing or adding)
   const [title, setTitle] = useState(isEditMode ? '' : 'Apex Titan 5G Pro Flagship Smartphone');
-  const [brand, setBrand] = useState(isEditMode ? '' : 'Apex Electronics Direct');
+  const [brand, setBrand] = useState(isEditMode ? '' : '');
   const [subtitle, setSubtitle] = useState(isEditMode ? '' : 'Snapdragon 8 Gen 3 • 120Hz AMOLED • 100W Fast Charge');
   const [description, setDescription] = useState(
     isEditMode ? '' : '• Next-generation flagship smartphone with aerospace-grade titanium frame\n• 50MP Sony LYTIA custom camera sensor with optical image stabilization\n• 5000mAh dual-cell silicon-carbon battery with 100W HyperCharge support\n• IP68 water and dust resistance with ceramic glass protection'
   );
   const [baseSku, setBaseSku] = useState(isEditMode ? '' : 'SKU-MOB-APX-9500');
   const [slug, setSlug] = useState('');
+
+  // 3b. Official Brand Authorization State
+  const [officialBrands, setOfficialBrands] = useState([]);
+  const [selectedOfficialBrandId, setSelectedOfficialBrandId] = useState('');
+  const [brandAuthDocument, setBrandAuthDocument] = useState(null);
+  const [brandAuthError, setBrandAuthError] = useState(null);
+  const [isUploadingBrandAuth, setIsUploadingBrandAuth] = useState(false);
+  const [isRequestBrandOpen, setIsRequestBrandOpen] = useState(false);
+  const { requestBrand } = useSellerProducts();
+
+  // Fetch official catalog brands from GET /api/products/brands/
+  useEffect(() => {
+    async function loadOfficialBrands() {
+      try {
+        const brands = await apiRequest('/api/products/brands/');
+        setOfficialBrands(Array.isArray(brands) ? brands : []);
+      } catch (err) {
+        console.warn('Failed to fetch official catalog brands:', err);
+        setOfficialBrands([]);
+      }
+    }
+    loadOfficialBrands();
+  }, []);
 
   // 4. Pricing & Inventory State
   const [mrp, setMrp] = useState(isEditMode ? '' : '54999');
@@ -295,6 +320,59 @@ export default function SellerAddProductPage() {
     setBackendSubmissionError(null);
   };
 
+  // Official Brand Selection Handler
+  const handleOfficialBrandChange = (newBrandId) => {
+    setSelectedOfficialBrandId(newBrandId);
+    setBrandAuthError(null);
+    if (!newBrandId) {
+      setBrandAuthDocument(null);
+    } else {
+      const found = officialBrands.find(b => String(b.id) === String(newBrandId));
+      if (found) {
+        setBrand(found.name);
+      } else {
+        setBrand(`Official Brand #${newBrandId}`);
+      }
+    }
+  };
+
+  // Upload Brand Authorization Document Handler
+  const handleUploadBrandAuthDocument = (file) => {
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      setBrandAuthError("File size exceeds 10 MiB limit.");
+      toast.error("File Too Large", "Brand authorization document must be less than 10 MiB.");
+      return;
+    }
+    setBrandAuthError(null);
+    setBrandAuthDocument({
+      file,
+      file_name: file.name,
+      name: file.name,
+      isPendingUpload: true
+    });
+    toast.success("Document Selected", `Selected "${file.name}" as Official Brand Authorization proof.`);
+  };
+
+  // Submit New Brand Request via Governance Flow
+  const handleRequestBrandSubmit = async ({ brandName, reason }) => {
+    try {
+      const res = await apiRequest('/api/products/vendor/brand-requests/', {
+        method: 'POST',
+        body: JSON.stringify({
+          requested_name: brandName,
+          reason: reason || 'Vendor catalog requirement for official distribution.'
+        })
+      });
+      if (requestBrand) requestBrand(res);
+      toast.success("Brand Request Submitted", `Submitted request for "${brandName}". Admin status: Pending.`);
+      setIsRequestBrandOpen(false);
+    } catch (err) {
+      const msg = err.message || 'Failed to submit brand request';
+      toast.error("Request Submission Failed", msg);
+    }
+  };
+
   // Bulk Variant Updates
   const handleUpdateVariant = (variantId, updatedProps) => {
     setVariants(prev => prev.map(v => v.id === variantId ? { ...v, ...updatedProps } : v));
@@ -313,6 +391,9 @@ export default function SellerAddProductPage() {
     const errors = [];
     if (!title.trim()) errors.push("Product Listing Title is required");
     if (!brand.trim()) errors.push("Brand Name is required");
+    if (selectedOfficialBrandId && !brandAuthDocument) {
+      errors.push("Brand Authorization Document is required for selected official brand.");
+    }
     if (!description.trim()) errors.push("Product Description is required");
     if (!selectedCategory) errors.push("Category selection is required");
 
@@ -331,7 +412,7 @@ export default function SellerAddProductPage() {
     });
 
     return errors;
-  }, [title, brand, description, selectedCategory, categoryAttributes, attributeValues]);
+  }, [title, brand, selectedOfficialBrandId, brandAuthDocument, description, selectedCategory, categoryAttributes, attributeValues]);
 
   const hasFilledAttributes = Object.keys(attributeValues).length > 0;
 
@@ -462,7 +543,8 @@ export default function SellerAddProductPage() {
       meta_title: metaTitle || '',
       meta_description: metaDescription || '',
       shipping_override_enabled: !inheritShippingPolicy,
-      refund_warranty_override_enabled: !inheritReturnPolicy
+      refund_warranty_override_enabled: !inheritReturnPolicy,
+      official_brand: selectedOfficialBrandId ? Number(selectedOfficialBrandId) : null
     };
 
     let productId = savedProductId;
@@ -481,6 +563,21 @@ export default function SellerAddProductPage() {
         });
         productId = created.id;
         setSavedProductId(created.id);
+      }
+
+      // Upload pending authorization document if present
+      if (brandAuthDocument?.isPendingUpload && brandAuthDocument?.file) {
+        try {
+          const formData = new FormData();
+          formData.append('document', brandAuthDocument.file);
+          const authRes = await apiRequest(`/api/products/vendor/products/${productId}/brand-authorization/`, {
+            method: 'POST',
+            body: formData
+          });
+          setBrandAuthDocument(authRes);
+        } catch (authErr) {
+          console.warn('Pending brand authorization upload failed during draft save:', authErr);
+        }
       }
 
       // Persist attributes and variants via dedicated endpoints
@@ -515,6 +612,12 @@ export default function SellerAddProductPage() {
     e.preventDefault();
     setBackendSubmissionError(null);
 
+    if (selectedOfficialBrandId && !brandAuthDocument) {
+      setBrandAuthError("Brand Authorization Document is required for selected official brand.");
+      toast.error("Brand Authorization Required", "An official brand requires a valid brand authorization document (PDF/JPEG/PNG, max 10 MiB) before publishing.");
+      return;
+    }
+
     if (validationErrors.length > 0) {
       toast.error("Incomplete Listing", validationErrors[0]);
       return;
@@ -535,7 +638,8 @@ export default function SellerAddProductPage() {
       meta_title: metaTitle || '',
       meta_description: metaDescription || '',
       shipping_override_enabled: !inheritShippingPolicy,
-      refund_warranty_override_enabled: !inheritReturnPolicy
+      refund_warranty_override_enabled: !inheritReturnPolicy,
+      official_brand: selectedOfficialBrandId ? Number(selectedOfficialBrandId) : null
     };
 
     let createdProduct = null;
@@ -552,6 +656,22 @@ export default function SellerAddProductPage() {
         });
         setSavedProductId(createdProduct.id);
       }
+
+      // Upload pending authorization document if present
+      if (brandAuthDocument?.isPendingUpload && brandAuthDocument?.file) {
+        try {
+          const formData = new FormData();
+          formData.append('document', brandAuthDocument.file);
+          const authRes = await apiRequest(`/api/products/vendor/products/${createdProduct.id}/brand-authorization/`, {
+            method: 'POST',
+            body: formData
+          });
+          setBrandAuthDocument(authRes);
+        } catch (authErr) {
+          console.warn('Pending brand authorization upload failed during submit:', authErr);
+        }
+      }
+
       toast.info("Product Saved", `Product record ID #${createdProduct.id} ready for submission.`);
     } catch (err) {
       console.error('Failed to create bare product:', err);
@@ -600,11 +720,13 @@ export default function SellerAddProductPage() {
       console.warn('Backend Submit-for-Review rejected validation:', submitErr);
       
       let formattedError = submitErr.message || 'Submission rejected by server validation.';
-      if (submitErr.data?.detail) {
-        if (typeof submitErr.data.detail === 'string') {
-          formattedError = submitErr.data.detail;
-        } else if (typeof submitErr.data.detail === 'object') {
-          formattedError = Object.entries(submitErr.data.detail)
+      const errData = submitErr.data?.detail || submitErr.data;
+      if (errData) {
+        if (typeof errData === 'object' && errData.brand_authorization) {
+          const msgs = errData.brand_authorization;
+          formattedError = `Brand Authorization Error: ${Array.isArray(msgs) ? msgs.join(', ') : msgs}`;
+        } else if (typeof errData === 'object') {
+          formattedError = Object.entries(errData)
             .map(([field, msgs]) => `${field.toUpperCase()}: ${Array.isArray(msgs) ? msgs.join(', ') : msgs}`)
             .join(' | ');
         }
@@ -725,6 +847,16 @@ export default function SellerAddProductPage() {
               attributeValues={attributeValues}
               onChangeAttribute={handleChangeAttribute}
               onRequestNewValue={(attr) => setRequestModalAttr(attr)}
+              officialBrands={officialBrands}
+              selectedOfficialBrandId={selectedOfficialBrandId}
+              onOfficialBrandChange={handleOfficialBrandChange}
+              freeTextBrand={brand}
+              onChangeFreeTextBrand={setBrand}
+              onRequestBrand={() => setIsRequestBrandOpen(true)}
+              brandAuthDocument={brandAuthDocument}
+              onUploadBrandAuthDocument={handleUploadBrandAuthDocument}
+              isUploadingBrandAuth={isUploadingBrandAuth}
+              brandAuthError={brandAuthError}
             />
 
             {/* Step 3: Variants Matrix OR Single Price/Stock */}
@@ -889,6 +1021,13 @@ export default function SellerAddProductPage() {
         onClose={() => setRequestModalAttr(null)}
         attribute={requestModalAttr}
         category={selectedCategory}
+      />
+
+      {/* 5. Request New Official Brand Governance Modal */}
+      <RequestBrandModal 
+        isOpen={isRequestBrandOpen}
+        onClose={() => setIsRequestBrandOpen(false)}
+        onRequestBrandSubmit={handleRequestBrandSubmit}
       />
 
     </div>

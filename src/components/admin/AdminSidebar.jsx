@@ -42,7 +42,7 @@ export default function AdminSidebar({
   const navigate = useNavigate();
   const location = useLocation();
   const toast = useToast();
-  const [openGroups, setOpenGroups] = useState(['catalog', 'orders', 'finance']);
+  const [openGroups, setOpenGroups] = useState(['catalog', 'people', 'orders', 'finance', 'insights', 'platform']);
 
   const activeSection = location.pathname === '/admin' ? 'dashboard' : location.pathname.replace('/admin/', '');
 
@@ -142,7 +142,7 @@ export default function AdminSidebar({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Filter 30 Admin Modules..."
+                placeholder="Filter Admin Modules..."
                 className="bg-transparent text-xs text-[#FFFFFF] placeholder-[#FFFFFF]/50 outline-none w-full"
               />
             </div>

@@ -1,8 +1,11 @@
 import React, { useEffect, useRef } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Link, useNavigate, useLocation } from 'react-router-dom';
 import HomePage from './pages/HomePage';
+import ProductListingPage from './pages/ProductListingPage';
+import ProductDetailPage from './pages/ProductDetailPage';
 import LoginPage from './pages/LoginPage';
 import ProfilePage from './pages/ProfilePage';
+import CustomerAddressFormPage from './pages/CustomerAddressFormPage';
 import SellerRegisterPage from './pages/SellerRegisterPage';
 import AdminHomePage from './pages/AdminHomePage';
 import SellerDashboardPage from './pages/SellerDashboardPage';
@@ -67,10 +70,34 @@ function MarketplaceRouter() {
           } 
         />
         <Route 
+          path="/products" 
+          element={
+            <PageTransitionWrapper>
+              <ProductListingPage 
+                isLoggedIn={isLoggedIn}
+                currentUser={currentUser}
+                onLogout={handleLogout}
+              />
+            </PageTransitionWrapper>
+          } 
+        />
+        <Route 
           path="/category/:categorySlug" 
           element={
             <PageTransitionWrapper>
-              <HomePage 
+              <ProductListingPage 
+                isLoggedIn={isLoggedIn}
+                currentUser={currentUser}
+                onLogout={handleLogout}
+              />
+            </PageTransitionWrapper>
+          } 
+        />
+        <Route 
+          path="/product/:id" 
+          element={
+            <PageTransitionWrapper>
+              <ProductDetailPage 
                 isLoggedIn={isLoggedIn}
                 currentUser={currentUser}
                 onLogout={handleLogout}
@@ -111,6 +138,38 @@ function MarketplaceRouter() {
           element={
             <PageTransitionWrapper>
               <ProfilePage onLogout={handleLogout} />
+            </PageTransitionWrapper>
+          } 
+        />
+        <Route 
+          path="/account/addresses/new" 
+          element={
+            <PageTransitionWrapper>
+              <CustomerAddressFormPage />
+            </PageTransitionWrapper>
+          } 
+        />
+        <Route 
+          path="/account/addresses/:id/edit" 
+          element={
+            <PageTransitionWrapper>
+              <CustomerAddressFormPage />
+            </PageTransitionWrapper>
+          } 
+        />
+        <Route 
+          path="/profile/addresses/new" 
+          element={
+            <PageTransitionWrapper>
+              <CustomerAddressFormPage />
+            </PageTransitionWrapper>
+          } 
+        />
+        <Route 
+          path="/profile/addresses/:id/edit" 
+          element={
+            <PageTransitionWrapper>
+              <CustomerAddressFormPage />
             </PageTransitionWrapper>
           } 
         />

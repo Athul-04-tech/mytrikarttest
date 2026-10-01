@@ -20,6 +20,8 @@ export function AuthProvider({ children }) {
     return {
       ...userObj,
       role: userObj.role || 'customer',
+      is_superuser: userObj.is_superuser,
+      is_staff: userObj.is_staff,
       name: fullName,
       fullName: fullName,
       mobile: userObj.phone_number || '',

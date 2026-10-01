@@ -1,16 +1,45 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, X, Sparkles } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 export default function SearchBar() {
-  const [query, setQuery] = useState('');
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const [query, setQuery] = useState(searchParams.get('search') || '');
   const [isFocused, setIsFocused] = useState(false);
 
-  const handleClear = () => setQuery('');
+  useEffect(() => {
+    setQuery(searchParams.get('search') || '');
+  }, [searchParams]);
+
+  const handleClear = () => {
+    setQuery('');
+  };
+
+  const executeSearch = (searchTerm) => {
+    const trimmed = searchTerm.trim();
+    if (trimmed) {
+      navigate(`/products?search=${encodeURIComponent(trimmed)}`);
+    } else {
+      navigate('/products');
+    }
+    setIsFocused(false);
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    executeSearch(query);
+  };
+
+  const handleSuggestionClick = (tag) => {
+    setQuery(tag);
+    executeSearch(tag);
+  };
 
   return (
     <div className="relative flex-1 max-w-2xl mx-auto w-full">
       <form 
-        onSubmit={(e) => e.preventDefault()} 
+        onSubmit={handleSubmit} 
         className={`relative flex items-center w-full transition-all duration-200 rounded-xl bg-white border ${
           isFocused 
             ? 'border-[#FA661C] ring-2 ring-[#FF811A]/35 shadow-[0_4px_16px_rgba(250, 102, 28,0.12)]' 
@@ -28,7 +57,10 @@ export default function SearchBar() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
+          onBlur={() => {
+            // Delay hide to allow click handlers on dropdown suggestions to fire
+            setTimeout(() => setIsFocused(false), 200);
+          }}
           placeholder="Search for Products, Brands and More"
           className="w-full py-2.5 pr-10 text-sm text-[#FA661C] placeholder-[#6B6058]/70 bg-transparent focus:outline-none font-medium"
           aria-label="Search for products, brands and categories"
@@ -60,18 +92,21 @@ export default function SearchBar() {
       {isFocused && (
         <div className="absolute top-full left-0 right-0 mt-1.5 bg-white border border-[#EAE3DC] rounded-xl shadow-xl z-50 p-3 text-xs text-[#6B6058] animate-dropdown">
           <p className="font-bold text-[#FA661C] mb-2 uppercase tracking-wider text-[10px] flex items-center justify-between">
-            <span>Popular Searches</span>
+            <span>Popular Categories</span>
             <span className="text-[#FF811A] text-[10px] font-extrabold flex items-center space-x-1">
               <Sparkles className="w-3 h-3" />
               <span>Trending Now</span>
             </span>
           </p>
           <div className="flex flex-wrap gap-2">
-            {['Noise Cancelling Headphones', 'OLED Gaming Monitors', 'Artisan Coffee', 'Leather Watches', 'Wireless Earbuds'].map((tag) => (
+            {['Electronics', 'Laptops', 'Smartphones', 'Kitchen Appliances', 'Fashion'].map((tag) => (
               <button
                 key={tag}
                 type="button"
-                onMouseDown={() => setQuery(tag)}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  handleSuggestionClick(tag);
+                }}
                 className="px-2.5 py-1 bg-[#FFFFFF] hover:bg-[#FFF3EC] text-[#FA661C] rounded-md border border-[#EAE3DC]/80 font-medium btn-interactive cursor-pointer"
               >
                 {tag}
@@ -83,3 +118,4 @@ export default function SearchBar() {
     </div>
   );
 }
+

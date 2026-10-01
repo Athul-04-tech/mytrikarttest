@@ -93,11 +93,12 @@ describe('Seller Profile, Settlements, Settings & Sales Real API Suite', () => {
   it('3. SellerSettingsView loads profile, executes PATCH on save, and disables unsupported fields', async () => {
     api.apiRequest.mockImplementation((url, options) => {
       if (options?.method === 'PATCH') {
-        return Promise.resolve({ store_name: 'Updated Store Name', store_description: 'New Description' });
+        return Promise.resolve({ store_name: 'Updated Store Name', store_description: 'New Description', is_women_owned: true });
       }
       return Promise.resolve({
         store_name: 'Original Store Name',
-        store_description: 'Original Description'
+        store_description: 'Original Description',
+        is_women_owned: false
       });
     });
 
@@ -107,14 +108,23 @@ describe('Seller Profile, Settlements, Settings & Sales Real API Suite', () => {
       expect(screen.getByDisplayValue('Original Store Name')).toBeTruthy();
     });
 
-    // Verify SLA select and checkboxes are disabled
+    // Verify SLA select is disabled
     const select = screen.getByRole('combobox');
     expect(select.disabled).toBe(true);
 
+    // Verify women-owned checkbox is enabled while unsupported feature checkboxes are disabled
     const checkboxes = screen.getAllByRole('checkbox');
-    checkboxes.forEach(cb => expect(cb.disabled).toBe(true));
+    const disabledCheckboxes = checkboxes.filter(cb => cb.disabled);
+    expect(disabledCheckboxes.length).toBe(2);
 
-    // Update store name and click save
+    const womenOwnedCheckbox = screen.getByLabelText(/This business is women-owned \/ women-led/i);
+    expect(womenOwnedCheckbox.disabled).toBe(false);
+    expect(womenOwnedCheckbox.checked).toBe(false);
+
+    // Toggle women-owned checkbox and update store name
+    fireEvent.click(womenOwnedCheckbox);
+    expect(womenOwnedCheckbox.checked).toBe(true);
+
     const nameInput = screen.getByDisplayValue('Original Store Name');
     fireEvent.change(nameInput, { target: { value: 'New Store Name' } });
 
@@ -124,7 +134,7 @@ describe('Seller Profile, Settlements, Settings & Sales Real API Suite', () => {
     await waitFor(() => {
       expect(api.apiRequest).toHaveBeenCalledWith('/api/vendors/me/', expect.objectContaining({
         method: 'PATCH',
-        body: JSON.stringify({ store_name: 'New Store Name', store_description: 'Original Description' })
+        body: JSON.stringify({ store_name: 'New Store Name', store_description: 'Original Description', is_women_owned: true })
       }));
     });
   });

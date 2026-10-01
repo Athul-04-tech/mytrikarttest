@@ -14,7 +14,7 @@ import {
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
-import { CATEGORIES } from '../../data/mockData';
+import { apiRequest } from '../../utils/api';
 
 // Locked unified icon mapping with consistent stroke style
 const ICON_MAP = {
@@ -30,6 +30,21 @@ const ICON_MAP = {
   Car,
   Dumbbell
 };
+
+function getCategoryIcon(name = '', slug = '') {
+  const n = (name + ' ' + slug).toLowerCase();
+  if (n.includes('fashion') || n.includes('shirt') || n.includes('cloth') || n.includes('apparel')) return Shirt;
+  if (n.includes('phone') || n.includes('mobile') || n.includes('smartphone')) return Smartphone;
+  if (n.includes('laptop') || n.includes('computer')) return Laptop;
+  if (n.includes('electronic')) return Laptop;
+  if (n.includes('kitchen') || n.includes('home') || n.includes('appliance')) return Home;
+  if (n.includes('tv')) return Tv;
+  if (n.includes('health') || n.includes('beauty')) return HeartPulse;
+  if (n.includes('toy') || n.includes('baby')) return Baby;
+  if (n.includes('auto') || n.includes('car')) return Car;
+  if (n.includes('sport')) return Dumbbell;
+  return Sparkle;
+}
 
 // Subtle, tasteful tonal tinting per category theme
 const CATEGORY_TONES = {
@@ -52,8 +67,38 @@ export default function CategoryNav({ activeCategory = 'for-you', onSelectCatego
   const [rippleTarget, setRippleTarget] = useState(null);
   const [showLeftFade, setShowLeftFade] = useState(false);
   const [showRightFade, setShowRightFade] = useState(true);
+  const [categories, setCategories] = useState([
+    { id: 'for-you', label: 'For You', slug: 'for-you', iconComp: Sparkles }
+  ]);
 
   const scrollContainerRef = useRef(null);
+
+  // Fetch real top-level categories from backend GET /api/products/categories/
+  useEffect(() => {
+    let isMounted = true;
+    apiRequest('/api/products/categories/')
+      .then((data) => {
+        if (isMounted && Array.isArray(data)) {
+          const realCategories = data.map((cat) => ({
+            id: cat.slug || String(cat.id),
+            backendId: cat.id,
+            label: cat.name,
+            slug: cat.slug,
+            iconComp: getCategoryIcon(cat.name, cat.slug)
+          }));
+          setCategories([
+            { id: 'for-you', label: 'For You', slug: 'for-you', iconComp: Sparkles },
+            ...realCategories
+          ]);
+        }
+      })
+      .catch(() => {
+        // Keep For You if error
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Sync incoming activeCategory prop
   useEffect(() => {
@@ -147,8 +192,8 @@ export default function CategoryNav({ activeCategory = 'for-you', onSelectCatego
           ref={scrollContainerRef}
           className="flex items-center space-x-2 sm:space-x-4 overflow-x-auto no-scrollbar py-1 px-3 snap-x-mandatory scroll-smooth"
         >
-          {CATEGORIES.map((cat) => {
-            const IconComp = ICON_MAP[cat.iconName] || Sparkles;
+          {categories.map((cat) => {
+            const IconComp = cat.iconComp || ICON_MAP[cat.iconName] || Sparkles;
             const isActive = cat.id === selectedId;
             const isJustSelected = cat.id === justSelectedId;
             const isRippling = cat.id === rippleTarget;
