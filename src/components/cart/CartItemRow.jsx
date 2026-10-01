@@ -1,6 +1,7 @@
 import React from 'react';
 import { Plus, Minus, Trash2, Bookmark, Store, CheckCircle2 } from 'lucide-react';
 import { useCountUp } from '../../hooks/useCountUp';
+import { resolveMediaUrl } from '../../config/env';
 
 function AnimatedPrice({ value }) {
   return <span>₹{Number(value).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>;
@@ -20,7 +21,7 @@ export default function CartItemRow({
       {/* Left: Product Thumbnail + Title Details */}
       <div className="flex items-start space-x-3.5 min-w-0">
         <img
-          src={item.image}
+          src={resolveMediaUrl(item.image)}
           alt={item.name}
           className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl object-cover border border-[#EAE3DC] shrink-0 card-img-zoom"
         />

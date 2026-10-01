@@ -19,8 +19,7 @@ import {
 } from 'lucide-react';
 import { apiRequest } from '../utils/api';
 import { useToast } from '../context/ToastContext';
-
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
+import { resolveMediaUrl } from '../config/env';
 
 export default function SellerProductDetailPage() {
   const { id } = useParams();
@@ -227,7 +226,7 @@ export default function SellerProductDetailPage() {
                       {/* Primary Featured Image Window */}
                       <div className="relative aspect-square rounded-2xl bg-[#FFF3EC]/40 border border-[#EAE3DC] overflow-hidden group">
                         <img
-                          src={getImageUrl(product.images[selectedImageIndex]?.image)}
+                          src={resolveMediaUrl(product.images[selectedImageIndex]?.image)}
                           alt={product.name}
                           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                         />
@@ -254,7 +253,7 @@ export default function SellerProductDetailPage() {
                             }`}
                           >
                             <img
-                              src={getImageUrl(img.image)}
+                              src={resolveMediaUrl(img.image)}
                               alt={`Thumbnail ${idx + 1}`}
                               className="w-full h-full object-cover"
                             />

@@ -3,6 +3,7 @@ import { Star, Heart, ShoppingBag, Eye } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../../context/ToastContext';
 import { useCart } from '../../context/CartWishlistContext';
+import { resolveMediaUrl } from '../../config/env';
 
 export default function ProductCard({ product }) {
   const navigate = useNavigate();
@@ -49,7 +50,7 @@ export default function ProductCard({ product }) {
       <div className="relative aspect-[4/3.2] w-full bg-[#FFFFFF] overflow-hidden">
         <img 
           itemProp="image"
-          src={product.image} 
+          src={resolveMediaUrl(product.image)} 
           alt={product.name} 
           width="400"
           height="320"

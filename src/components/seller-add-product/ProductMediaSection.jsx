@@ -13,8 +13,7 @@ import {
 } from 'lucide-react';
 import { apiRequest } from '../../utils/api';
 import { useToast } from '../../context/ToastContext';
-
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
+import { resolveMediaUrl } from '../../config/env';
 
 export default function ProductMediaSection({ productId: propProductId }) {
   const toast = useToast();
@@ -183,12 +182,6 @@ export default function ProductMediaSection({ productId: propProductId }) {
     } finally {
       setDeletingImageId(null);
     }
-  };
-
-  const getImageUrl = (url) => {
-    if (!url) return '';
-    if (url.startsWith('http://') || url.startsWith('https://')) return url;
-    return `${BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`;
   };
 
   // BLOCKED / LOCKED STATE BEFORE PRODUCT DRAFT SAVED
@@ -377,7 +370,7 @@ export default function ProductMediaSection({ productId: propProductId }) {
                 {/* Image Container */}
                 <div className="relative aspect-square bg-[#FFF3EC]/50 overflow-hidden">
                   <img
-                    src={getImageUrl(img.image)}
+                    src={resolveMediaUrl(img.image)}
                     alt={`Product Asset ${img.id}`}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />

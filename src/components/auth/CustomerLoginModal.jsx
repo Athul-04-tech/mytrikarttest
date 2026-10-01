@@ -336,4 +336,3 @@ export default function CustomerLoginModal({ isOpen, onClose, initialStep = 'ide
     </div>
   );
 }
-}

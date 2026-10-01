@@ -6,6 +6,7 @@ import DeliveryModal from '../components/modals/DeliveryModal';
 import { apiRequest } from '../utils/api';
 import { useToast } from '../context/ToastContext';
 import { useCart } from '../context/CartWishlistContext';
+import { resolveMediaUrl } from '../config/env';
 import { 
   Star, 
   Heart, 
@@ -244,7 +245,7 @@ export default function ProductDetailPage({ isLoggedIn, currentUser, onLogout })
                 {/* Primary Featured Image View */}
                 <div className="relative aspect-square w-full bg-white rounded-2xl border border-[#EAE3DC] overflow-hidden shadow-xs group">
                   <img 
-                    src={selectedImage} 
+                    src={resolveMediaUrl(selectedImage)} 
                     alt={product.name}
                     className="w-full h-full object-cover object-center transition-transform duration-300 group-hover:scale-105"
                     onError={(e) => {
@@ -297,7 +298,7 @@ export default function ProductDetailPage({ isLoggedIn, currentUser, onLogout })
                           }`}
                         >
                           <img 
-                            src={imgObj.image} 
+                            src={resolveMediaUrl(imgObj.image)} 
                             alt={`Thumbnail ${idx + 1}`}
                             className="w-full h-full object-cover"
                           />

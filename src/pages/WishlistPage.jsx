@@ -10,6 +10,7 @@ import {
   Store 
 } from 'lucide-react';
 import { useCart } from '../context/CartWishlistContext';
+import { resolveMediaUrl } from '../config/env';
 
 export default function WishlistPage() {
   const { wishlist, removeFromWishlist, moveToCartFromWishlist, cartCount } = useCart();
@@ -107,7 +108,7 @@ export default function WishlistPage() {
                       {/* Product Image & Badges */}
                       <div className="relative aspect-[4/3.2] w-full bg-[#FFFFFF] overflow-hidden">
                         <img
-                          src={item.image}
+                          src={resolveMediaUrl(item.image)}
                           alt={item.name}
                           className="w-full h-full object-cover object-center card-img-zoom"
                         />
