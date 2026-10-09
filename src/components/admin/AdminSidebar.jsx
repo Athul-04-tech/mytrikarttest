@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { ADMIN_NAV_GROUPS } from '../../data/adminMockData';
 import { useToast } from '../../context/ToastContext';
+import { useAuth } from '../../context/AuthContext';
 
 const ICON_MAP = {
   LayoutDashboard,
@@ -42,6 +43,7 @@ export default function AdminSidebar({
   const navigate = useNavigate();
   const location = useLocation();
   const toast = useToast();
+  const { logout } = useAuth();
   const [openGroups, setOpenGroups] = useState(['catalog', 'people', 'orders', 'finance', 'insights', 'platform']);
 
   const activeSection = location.pathname === '/admin' ? 'dashboard' : location.pathname.replace('/admin/', '');
@@ -82,8 +84,9 @@ export default function AdminSidebar({
     if (onCloseMobile) onCloseMobile();
   };
 
-  const handleAdminSignOut = () => {
-    navigate('/');
+  const handleAdminSignOut = async () => {
+    await logout();
+    navigate('/', { replace: true });
     toast.info("Admin Sign Out", "You have signed out of Admin Operations Console.");
   };
 

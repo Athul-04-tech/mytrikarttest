@@ -12,7 +12,6 @@ import {
   AlertTriangle,
   Loader2 
 } from 'lucide-react';
-import { ADMIN_CATEGORY_SCHEMAS } from '../data/categoryAttributesMockData';
 import { generateCartesianVariants } from '../utils/variantGenerator';
 import { useToast } from '../context/ToastContext';
 import { apiRequest } from '../utils/api';
@@ -225,11 +224,13 @@ export default function SellerAddProductPage() {
             setSelectedCategory(firstCat);
           }
         } else {
-          if (!isEditMode) setSelectedCategory(ADMIN_CATEGORY_SCHEMAS[0]);
+          setCategoriesTree([]);
+          if (!isEditMode) setSelectedCategory({ id: 1, name: 'General Catalog', attributes: [] });
         }
       } catch (err) {
-        console.warn('Backend category fetch failed, falling back to mock schema:', err);
-        if (!isEditMode) setSelectedCategory(ADMIN_CATEGORY_SCHEMAS[0]);
+        console.warn('Backend category fetch failed:', err);
+        setCategoriesTree([]);
+        if (!isEditMode) setSelectedCategory({ id: 1, name: 'General Catalog', attributes: [] });
       } finally {
         setIsLoadingCategories(false);
       }
@@ -391,8 +392,8 @@ export default function SellerAddProductPage() {
     const errors = [];
     if (!title.trim()) errors.push("Product Listing Title is required");
     if (!brand.trim()) errors.push("Brand Name is required");
-    if (selectedOfficialBrandId && !brandAuthDocument) {
-      errors.push("Brand Authorization Document is required for selected official brand.");
+    if ((brand.trim() || selectedOfficialBrandId) && !brandAuthDocument) {
+      errors.push("Brand Authorization Document is required for any brand.");
     }
     if (!description.trim()) errors.push("Product Description is required");
     if (!selectedCategory) errors.push("Category selection is required");
@@ -447,6 +448,16 @@ export default function SellerAddProductPage() {
         body: JSON.stringify(attributePayload)
       });
     }
+  };
+
+  const uploadPendingBrandAuthorization = async (targetProductId) => {
+    if (!brandAuthDocument?.isPendingUpload || !brandAuthDocument?.file) return;
+    const formData = new FormData();
+    formData.append('document', brandAuthDocument.file);
+    const authRes = await apiRequest(`/api/products/vendor/products/${targetProductId}/brand-authorization/`, {
+      method: 'POST', body: formData
+    });
+    setBrandAuthDocument(authRes);
   };
 
   // Helper to persist variant updates (PATCH existing variants, POST new variants)
@@ -565,23 +576,9 @@ export default function SellerAddProductPage() {
         setSavedProductId(created.id);
       }
 
-      // Upload pending authorization document if present
-      if (brandAuthDocument?.isPendingUpload && brandAuthDocument?.file) {
-        try {
-          const formData = new FormData();
-          formData.append('document', brandAuthDocument.file);
-          const authRes = await apiRequest(`/api/products/vendor/products/${productId}/brand-authorization/`, {
-            method: 'POST',
-            body: formData
-          });
-          setBrandAuthDocument(authRes);
-        } catch (authErr) {
-          console.warn('Pending brand authorization upload failed during draft save:', authErr);
-        }
-      }
-
       // Persist attributes and variants via dedicated endpoints
       await persistProductAttributes(productId);
+      await uploadPendingBrandAuthorization(productId);
       await persistProductVariants(productId);
 
       // Persist local backup
@@ -593,7 +590,7 @@ export default function SellerAddProductPage() {
       };
       localStorage.setItem('mytrikart_seller_product_draft', JSON.stringify(draftData));
 
-      toast.success("Draft Saved to Catalog", `Product draft #${productId} saved to backend database.`);
+      toast.success("Draft Saved to Catalog", `Product draft #${productId} saved successfully.`);
     } catch (err) {
       console.error('Failed to save product draft:', err);
       let errMsg = err.message || 'Failed to save product draft row';
@@ -612,9 +609,9 @@ export default function SellerAddProductPage() {
     e.preventDefault();
     setBackendSubmissionError(null);
 
-    if (selectedOfficialBrandId && !brandAuthDocument) {
-      setBrandAuthError("Brand Authorization Document is required for selected official brand.");
-      toast.error("Brand Authorization Required", "An official brand requires a valid brand authorization document (PDF/JPEG/PNG, max 10 MiB) before publishing.");
+    if ((brand.trim() || selectedOfficialBrandId) && !brandAuthDocument) {
+      setBrandAuthError("Brand Authorization Document is required for any brand.");
+      toast.error("Brand Authorization Required", "Add proof of authorization for this brand (PDF/JPEG/PNG, max 10 MiB) before submitting.");
       return;
     }
 
@@ -657,21 +654,6 @@ export default function SellerAddProductPage() {
         setSavedProductId(createdProduct.id);
       }
 
-      // Upload pending authorization document if present
-      if (brandAuthDocument?.isPendingUpload && brandAuthDocument?.file) {
-        try {
-          const formData = new FormData();
-          formData.append('document', brandAuthDocument.file);
-          const authRes = await apiRequest(`/api/products/vendor/products/${createdProduct.id}/brand-authorization/`, {
-            method: 'POST',
-            body: formData
-          });
-          setBrandAuthDocument(authRes);
-        } catch (authErr) {
-          console.warn('Pending brand authorization upload failed during submit:', authErr);
-        }
-      }
-
       toast.info("Product Saved", `Product record ID #${createdProduct.id} ready for submission.`);
     } catch (err) {
       console.error('Failed to create bare product:', err);
@@ -688,6 +670,7 @@ export default function SellerAddProductPage() {
     // Step 2: Persist attributes via POST /api/products/vendor/products/<id>/attributes/
     try {
       await persistProductAttributes(createdProduct.id);
+      await uploadPendingBrandAuthorization(createdProduct.id);
     } catch (err) {
       setBackendSubmissionError(`Could not save product specifications: ${JSON.stringify(err.data || err.message)}`);
       setIsSubmitting(false);
@@ -801,11 +784,11 @@ export default function SellerAddProductPage() {
         {isLoadingEditData && (
           <div className="mb-6 p-4 bg-[#FFF3EC] border border-[#FF811A]/40 rounded-2xl flex items-center space-x-3 text-xs text-[#FA661C] font-bold animate-pulse">
             <Loader2 className="w-5 h-5 animate-spin text-[#FA661C]" />
-            <span>Fetching existing product details and category specifications from server...</span>
+            <span>Loading product details and category specifications...</span>
           </div>
         )}
 
-        {/* Backend Validation Error Alert Banner */}
+        {/* Validation Error Alert Banner */}
         {backendSubmissionError && (
           <div className="mb-6 p-5 rounded-3xl bg-[#FDE8EA] border-2 border-[#D7263D] text-[#D7263D] shadow-sm flex items-start space-x-3.5 animate-fadeIn">
             <div className="p-2 rounded-2xl bg-white border border-[#D7263D]/40 text-[#D7263D] shrink-0">
@@ -813,7 +796,7 @@ export default function SellerAddProductPage() {
             </div>
             <div className="flex-1">
               <h3 className="font-['Outfit'] font-extrabold text-sm text-[#D7263D]">
-                Backend Validation Error — Submission Rejected
+                Submission Incomplete — Please Review Details
               </h3>
               <p className="text-xs mt-1 font-medium leading-relaxed">
                 {backendSubmissionError}
@@ -995,7 +978,7 @@ export default function SellerAddProductPage() {
                   Governance Review Integration
                 </h4>
                 <p className="text-[11px] text-[#FFFFFF]/80 leading-relaxed">
-                  Listings submitted go through real backend compliance checks based on merchant trust level and category policies.
+                  Submitted listings are reviewed in accordance with marketplace quality and catalog guidelines.
                 </p>
               </div>
             </div>

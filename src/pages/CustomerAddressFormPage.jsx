@@ -75,7 +75,7 @@ export default function CustomerAddressFormPage() {
         });
       } catch (err) {
         console.error('Failed to load address detail:', err);
-        setGeneralError('Could not load address details from server.');
+        setGeneralError('Could not load address details. Please try again.');
         toast.error('Error Loading Address', 'Unable to fetch existing address.');
       } finally {
         if (isMounted) setIsLoadingDetail(false);
@@ -260,7 +260,7 @@ export default function CustomerAddressFormPage() {
         {isLoadingDetail ? (
           <div className="p-12 text-center bg-white rounded-3xl border border-[#EAE3DC] shadow-xs flex flex-col items-center justify-center space-y-3">
             <Loader2 className="w-8 h-8 animate-spin text-[#FA661C]" />
-            <p className="text-xs font-bold text-[#FA661C]">Loading saved address details from server...</p>
+            <p className="text-xs font-bold text-[#FA661C]">Loading saved address details...</p>
           </div>
         ) : (
           <div className="bg-white rounded-3xl border border-[#EAE3DC] p-6 sm:p-8 lg:p-10 shadow-xs space-y-6">

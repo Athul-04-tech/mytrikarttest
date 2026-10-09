@@ -79,16 +79,16 @@ describe('SellerAddProductPage — Official Brand Authorization & Governance Flo
     });
 
     // Upload box should be collapsed initially (no official brand selected)
-    expect(screen.queryByText('Official Brand Authorization Document')).toBeNull();
+    expect(screen.queryByText(/Brand Authorization Document/i)).toBeNull();
 
     // Select Nike
     const brandSelect = screen.getByLabelText(/Official Brand Selection/i);
     fireEvent.change(brandSelect, { target: { value: '10' } });
 
     await waitFor(() => {
-      expect(screen.getByText('Official Brand Authorization Document')).toBeTruthy();
-      expect(screen.getByText(/An official authorization document/i)).toBeTruthy();
-      expect(screen.getByText('Upload Authorization Document')).toBeTruthy();
+      expect(screen.getByText(/Brand Authorization Document/i)).toBeTruthy();
+      expect(screen.getByText(/authorized to sell this brand/i)).toBeTruthy();
+      expect(screen.getByText(/Upload Authorization Document/i)).toBeTruthy();
     });
   });
 

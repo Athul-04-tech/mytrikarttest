@@ -224,7 +224,7 @@ export default function SellerOrdersView() {
       {loading ? (
         <div className="p-12 bg-white rounded-3xl border border-[#EAE3DC] text-center space-y-3">
           <Loader2 className="w-8 h-8 text-[#FA661C] animate-spin mx-auto" />
-          <p className="text-xs font-bold text-[#6B6058]">Fetching vendor orders from server...</p>
+          <p className="text-xs font-bold text-[#6B6058]">Loading vendor orders...</p>
         </div>
       ) : error ? (
         <div className="p-6 bg-[#FDE8EA] border-2 border-[#D7263D] rounded-3xl text-center space-y-3 text-[#D7263D] animate-reveal">

@@ -46,7 +46,7 @@ export default function SellerSettingsView() {
           is_women_owned: isWomenOwned
         })
       });
-      toast.success("Settings Saved", "Store profile preferences updated on live server.");
+      toast.success("Settings Saved", "Store preferences saved successfully.");
     } catch (err) {
       toast.error("Save Failed", err.message || "Failed to update store settings.");
     } finally {
@@ -112,10 +112,10 @@ export default function SellerSettingsView() {
           />
         </label>
 
-        {/* Feature Notice for Unsupported Backend Controls */}
+        {/* Feature Notice */}
         <div className="p-3 bg-[#FFF8F2] border border-[#FF811A]/40 rounded-2xl flex items-center space-x-2 text-xs text-[#FA661C]">
           <Info className="w-4 h-4 text-[#FF811A] shrink-0" />
-          <span>Operational SLA, Auto-Accept, and Holiday Mode features are not supported in the live backend API yet and remain disabled.</span>
+          <span>Operational SLA, Auto-Accept, and Holiday Mode options are currently coming soon.</span>
         </div>
 
         <div className="space-y-3 pt-3 border-t border-[#EAE3DC]/60 opacity-60">

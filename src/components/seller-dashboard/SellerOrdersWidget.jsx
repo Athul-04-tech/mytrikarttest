@@ -94,7 +94,7 @@ export default function SellerOrdersWidget({ orderStatusCounts, recentOrders, on
               {recentList.map((ord) => (
                 <div
                   key={ord.id}
-                  onClick={() => toast.info("Order Details", `Inspecting shipment for ${ord.orderNumber}`)}
+                  onClick={() => onNavigateToOrders && onNavigateToOrders(ord)}
                   className="pt-2 first:pt-0 flex items-center justify-between gap-2.5 hover:bg-[#FFFFFF] p-1.5 rounded-xl transition-colors cursor-pointer group"
                 >
                   <div className="flex items-center space-x-2.5 truncate">

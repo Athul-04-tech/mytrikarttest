@@ -14,14 +14,6 @@ import {
   FileText
 } from 'lucide-react';
 
-const FALLBACK_OFFICIAL_BRANDS = [
-  { id: 1, name: 'Nike' },
-  { id: 2, name: 'Samsung' },
-  { id: 3, name: 'Apple' },
-  { id: 4, name: 'Sony' },
-  { id: 5, name: 'Adidas' }
-];
-
 export default function DynamicAttributesSection({
   selectedCategory,
   categoryAttributes = [],
@@ -50,15 +42,11 @@ export default function DynamicAttributesSection({
 
   if (!selectedCategory) return null;
 
-  // Use live backend brands if available, fallback to default official brands list
-  const displayOfficialBrands = (officialBrands && officialBrands.length > 0) 
-    ? officialBrands 
-    : FALLBACK_OFFICIAL_BRANDS;
+  // Use live database brands strictly
+  const displayOfficialBrands = Array.isArray(officialBrands) ? officialBrands : [];
 
-  // Normalize attributes list (either passed from backend or selectedCategory.attributes)
-  const attributesList = (categoryAttributes && categoryAttributes.length > 0)
-    ? categoryAttributes
-    : (selectedCategory.attributes || []);
+  // Normalize attributes list passed from backend API
+  const attributesList = Array.isArray(categoryAttributes) ? categoryAttributes : [];
 
   return (
     <section className="bg-white rounded-3xl border border-[#EAE3DC] p-6 sm:p-8 shadow-xs relative animate-fadeIn">
@@ -157,13 +145,13 @@ export default function DynamicAttributesSection({
         </div>
 
         {/* CONDITIONAL REQUIRED AUTHORIZATION DOCUMENT UPLOAD DROPZONE */}
-        {selectedOfficialBrandId && (
+        {(selectedOfficialBrandId || freeTextBrand?.trim()) && (
           <div className="pt-4 border-t-2 border-dashed border-[#FF811A]/30 space-y-3 animate-fadeIn">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <ShieldCheck className="w-4 h-4 text-[#FF811A]" />
                 <h4 className="text-xs font-black text-[#FA661C] uppercase tracking-wider">
-                  Official Brand Authorization Document <span className="text-[#D7263D]">*</span>
+                  Brand Authorization Document <span className="text-[#D7263D]">*</span>
                 </h4>
               </div>
               <span className="text-[10px] font-bold text-[#D7263D] bg-[#FDE8EA] border border-[#D7263D]/30 px-2.5 py-0.5 rounded-full">
@@ -172,7 +160,7 @@ export default function DynamicAttributesSection({
             </div>
             
             <p className="text-[11px] text-[#6B6058] leading-relaxed">
-              An official authorization document (reseller authorization letter, distribution certificate, or trademark license) is required when listing under an official brand. Accepted formats: PDF, JPEG, PNG (Max 10 MiB).
+              Upload proof that you are authorized to sell this brand, including a generic or custom brand (for example, a supplier authorization letter, distribution certificate, or trademark license). Accepted formats: PDF, JPEG, PNG (max 10 MiB).
             </p>
 
             {/* DROPZONE CONTAINER (REUSED FROM PRODUCT MEDIA GALLERY / KYC PATTERN) */}
@@ -223,7 +211,7 @@ export default function DynamicAttributesSection({
                     <div className="text-left truncate">
                       <p className="font-extrabold text-[#16523F] text-xs flex items-center space-x-1">
                         <CheckCircle2 className="w-3.5 h-3.5 text-[#16523F] inline mr-1" />
-                        <span>Authorization Document Verified</span>
+                        <span>Authorization Document Added</span>
                       </p>
                       <p className="text-[11px] text-[#6B6058] truncate max-w-[300px]">
                         {brandAuthDocument.file_name || brandAuthDocument.name || 'brand_authorization_doc.pdf'}
@@ -471,4 +459,3 @@ export default function DynamicAttributesSection({
     </section>
   );
 }
-

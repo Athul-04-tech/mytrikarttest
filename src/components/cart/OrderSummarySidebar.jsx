@@ -1,10 +1,18 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { ShieldCheck, ArrowRight, CheckCircle2, Truck } from 'lucide-react';
 import { useCart } from '../../context/CartWishlistContext';
+import { useAuth } from '../../context/AuthContext';
 
 export default function OrderSummarySidebar({ onProceedToCheckout, isCheckoutPage = false }) {
   const { calculations, cart } = useCart();
+  const auth = useAuth();
+  const isProductOwnedByCurrentSeller = auth?.isProductOwnedByCurrentSeller;
   const [highlightPulse, setHighlightPulse] = useState(false);
+
+  const hasOwnProductsInCart = useMemo(() => {
+    if (!isProductOwnedByCurrentSeller || !Array.isArray(cart)) return false;
+    return cart.some(item => isProductOwnedByCurrentSeller(item));
+  }, [cart, isProductOwnedByCurrentSeller]);
 
   // Trigger subtle pulse animation on value update
   useEffect(() => {
@@ -88,10 +96,14 @@ export default function OrderSummarySidebar({ onProceedToCheckout, isCheckoutPag
         <button
           type="button"
           onClick={onProceedToCheckout}
-          disabled={cart.length === 0}
-          className="w-full py-3 px-4 bg-[#FA661C] hover:bg-[#E0530B] active:bg-[#0A2A1F] disabled:opacity-50 disabled:cursor-not-allowed text-[#FFFFFF] rounded-2xl font-black text-xs btn-interactive flex items-center justify-center space-x-2 shadow-md hover:shadow-lg cursor-pointer"
+          disabled={cart.length === 0 || hasOwnProductsInCart}
+          className={`w-full py-3 px-4 rounded-2xl font-black text-xs flex items-center justify-center space-x-2 shadow-md transition-all ${
+            hasOwnProductsInCart
+              ? 'bg-[#6B6058]/40 text-white cursor-not-allowed opacity-90'
+              : 'bg-[#FA661C] hover:bg-[#E0530B] active:bg-[#0A2A1F] disabled:opacity-50 disabled:cursor-not-allowed text-[#FFFFFF] btn-interactive cursor-pointer shadow-md hover:shadow-lg'
+          }`}
         >
-          <span>Proceed to Checkout</span>
+          <span>{hasOwnProductsInCart ? 'Remove Own Products to Checkout' : 'Proceed to Checkout'}</span>
           <ArrowRight className="w-4 h-4 text-[#FF811A] icon-interactive" />
         </button>
       )}

@@ -188,7 +188,7 @@ export default function SellerDashboardPage() {
               {isLoading && (
                 <div className="p-3 bg-[#FFF3EC] text-[#FA661C] rounded-2xl flex items-center justify-center space-x-2 text-xs font-bold animate-pulse">
                   <Loader2 className="w-4 h-4 animate-spin text-[#FF811A]" />
-                  <span>Syncing Live Dashboard Metrics from Server...</span>
+                  <span>Updating dashboard metrics...</span>
                 </div>
               )}
 

@@ -10,6 +10,7 @@ import NotificationsSection from '../components/profile/NotificationsSection';
 import SupportSection from '../components/profile/SupportSection';
 import AccountSettingsSection from '../components/profile/AccountSettingsSection';
 import { useAuth } from '../context/AuthContext';
+import { apiRequest } from '../utils/api';
 import { 
   ArrowLeft, 
   ChevronRight, 
@@ -32,6 +33,48 @@ export default function ProfilePage({ onLogout }) {
   const [activeSection, setActiveSection] = useState(initialValidSection);
   const [userProfile, setUserProfile] = useState(currentUser || {});
   const [mobileDrilldownOpen, setMobileDrilldownOpen] = useState(Boolean(sectionId));
+  const [orders, setOrders] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [ordersError, setOrdersError] = useState('');
+
+  useEffect(() => {
+    if (activeSection !== 'orders' || !isLoggedIn) return undefined;
+    let active = true;
+    setOrdersLoading(true);
+    setOrdersError('');
+    apiRequest('/api/orders/')
+      .then((response) => {
+        if (!active) return;
+        const rows = Array.isArray(response) ? response : (response?.results || []);
+        setOrders(rows.map((order) => {
+          const paymentStatus = String(order.payment_status || 'pending').toLowerCase();
+          const statusType = ['failed', 'refunded'].includes(paymentStatus) ? 'cancelled' : 'processing';
+          const amount = Number(order.grand_total || 0);
+          const currency = order.currency || 'INR';
+          return {
+            ...order,
+            statusType,
+            status: paymentStatus === 'paid' ? 'Paid' : paymentStatus === 'pending' ? 'Payment Pending' : paymentStatus,
+            date: order.created_at ? new Date(order.created_at).toLocaleDateString() : '',
+            total: new Intl.NumberFormat('en-IN', { style: 'currency', currency }).format(amount),
+            items: (order.items || []).map((item) => ({
+              name: item.product_name_snapshot,
+              qty: item.quantity,
+              price: new Intl.NumberFormat('en-IN', { style: 'currency', currency }).format(Number(item.line_total || item.unit_price || 0)),
+              seller: 'MytriKart seller',
+              image: '/products/spatial_headphones_1786529304124.png'
+            }))
+          };
+        }));
+      })
+      .catch((err) => {
+        if (active) setOrdersError(err?.message || 'Could not load your orders. Please refresh and try again.');
+      })
+      .finally(() => {
+        if (active) setOrdersLoading(false);
+      });
+    return () => { active = false; };
+  }, [activeSection, isLoggedIn]);
 
   // Sync profile state with real AuthContext user profile
   useEffect(() => {
@@ -205,7 +248,12 @@ export default function ProfilePage({ onLogout }) {
 
               {/* 3. Orders & Tracking */}
               {activeSection === 'orders' && (
-                <OrdersSection onTrackOrder={(orderId) => alert(`Opening tracking timeline for ${orderId}`)} />
+                <OrdersSection
+                  orders={orders}
+                  isLoading={ordersLoading}
+                  error={ordersError}
+                  onTrackOrder={(orderId) => alert(`Opening tracking timeline for ${orderId}`)}
+                />
               )}
 
               {/* 4. Refunds & Returns */}

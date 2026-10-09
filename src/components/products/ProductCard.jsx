@@ -3,13 +3,17 @@ import { Star, Heart, ShoppingBag, Eye } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../../context/ToastContext';
 import { useCart } from '../../context/CartWishlistContext';
+import { useAuth } from '../../context/AuthContext';
 import { resolveMediaUrl } from '../../config/env';
 
 export default function ProductCard({ product }) {
   const navigate = useNavigate();
   const { wishlist, addToWishlist, removeFromWishlist, addToCart } = useCart();
+  const auth = useAuth();
+  const isProductOwnedByCurrentSeller = auth?.isProductOwnedByCurrentSeller;
   const toast = useToast();
 
+  const isOwnProduct = Boolean(isProductOwnedByCurrentSeller && isProductOwnedByCurrentSeller(product));
   const isWishlisted = wishlist.some(item => item.id === product.id || item.productId === product.id);
 
   const toggleWishlist = (e) => {
@@ -155,10 +159,16 @@ export default function ProductCard({ product }) {
             <button 
               type="button"
               onClick={handleAddToCart}
-              className="py-1 px-1.5 bg-[#FA661C] hover:bg-[#E0530B] text-[#000000] border border-[#FA661C] rounded-lg text-[11px] font-black btn-interactive flex items-center justify-center space-x-1 shadow-xs group/cart cursor-pointer"
+              disabled={isOwnProduct}
+              title={isOwnProduct ? "As a seller, you cannot purchase your own listed products." : "Add to Shopping Bag"}
+              className={`py-1 px-1.5 border rounded-lg text-[11px] font-black flex items-center justify-center space-x-1 shadow-xs group/cart transition-all ${
+                isOwnProduct
+                  ? 'bg-[#EAE3DC] text-[#6B6058] border-[#EAE3DC] cursor-not-allowed opacity-80'
+                  : 'bg-[#FA661C] hover:bg-[#E0530B] text-[#000000] border-[#FA661C] btn-interactive cursor-pointer'
+              }`}
             >
               <ShoppingBag className="w-3 h-3 text-[#000000] group-hover/cart:scale-110 transition-transform" />
-              <span className="truncate text-[#000000]">Add</span>
+              <span className="truncate text-[#000000]">{isOwnProduct ? 'Mine' : 'Add'}</span>
             </button>
           </div>
         </div>

@@ -98,6 +98,45 @@ export default function AdminHomePage() {
     }
   }
 
+  const formatSectionTitle = (id) => {
+    if (!id) return "Module";
+    return id
+      .split('-')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
+  const renderNotAvailableCard = (id) => {
+    const title = formatSectionTitle(id);
+    return (
+      <div className="bg-white rounded-3xl border border-[#EAE3DC] p-8 sm:p-12 text-center space-y-4 animate-reveal">
+        <div className="w-14 h-14 rounded-2xl bg-[#FFF3EC] text-[#FA661C] mx-auto flex items-center justify-center">
+          <Boxes className="w-7 h-7" />
+        </div>
+        <div>
+          <span className="inline-block px-3 py-1 rounded-full text-xs font-extrabold bg-[#FFF3EC] text-[#FA661C] border border-[#FA661C]/20 mb-2">
+            Not yet available
+          </span>
+          <h2 className="font-['Outfit'] font-extrabold text-2xl text-[#FA661C]">
+            {title} Not Available
+          </h2>
+        </div>
+        <p className="text-xs sm:text-sm text-[#6B6058] max-w-md mx-auto">
+          {title} administrative features are currently unavailable and coming soon.
+        </p>
+        <div className="pt-2">
+          <Link
+            to="/admin"
+            className="inline-flex items-center space-x-2 px-5 py-2.5 bg-[#FA661C] hover:bg-[#E0530B] text-white font-bold text-xs rounded-xl transition-colors shadow-xs"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back to Overview</span>
+          </Link>
+        </div>
+      </div>
+    );
+  };
+
   // Render specific financial/operational module based on selection
   const renderActiveModuleContent = () => {
     switch (activeSection) {
@@ -121,7 +160,6 @@ export default function AdminHomePage() {
       case 'commission':
         return <CommissionModule />;
       case 'wallets':
-      case 'payments':
         return <WalletModule />;
       case 'withdrawals':
         return <WithdrawalManagementModule />;
@@ -138,29 +176,25 @@ export default function AdminHomePage() {
       case 'reports':
         return <ReportsModule />;
 
+      case 'payments':
+      case 'logistics':
+      case 'inventory':
+      case 'coupons':
+      case 'marketing':
+      case 'reviews':
+      case 'tickets':
+      case 'notifications':
+      case 'ai':
+      case 'audit':
+      case 'system':
+      case 'integrations':
+      case 'mobile-app':
+      case 'compliance':
+      case 'multi-store':
+        return renderNotAvailableCard(activeSection);
+
       default:
-        return (
-          <div className="bg-white rounded-3xl border border-[#EAE3DC] p-8 sm:p-12 text-center space-y-4 animate-reveal">
-            <div className="w-14 h-14 rounded-2xl bg-[#FFF3EC] text-[#FA661C] mx-auto flex items-center justify-center">
-              <Boxes className="w-7 h-7" />
-            </div>
-            <h2 className="font-['Outfit'] font-extrabold text-2xl text-[#FA661C]">
-              Module Not Found
-            </h2>
-            <p className="text-xs sm:text-sm text-[#6B6058] max-w-md mx-auto">
-              The requested administrative module is not available or has been removed.
-            </p>
-            <div className="pt-2">
-              <Link
-                to="/admin"
-                className="inline-flex items-center space-x-2 px-5 py-2.5 bg-[#FA661C] hover:bg-[#E0530B] text-white font-bold text-xs rounded-xl transition-colors shadow-xs"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                <span>Back to Overview</span>
-              </Link>
-            </div>
-          </div>
-        );
+        return renderNotAvailableCard(activeSection);
     }
   };
 

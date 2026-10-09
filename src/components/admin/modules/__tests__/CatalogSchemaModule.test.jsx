@@ -137,7 +137,7 @@ describe('CatalogSchemaModule — Category, Attribute & Allowed Value Admin Gove
     const deleteCatBtns = await screen.findAllByTitle(/Delete Category/i);
     fireEvent.click(deleteCatBtns[0]);
 
-    expect(await screen.findByText('Server Protection Triggered')).toBeInTheDocument();
+    expect(await screen.findByText('Deletion Protection Active')).toBeInTheDocument();
     expect(screen.getByText(/This catalog record is referenced by existing product data and cannot be deleted/i)).toBeInTheDocument();
   });
 });

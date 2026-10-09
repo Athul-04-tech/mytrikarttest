@@ -23,16 +23,16 @@ export const PROTECTED_ROUTE_REGISTRY = [
     allowedRoles: null,
   },
 
-  // Seller Hub & Vendor Operations (Vendor, Seller, Admin)
+  // Seller Hub & Vendor Operations (Vendor, Seller)
   {
     id: 'seller_hub_routes',
     pattern: /^\/seller(\/.*)?$/i,
-    allowedRoles: ['vendor', 'seller', 'admin'],
+    allowedRoles: ['vendor', 'seller'],
   },
   {
     id: 'seller_dashboard_alias',
     pattern: /^\/seller-dashboard$/i,
-    allowedRoles: ['vendor', 'seller', 'admin'],
+    allowedRoles: ['vendor', 'seller'],
   },
 ];
 

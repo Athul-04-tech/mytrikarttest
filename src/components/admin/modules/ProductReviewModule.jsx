@@ -85,7 +85,7 @@ export default function ProductReviewModule() {
 
   const handleConfirmReject = async () => {
     if (!rejectReason.trim()) {
-      setRejectError('A valid rejection reason is required by the backend.');
+      setRejectError('Please enter a rejection reason.');
       return;
     }
 
@@ -113,7 +113,7 @@ export default function ProductReviewModule() {
       console.error("Rejection failed:", err);
       const msg = err.data?.detail || err.message || "Failed to reject product.";
       setRejectError(typeof msg === 'string' ? msg : JSON.stringify(msg));
-      toast.error("Rejection Failed", "Server rejected the submission.");
+      toast.error("Rejection Failed", "Unable to complete rejection. Please try again.");
     } finally {
       setIsSubmitting(false);
     }

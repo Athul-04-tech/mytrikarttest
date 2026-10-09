@@ -208,6 +208,55 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
+  // Vendor Profile & Owned Products State (for seller self-purchase gating)
+  const [vendorProfile, setVendorProfile] = useState(null);
+  const [sellerProducts, setSellerProducts] = useState([]);
+
+  useEffect(() => {
+    let isMounted = true;
+    if (currentUser && (currentUser.role === 'vendor' || currentUser.role === 'seller')) {
+      Promise.all([
+        apiRequest('/api/vendors/me/').catch(() => null),
+        apiRequest('/api/products/vendor/products/').catch(() => [])
+      ]).then(([vProfile, vProds]) => {
+        if (!isMounted) return;
+        if (vProfile) setVendorProfile(vProfile);
+        if (Array.isArray(vProds)) setSellerProducts(vProds);
+      });
+    } else {
+      setVendorProfile(null);
+      setSellerProducts([]);
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [currentUser]);
+
+  const isProductOwnedByCurrentSeller = useCallback((product) => {
+    if (!currentUser || (currentUser.role !== 'vendor' && currentUser.role !== 'seller')) {
+      return false;
+    }
+    if (!product) return false;
+
+    const prodId = typeof product === 'object' ? (product.id || product.productId) : product;
+    const prodVendorId = typeof product === 'object' ? (product.vendor || product.vendor_id || product.vendorId) : null;
+    const prodVendorUserId = typeof product === 'object' ? (product.vendor_user_id || product.vendor_user || product.created_by) : null;
+
+    if (prodId && sellerProducts.some(p => Number(p.id) === Number(prodId))) {
+      return true;
+    }
+
+    if (vendorProfile?.id && prodVendorId && Number(prodVendorId) === Number(vendorProfile.id)) {
+      return true;
+    }
+
+    if (currentUser?.id && prodVendorUserId && Number(prodVendorUserId) === Number(currentUser.id)) {
+      return true;
+    }
+
+    return false;
+  }, [currentUser, sellerProducts, vendorProfile]);
+
   const value = {
     currentUser,
     setCurrentUser,
@@ -215,6 +264,9 @@ export function AuthProvider({ children }) {
     isLoggedIn: Boolean(tokensState.access && currentUser),
     isLoading,
     isResolving,
+    vendorProfile,
+    sellerProducts,
+    isProductOwnedByCurrentSeller,
     login,
     register,
     logout,

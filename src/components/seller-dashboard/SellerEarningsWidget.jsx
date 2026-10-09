@@ -31,8 +31,10 @@ export default function SellerEarningsWidget({
   const approximationNote = paidSettlementData?.note || "Paid withdrawals are not linked to settlement ledger credits, so this cannot be attributed to individual settlements.";
 
 
-  const handleDownloadStatement = () => {
-    toast.success("Statement Exported", `Downloaded Settlement Breakdown for ${selectedCurrency} (PDF)`);
+  const handleOpenSettlements = () => {
+    if (typeof onNavigateToSettlements === 'function') {
+      onNavigateToSettlements();
+    }
   };
 
   return (
@@ -54,7 +56,7 @@ export default function SellerEarningsWidget({
 
         <button
           type="button"
-          onClick={handleDownloadStatement}
+          onClick={handleOpenSettlements}
           className="text-xs font-bold text-[#FA661C] hover:text-[#FF811A] link-interactive flex items-center space-x-1 cursor-pointer"
         >
           <FileText className="w-3.5 h-3.5" />

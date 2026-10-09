@@ -400,17 +400,17 @@ export default function CatalogSchemaModule() {
           </span>
           Categories and attributes configured here directly dictate the dynamic input forms, variation fields, and dropdown choices presented to merchants when listing products on the Seller Portal.
           <span className="text-[#D7263D] font-bold block mt-0.5">
-            Note: Deletion of categories, attributes, or values in active use by real product data is protected server-side with HTTP 409 Conflict.
+            Note: Categories, attributes, or values currently used by existing products cannot be deleted.
           </span>
         </div>
       </div>
 
-      {/* 3. Server Rejection / Action Error Alert */}
+      {/* Action Error Alert */}
       {actionError && (
         <div className="p-4 bg-[#FDE8EA] border border-[#D7263D]/40 rounded-2xl flex items-start space-x-3 text-xs text-[#D7263D] animate-shake shadow-xs">
           <ShieldAlert className="w-5 h-5 shrink-0 mt-0.5 text-[#D7263D]" />
           <div className="flex-1">
-            <div className="font-extrabold uppercase">Server Protection Triggered</div>
+            <div className="font-extrabold uppercase">Deletion Protection Active</div>
             <p className="mt-0.5 font-medium">{actionError}</p>
           </div>
           <button

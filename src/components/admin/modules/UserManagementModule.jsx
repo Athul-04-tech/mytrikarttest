@@ -29,6 +29,7 @@ export default function UserManagementModule({ defaultTab = 'all' }) {
   const [totalCount, setTotalCount] = useState(0);
   const [nextPageUrl, setNextPageUrl] = useState(null);
   const [prevPageUrl, setPrevPageUrl] = useState(null);
+  const fetchRequestId = React.useRef(0);
 
   // Modal States
   const [modalType, setModalType] = useState(null); // 'create', 'edit'
@@ -57,12 +58,18 @@ export default function UserManagementModule({ defaultTab = 'all' }) {
     return err?.message || "An unexpected error occurred.";
   };
 
-  const fetchUsers = async (page = currentPage, size = pageSize) => {
+  const fetchUsers = async (page = currentPage, size = pageSize, scope = activeTab, role = roleFilter, search = searchQuery) => {
+    const requestId = ++fetchRequestId.current;
     setLoading(true);
     setError(null);
     try {
-      const url = `/api/accounts/users/?page=${page}&page_size=${size}`;
+      const params = new URLSearchParams({ page: String(page), page_size: String(size) });
+      if (scope !== 'all') params.set('scope', scope);
+      if (role !== 'all') params.set('role', role);
+      if (search.trim()) params.set('search', search.trim());
+      const url = `/api/accounts/users/?${params.toString()}`;
       const data = await apiRequest(url);
+      if (requestId !== fetchRequestId.current) return;
 
       if (data && typeof data === 'object' && Array.isArray(data.results)) {
         setUsers(data.results);
@@ -81,16 +88,17 @@ export default function UserManagementModule({ defaultTab = 'all' }) {
         setPrevPageUrl(null);
       }
     } catch (err) {
+      if (requestId !== fetchRequestId.current) return;
       console.error("Failed to fetch user accounts:", err);
       setError(extractErrorMessage(err));
     } finally {
-      setLoading(false);
+      if (requestId === fetchRequestId.current) setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchUsers(currentPage, pageSize);
-  }, [currentPage, pageSize]);
+  }, [currentPage, pageSize, activeTab, roleFilter, searchQuery]);
 
   useEffect(() => {
     if (defaultTab) {
@@ -232,29 +240,7 @@ export default function UserManagementModule({ defaultTab = 'all' }) {
   };
 
   // Filtering Logic
-  const filteredUsers = users.filter(user => {
-    // 1. Tab Filter: Use read-only is_staff field (role === 'admin' || is_staff)
-    if (activeTab === 'customers' && user.role !== 'customer') return false;
-    if (activeTab === 'staff' && !(user.role === 'admin' || Boolean(user.is_staff))) return false;
-
-    // 2. Dropdown Role Filter
-    if (roleFilter !== 'all' && user.role !== roleFilter) return false;
-
-    // 3. Search Query
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      const matchUsername = user.username?.toLowerCase().includes(q);
-      const matchEmail = user.email?.toLowerCase().includes(q);
-      const matchName = `${user.first_name || ''} ${user.last_name || ''}`.toLowerCase().includes(q);
-      const matchPhone = user.phone_number?.toLowerCase().includes(q);
-      return matchUsername || matchEmail || matchName || matchPhone;
-    }
-
-    return true;
-  });
-
-  const customerCount = users.filter(u => u.role === 'customer').length;
-  const staffCount = users.filter(u => u.role === 'admin' || Boolean(u.is_staff)).length;
+  const filteredUsers = users;
   const totalPages = Math.ceil(totalCount / pageSize) || 1;
 
   // Determine if editing an admin/staff row that is restricted for non-superusers
@@ -311,13 +297,13 @@ export default function UserManagementModule({ defaultTab = 'all' }) {
             <RefreshCw className="w-4 h-4 text-[#FA661C]" />
           </button>
           
-          <button
+          {(activeTab !== 'staff' || isSuperuser) && <button
             onClick={() => openModal('create')}
             className="px-4 py-2.5 bg-[#FA661C] hover:bg-[#E0530B] text-white text-xs font-bold rounded-xl btn-interactive flex items-center space-x-1.5 cursor-pointer shadow-xs"
           >
             <Plus className="w-4 h-4" />
             <span>Create New User</span>
-          </button>
+          </button>}
         </div>
       </div>
 
@@ -347,8 +333,8 @@ export default function UserManagementModule({ defaultTab = 'all' }) {
       {/* Segment Tabs */}
       <div className="flex items-center space-x-2 border-b border-[#EAE3DC] pb-1">
         {[
-          { id: 'customers', label: `Customers (${customerCount})`, icon: Users },
-          { id: 'staff', label: `Staff & Admins (${staffCount})`, icon: Shield },
+          { id: 'customers', label: 'Customers', icon: Users },
+          { id: 'staff', label: 'Staff & Admins', icon: Shield },
           { id: 'all', label: `All Accounts (${totalCount || users.length})`, icon: UserCheck },
         ].map(tab => {
           const Icon = tab.icon;
@@ -356,7 +342,7 @@ export default function UserManagementModule({ defaultTab = 'all' }) {
           return (
             <button
               key={tab.id}
-              onClick={() => { setActiveTab(tab.id); setSearchQuery(''); setCurrentPage(1); }}
+              onClick={() => { setActiveTab(tab.id); setSearchQuery(''); setRoleFilter('all'); setCurrentPage(1); }}
               className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center space-x-2 shrink-0 cursor-pointer ${
                 isActive
                   ? 'bg-[#FA661C] text-white shadow-xs'
@@ -380,7 +366,7 @@ export default function UserManagementModule({ defaultTab = 'all' }) {
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
               placeholder="Search by username, email, name, or phone..."
               className="w-full pl-9 pr-4 py-2 bg-[#FDFBF7] border border-[#EAE3DC] rounded-xl text-xs outline-none focus:border-[#FA661C]"
             />
@@ -389,7 +375,7 @@ export default function UserManagementModule({ defaultTab = 'all' }) {
           <div className="flex items-center space-x-3 w-full md:w-auto">
             <select
               value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value)}
+              onChange={(e) => { setRoleFilter(e.target.value); setCurrentPage(1); }}
               className="px-3 py-2 bg-[#FDFBF7] border border-[#EAE3DC] rounded-xl text-xs font-bold text-[#1A2420] outline-none cursor-pointer"
             >
               <option value="all">All Roles</option>

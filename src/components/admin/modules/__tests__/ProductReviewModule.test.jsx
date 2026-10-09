@@ -144,7 +144,7 @@ describe('ProductReviewModule Component', () => {
     const confirmRejectBtn = screen.getByText('Confirm Rejection');
     fireEvent.click(confirmRejectBtn);
 
-    expect(screen.getByText('A valid rejection reason is required by the backend.')).toBeTruthy();
+    expect(screen.getByText('Please enter a rejection reason.')).toBeTruthy();
 
     // Type valid reason and submit
     const textarea = screen.getByPlaceholderText(/Missing required brand authorization document/i);

@@ -5,6 +5,7 @@ import { BrowserRouter } from 'react-router-dom';
 import AdminHomePage from '../AdminHomePage';
 import * as apiModule from '../../utils/api';
 import { ToastProvider } from '../../context/ToastContext';
+import { AuthProvider } from '../../context/AuthContext';
 
 vi.mock('../../utils/api', async () => {
   const actual = await vi.importActual('../../utils/api');
@@ -54,9 +55,11 @@ describe('Admin Overview Dashboard Real API Integration', () => {
   const renderDashboard = () => {
     return render(
       <BrowserRouter>
-        <ToastProvider>
-          <AdminHomePage />
-        </ToastProvider>
+        <AuthProvider>
+          <ToastProvider>
+            <AdminHomePage />
+          </ToastProvider>
+        </AuthProvider>
       </BrowserRouter>
     );
   };

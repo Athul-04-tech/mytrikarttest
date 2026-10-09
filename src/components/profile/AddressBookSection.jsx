@@ -34,7 +34,7 @@ export default function AddressBookSection() {
       setAddresses(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Failed to fetch addresses:', err);
-      setError(err.message || 'Unable to load saved addresses from server');
+      setError(err.message || 'Unable to load saved addresses. Please try again.');
       toast.error('Error', 'Could not load your address book');
     } finally {
       setIsLoading(false);
@@ -105,7 +105,7 @@ export default function AddressBookSection() {
       {isLoading ? (
         <div className="py-16 text-center flex flex-col items-center justify-center space-y-3">
           <Loader2 className="w-8 h-8 animate-spin text-[#FA661C]" />
-          <p className="text-xs font-bold text-[#FA661C]">Fetching saved addresses from server...</p>
+          <p className="text-xs font-bold text-[#FA661C]">Loading saved addresses...</p>
         </div>
       ) : error ? (
         <div className="mt-8 p-6 rounded-2xl bg-[#FDE8EA] border border-[#D7263D]/40 text-[#D7263D] text-xs font-bold flex items-center justify-between">

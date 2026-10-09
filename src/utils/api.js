@@ -149,6 +149,46 @@ export async function apiRequest(endpoint, options = {}, isRetry = false) {
   return data;
 }
 
+export async function fetchProtectedFile(endpoint) {
+  const url = endpoint.startsWith('http')
+    ? endpoint
+    : `${BASE_URL}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
+  const requestFile = () => fetch(url, {
+    headers: inMemoryAccessToken ? { Authorization: `Bearer ${inMemoryAccessToken}` } : {},
+  });
+  let response;
+  try {
+    response = await requestFile();
+  } catch (error) {
+    throw new ApiError(error?.message || 'Could not load the document.', 0, null);
+  }
+
+  if (response.status === 401 && inMemoryRefreshToken) {
+    try {
+      const refreshResponse = await fetch(`${BASE_URL}/api/accounts/token/refresh/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh: inMemoryRefreshToken }),
+      });
+      if (!refreshResponse.ok) throw new Error('Session expired. Please sign in again.');
+      const refreshed = await refreshResponse.json();
+      setTokens({ access: refreshed.access, refresh: refreshed.refresh ?? inMemoryRefreshToken });
+      response = await requestFile();
+    } catch (error) {
+      clearTokens();
+      if (sessionExpiredListener) sessionExpiredListener();
+      throw new ApiError(error?.message || 'Session refresh failed.', 401, null);
+    }
+  }
+
+  if (!response.ok) {
+    let data = null;
+    try { data = await response.json(); } catch { /* response may be plain text */ }
+    throw new ApiError(data?.detail || `Document request failed (${response.status}).`, response.status, data);
+  }
+  return response.blob();
+}
+
 export default {
   apiRequest,
   setTokens,

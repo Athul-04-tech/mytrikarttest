@@ -348,7 +348,7 @@ export default function ProductMediaSection({ productId: propProductId }) {
         {isLoading ? (
           <div className="p-8 text-center bg-[#FFF3EC]/30 rounded-2xl border border-[#EAE3DC] space-y-2">
             <Loader2 className="w-6 h-6 text-[#FA661C] animate-spin mx-auto" />
-            <p className="text-xs font-bold text-[#6B6058]">Fetching product media assets from server...</p>
+            <p className="text-xs font-bold text-[#6B6058]">Loading product media assets...</p>
           </div>
         ) : images.length === 0 ? (
           <div className="p-8 bg-[#FFF8F2]/50 border border-[#EAE3DC] rounded-2xl text-center space-y-2">

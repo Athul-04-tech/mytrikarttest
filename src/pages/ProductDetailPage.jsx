@@ -6,6 +6,7 @@ import DeliveryModal from '../components/modals/DeliveryModal';
 import { apiRequest } from '../utils/api';
 import { useToast } from '../context/ToastContext';
 import { useCart } from '../context/CartWishlistContext';
+import { useAuth } from '../context/AuthContext';
 import { resolveMediaUrl } from '../config/env';
 import { 
   Star, 
@@ -29,6 +30,8 @@ export default function ProductDetailPage({ isLoggedIn, currentUser, onLogout })
   const { id } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
+  const auth = useAuth();
+  const isProductOwnedByCurrentSeller = auth?.isProductOwnedByCurrentSeller;
   const { wishlist, addToWishlist, removeFromWishlist, addToCart } = useCart();
 
   const [product, setProduct] = useState(null);
@@ -40,6 +43,11 @@ export default function ProductDetailPage({ isLoggedIn, currentUser, onLogout })
 
   const [deliveryLocation, setDeliveryLocation] = useState(null);
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
+
+  const isOwnProduct = useMemo(() => {
+    if (!product || !isProductOwnedByCurrentSeller) return false;
+    return isProductOwnedByCurrentSeller(product);
+  }, [product, isProductOwnedByCurrentSeller]);
 
   // Fetch Published Product Detail on Mount or when ID changes
   useEffect(() => {
@@ -460,16 +468,39 @@ export default function ProductDetailPage({ isLoggedIn, currentUser, onLogout })
                     </div>
                   </div>
 
+                  {/* Seller Self-Purchase Warning Banner */}
+                  {isOwnProduct && (
+                    <div className="bg-[#FFF8F2] border border-[#FF811A]/40 rounded-2xl p-3.5 text-xs text-[#FA661C] flex items-center space-x-3">
+                      <Store className="w-5 h-5 text-[#FF811A] shrink-0" />
+                      <div>
+                        <span className="font-extrabold block text-sm">Your Own Listed Product</span>
+                        <span className="text-[#6B6058] font-medium">As a merchant, you cannot purchase products from your own catalog. You are welcome to buy items listed by other sellers.</span>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Add to Cart CTA */}
                   <div className="flex items-center space-x-3">
                     <button
                       type="button"
                       onClick={handleAddToCart}
-                      disabled={isOutOfStock}
-                      className="flex-1 py-3 px-6 bg-[#FA661C] hover:bg-[#E0530B] disabled:bg-[#6B6058] text-white font-extrabold text-sm rounded-xl shadow-xs btn-interactive flex items-center justify-center space-x-2 cursor-pointer transition-all"
+                      disabled={isOutOfStock || isOwnProduct}
+                      className={`flex-1 py-3 px-6 text-white font-extrabold text-sm rounded-xl shadow-xs flex items-center justify-center space-x-2 transition-all ${
+                        isOwnProduct
+                          ? 'bg-[#6B6058]/50 text-white cursor-not-allowed opacity-90 border border-[#EAE3DC]'
+                          : isOutOfStock
+                          ? 'bg-[#6B6058] text-white cursor-not-allowed'
+                          : 'bg-[#FA661C] hover:bg-[#E0530B] btn-interactive cursor-pointer'
+                      }`}
                     >
                       <ShoppingBag className="w-4 h-4 text-white" />
-                      <span>{isOutOfStock ? 'Currently Out of Stock' : 'Add to Shopping Bag'}</span>
+                      <span>
+                        {isOwnProduct 
+                          ? 'Own Product (Cannot Self-Purchase)' 
+                          : isOutOfStock 
+                          ? 'Currently Out of Stock' 
+                          : 'Add to Shopping Bag'}
+                      </span>
                     </button>
                   </div>
                 </div>

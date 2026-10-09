@@ -46,7 +46,7 @@ describe('SellerProductDetailPage — Single Product Specification View', () => 
 
     renderComponent('10');
 
-    expect(screen.getByText('Fetching product details from server...')).toBeTruthy();
+    expect(screen.getByText('Loading product details...')).toBeTruthy();
   });
 
   it('2. renders honest error alert when backend fetch fails (e.g. 404 Not Found)', async () => {

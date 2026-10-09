@@ -16,6 +16,7 @@ import {
   LogOut
 } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
+import { useAuth } from '../../context/AuthContext';
 
 export default function AdminTopBar({ 
   onToggleSidebar, 
@@ -25,13 +26,15 @@ export default function AdminTopBar({
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const toast = useToast();
   const navigate = useNavigate();
+  const { logout } = useAuth();
 
   const handleSimulateQuickAction = (msg) => {
     toast.success("Admin Action Executed", msg);
   };
 
-  const handleAdminSignOut = () => {
-    navigate('/');
+  const handleAdminSignOut = async () => {
+    await logout();
+    navigate('/', { replace: true });
     toast.info("Admin Sign Out", "You have securely signed out of Admin Operations Console.");
   };
 

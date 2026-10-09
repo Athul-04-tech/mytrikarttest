@@ -24,7 +24,7 @@ const TRACKING_STEPS = [
   "Delivered"
 ];
 
-export default function OrdersSection({ orders = [] }) {
+export default function OrdersSection({ orders = [], isLoading = false, error = '' }) {
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [activeTrackingOrderId, setActiveTrackingOrderId] = useState(null);
 
@@ -80,7 +80,15 @@ export default function OrdersSection({ orders = [] }) {
 
       {/* Orders Stream */}
       <div className="mt-8 space-y-6">
-        {filteredOrders.length === 0 ? (
+        {error ? (
+          <div role="alert" className="text-center py-10 px-4 bg-[#FFF0F0] border border-[#D7263D]/30 rounded-2xl text-sm text-[#D7263D]">
+            {error}
+          </div>
+        ) : isLoading ? (
+          <div role="status" className="text-center py-16 px-4 border border-dashed border-[#EAE3DC] rounded-2xl text-sm text-[#6B6058]">
+            Loading your orders…
+          </div>
+        ) : filteredOrders.length === 0 ? (
           <div className="text-center py-16 px-4 bg-[#FFFFFF]/40 border border-dashed border-[#EAE3DC] rounded-2xl">
             <div className="w-16 h-16 rounded-full bg-[#FFF3EC] text-[#FA661C] flex items-center justify-center mx-auto mb-4 shadow-2xs">
               <Package className="w-8 h-8" />

@@ -184,7 +184,7 @@ export default function CheckoutPage() {
                 {isProcessing ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin text-[#FF811A]" />
-                    <span>Creating Real Backend Order...</span>
+                    <span>Processing Order...</span>
                   </>
                 ) : (
                   <>

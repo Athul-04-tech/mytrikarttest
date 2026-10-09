@@ -4,7 +4,7 @@ import TopUtilityBar from './TopUtilityBar';
 import SearchBar from './SearchBar';
 import AccountMenuDropdown from '../dropdowns/AccountMenuDropdown';
 import MoreDropdown from '../dropdowns/MoreDropdown';
-import { User, ChevronDown, MoreVertical, ShoppingBag, Sparkles, LogIn, Heart } from 'lucide-react';
+import { User, ChevronDown, MoreVertical, ShoppingBag, Sparkles, LogIn, Heart, Store } from 'lucide-react';
 import { useCart } from '../../context/CartWishlistContext';
 import { useAuth } from '../../context/AuthContext';
 
@@ -18,6 +18,7 @@ export default function Header({
   const auth = useAuth();
   const isLoggedIn = auth ? auth.isLoggedIn : propIsLoggedIn;
   const currentUser = (auth && auth.currentUser) ? auth.currentUser : propCurrentUser;
+  const isSeller = isLoggedIn && (currentUser?.role === 'vendor' || currentUser?.role === 'seller');
   const onLogout = auth ? auth.logout : propOnLogout;
   const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false);
   const [isMoreDropdownOpen, setIsMoreDropdownOpen] = useState(false);
@@ -93,6 +94,18 @@ export default function Header({
           </Link>
 
           <div className="flex items-center space-x-2">
+            {/* Mobile Seller Dashboard Button (Visible ONLY for Logged-In Sellers) */}
+            {isSeller && (
+              <Link
+                to="/seller/dashboard"
+                className="px-2.5 py-1.5 rounded-xl text-xs font-extrabold flex items-center space-x-1 border border-[#FA661C] bg-[#FFF3EC] text-[#FA661C] shadow-2xs btn-interactive cursor-pointer"
+                aria-label="Back to Seller Dashboard"
+              >
+                <Store className="w-3.5 h-3.5 text-[#FA661C]" />
+                <span>Dashboard</span>
+              </Link>
+            )}
+
             {/* Mobile Account / Login Button */}
             {isLoggedIn ? (
               <button
@@ -150,6 +163,18 @@ export default function Header({
 
         {/* Right Desktop Utility Icons */}
         <div className="hidden sm:flex items-center space-x-3 md:space-x-4 relative">
+          
+          {/* DESKTOP SELLER DASHBOARD BUTTON (Visible ONLY for Logged-In Sellers) */}
+          {isSeller && (
+            <Link
+              to="/seller/dashboard"
+              className="flex items-center space-x-1.5 px-3.5 py-2 bg-[#FFF3EC] hover:bg-[#FA661C] text-[#FA661C] hover:text-[#FFFFFF] border border-[#FA661C] rounded-xl text-xs font-black shadow-xs btn-interactive cursor-pointer transition-colors duration-150 group"
+              title="Return to Seller Dashboard"
+            >
+              <Store className="w-4 h-4 text-[#FA661C] group-hover:text-white shrink-0 transition-colors" />
+              <span>Seller Dashboard</span>
+            </Link>
+          )}
           
           {/* LOGIN BUTTON (Pre-Login) vs USER AVATAR CHIP (Post-Login) */}
           <div className="relative">

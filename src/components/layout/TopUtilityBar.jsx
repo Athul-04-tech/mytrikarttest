@@ -1,11 +1,15 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { MapPin, ChevronRight } from 'lucide-react';
+import { MapPin, ChevronRight, Store } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 export default function TopUtilityBar({ onOpenLocationModal, deliveryLocation }) {
+  const auth = useAuth();
+  const isSeller = auth?.isLoggedIn && (auth?.currentUser?.role === 'vendor' || auth?.currentUser?.role === 'seller');
+
   return (
     <div className="bg-[#FFFFFF] border-b border-[#EAE3DC]/60 text-xs text-[#6B6058] py-2 px-4 md:px-8 flex items-center justify-between transition-colors">
-      {/* Left side: Platform Logo */}
+      {/* Left side: Platform Logo & Seller Badge */}
       <div className="flex items-center space-x-3 md:space-x-4">
         {/* Platform Brand Logo (Routes to Home) */}
         <Link 
@@ -19,6 +23,17 @@ export default function TopUtilityBar({ onOpenLocationModal, deliveryLocation })
             className="h-8 md:h-10 w-auto object-contain max-w-[200px] md:max-w-[240px]"
           />
         </Link>
+
+        {isSeller && (
+          <Link
+            to="/seller/dashboard"
+            className="inline-flex items-center space-x-1.5 px-3 py-1 bg-[#FFF3EC] hover:bg-[#FA661C] text-[#FA661C] hover:text-[#FFFFFF] border border-[#FA661C] rounded-full text-xs font-black transition-colors shadow-2xs group"
+            title="Return to Seller Dashboard"
+          >
+            <Store className="w-3.5 h-3.5 text-[#FA661C] group-hover:text-white transition-colors" />
+            <span>Back to Seller Dashboard →</span>
+          </Link>
+        )}
       </div>
 
       {/* Right side: Delivery Location Link */}

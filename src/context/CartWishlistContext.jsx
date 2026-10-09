@@ -167,8 +167,18 @@ export function CartWishlistProvider({ children }) {
     }
   }, [wishlist, isLoggedIn, toast]);
 
+  const { isProductOwnedByCurrentSeller } = useAuth();
+
   const moveToCartFromWishlist = useCallback(async (product) => {
     if (!requireAuth('add items to your shopping cart')) return;
+
+    if (isProductOwnedByCurrentSeller && isProductOwnedByCurrentSeller(product)) {
+      toast.error(
+        "Seller Action Restricted",
+        "You cannot purchase items from your own seller catalog. You can purchase items from other sellers."
+      );
+      return;
+    }
 
     // 1. Remove from wishlist
     setWishlist((prev) => prev.filter((item) => item.id !== product.id));
@@ -192,11 +202,19 @@ export function CartWishlistProvider({ children }) {
       const errorMsg = err?.data?.detail || err?.message || 'Failed to move item to cart.';
       toast.error("Cart Error", errorMsg);
     }
-  }, [requireAuth, toast, fetchCart]);
+  }, [requireAuth, isProductOwnedByCurrentSeller, toast, fetchCart]);
 
   // --- REAL BACKEND CART ACTIONS ---
   const addToCart = useCallback(async (product, qty = 1) => {
     if (!requireAuth('add items to your shopping cart')) return;
+
+    if (isProductOwnedByCurrentSeller && isProductOwnedByCurrentSeller(product)) {
+      toast.error(
+        "Seller Action Restricted",
+        "You cannot purchase items from your own seller catalog. You can purchase items from other sellers."
+      );
+      return;
+    }
 
     let variantId = null;
     if (typeof product === 'object' && product !== null) {
@@ -221,7 +239,7 @@ export function CartWishlistProvider({ children }) {
       const errorMsg = err?.data?.detail || err?.message || 'Failed to add item to cart.';
       toast.error("Cart Error", errorMsg);
     }
-  }, [requireAuth, toast, fetchCart]);
+  }, [requireAuth, isProductOwnedByCurrentSeller, toast, fetchCart]);
 
   const updateCartQuantity = useCallback(async (cartItemId, deltaOrNewQty) => {
     const existing = cart.find((item) => item.id === cartItemId || item.cartItemId === cartItemId);

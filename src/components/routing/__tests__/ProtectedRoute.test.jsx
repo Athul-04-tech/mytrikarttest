@@ -45,7 +45,7 @@ describe('ProtectedRoute Component Suite', () => {
           <Route 
             path="/seller/dashboard" 
             element={
-              <ProtectedRoute allowedRoles={['vendor', 'seller', 'admin']}>
+              <ProtectedRoute allowedRoles={['vendor', 'seller']}>
                 <div>Protected Seller Content</div>
               </ProtectedRoute>
             } 
@@ -105,7 +105,7 @@ describe('ProtectedRoute Component Suite', () => {
           <Route 
             path="/seller/dashboard" 
             element={
-              <ProtectedRoute allowedRoles={['vendor', 'seller', 'admin']}>
+              <ProtectedRoute allowedRoles={['vendor', 'seller']}>
                 <div>Protected Seller Content</div>
               </ProtectedRoute>
             } 
@@ -167,7 +167,7 @@ describe('ProtectedRoute Component Suite', () => {
           <Route 
             path="/seller/dashboard" 
             element={
-              <ProtectedRoute allowedRoles={['vendor', 'seller', 'admin']}>
+              <ProtectedRoute allowedRoles={['vendor', 'seller']}>
                 <div>Protected Seller Content</div>
               </ProtectedRoute>
             } 
@@ -205,12 +205,13 @@ describe('ProtectedRoute Component Suite', () => {
     expect(screen.getByText('Protected Admin Content')).toBeDefined();
   });
 
-  it('3c. renders protected seller content normally for admin visiting /seller/dashboard', () => {
+  it('3c. renders explicit unauthorized screen for admin visiting /seller/dashboard directly', () => {
     vi.mocked(AuthContextModule.useAuth).mockReturnValue({
       isLoggedIn: true,
       currentUser: { username: 'admin_alice', role: 'admin' },
       isLoading: false,
       isResolving: false,
+      logout: vi.fn(),
     });
 
     render(
@@ -219,7 +220,7 @@ describe('ProtectedRoute Component Suite', () => {
           <Route 
             path="/seller/dashboard" 
             element={
-              <ProtectedRoute allowedRoles={['vendor', 'seller', 'admin']}>
+              <ProtectedRoute allowedRoles={['vendor', 'seller']}>
                 <div>Protected Seller Content</div>
               </ProtectedRoute>
             } 
@@ -228,7 +229,9 @@ describe('ProtectedRoute Component Suite', () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByText('Protected Seller Content')).toBeDefined();
+    expect(screen.getByText(/HTTP 403 — Access Restricted/i)).toBeDefined();
+    expect(screen.getByText(/Permission Required/i)).toBeDefined();
+    expect(screen.queryByText('Protected Seller Content')).toBeNull();
   });
 
   // TASK C - CASE 4: Loading State / Resolving Case -> Prevents Content Flash
@@ -246,7 +249,7 @@ describe('ProtectedRoute Component Suite', () => {
           <Route 
             path="/seller/dashboard" 
             element={
-              <ProtectedRoute allowedRoles={['vendor', 'seller', 'admin']}>
+              <ProtectedRoute allowedRoles={['vendor', 'seller']}>
                 <div>Protected Secret Seller Data</div>
               </ProtectedRoute>
             } 

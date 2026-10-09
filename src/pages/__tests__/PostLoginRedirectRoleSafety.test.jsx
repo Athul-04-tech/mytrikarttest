@@ -32,6 +32,11 @@ describe('Post-Login Redirect Role Safety & Cross-Role Link Gating', () => {
       expect(resolvePostLoginRedirect('/seller/dashboard', 'customer')).toBe('/');
     });
 
+    it('rejects /seller/dashboard for admin role and falls back to /admin', () => {
+      expect(isRouteAllowedForRole('/seller/dashboard', 'admin')).toBe(false);
+      expect(resolvePostLoginRedirect('/seller/dashboard', 'admin')).toBe('/admin');
+    });
+
     it('rejects /admin for customer role and falls back to /', () => {
       expect(isRouteAllowedForRole('/admin', 'customer')).toBe(false);
       expect(resolvePostLoginRedirect('/admin', 'customer')).toBe('/');
@@ -102,6 +107,49 @@ describe('Post-Login Redirect Role Safety & Cross-Role Link Gating', () => {
 
       await waitFor(() => {
         expect(screen.getByTestId('current-path').textContent).toBe('/');
+      }, { timeout: 3000 });
+    });
+
+    it('redirects admin logging in with state.from = /seller/dashboard safely to /admin', async () => {
+      vi.spyOn(api, 'getTokens').mockReturnValue({ access: null, refresh: null });
+      vi.spyOn(api, 'apiRequest').mockImplementation(async (url) => {
+        if (url.includes('/api/accounts/login/')) {
+          return { access: 'admin-token', refresh: 'admin-refresh', user: { username: 'admin_alice', role: 'admin' } };
+        }
+        if (url.includes('/api/accounts/me/')) {
+          return { id: 1, username: 'admin_alice', role: 'admin', first_name: 'Alice', last_name: 'Admin' };
+        }
+        return {};
+      });
+
+      render(
+        <MemoryRouter initialEntries={[{ pathname: '/login', state: { from: '/seller/dashboard' } }]}>
+          <ToastProvider>
+            <AuthProvider>
+              <Routes>
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/admin" element={<LocationDisplay />} />
+                <Route path="/seller/dashboard" element={<LocationDisplay />} />
+              </Routes>
+            </AuthProvider>
+          </ToastProvider>
+        </MemoryRouter>
+      );
+
+      const identifierInput = screen.getByLabelText(/Email or Mobile Number/i);
+      fireEvent.change(identifierInput, { target: { value: 'admin@example.com' } });
+
+      const passStepBtn = screen.getByText(/login with password instead/i);
+      fireEvent.click(passStepBtn);
+
+      const passwordInput = await screen.findByPlaceholderText(/enter your account password/i);
+      fireEvent.change(passwordInput, { target: { value: 'AdminPass123!' } });
+
+      const submitBtn = screen.getByRole('button', { name: /^Login$/i });
+      fireEvent.click(submitBtn);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('current-path').textContent).toBe('/admin');
       }, { timeout: 3000 });
     });
 

@@ -96,7 +96,7 @@ describe('SellerOrdersView — Real Backend API Wiring & UI States', () => {
     render(<SellerOrdersView />);
 
     // Verify loading spinner appears first
-    expect(screen.getByText('Fetching vendor orders from server...')).toBeTruthy();
+    expect(screen.getByText('Loading vendor orders...')).toBeTruthy();
 
     await waitFor(() => {
       // Order IDs formatted as #ORD-101 and #ORD-102

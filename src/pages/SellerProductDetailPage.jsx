@@ -175,7 +175,7 @@ export default function SellerProductDetailPage() {
           <div className="bg-white p-12 rounded-3xl border border-[#EAE3DC] text-center space-y-3">
             <Loader2 className="w-8 h-8 text-[#FA661C] animate-spin mx-auto" />
             <h2 className="font-['Outfit'] font-extrabold text-base text-[#FA661C]">
-              Fetching product details from server...
+              Loading product details...
             </h2>
             <p className="text-xs text-[#6B6058]">
               Retrieving full media gallery, variant rows, and category specifications.

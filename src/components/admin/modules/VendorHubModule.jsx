@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Store, ShieldAlert, CheckCircle2, AlertCircle, RefreshCw, X, FileText, Check, Ban, AlertTriangle, Eye, Building2, Globe, Mail, Phone } from 'lucide-react';
-import { apiRequest } from '../../../utils/api';
+import { Store, ShieldAlert, CheckCircle2, AlertCircle, RefreshCw, X, FileText, Check, Ban, AlertTriangle, Eye, Download, Building2, Globe, Mail, Phone } from 'lucide-react';
+import { apiRequest, fetchProtectedFile } from '../../../utils/api';
 import { useToast } from '../../../context/ToastContext';
 
 export default function VendorHubModule() {
@@ -35,6 +35,27 @@ export default function VendorHubModule() {
       setError(err.data?.detail || err.message || "Failed to load merchant directory.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleViewDocument = async (doc, tab) => {
+    try {
+      const file = await fetchProtectedFile(doc.download_url);
+      const objectUrl = URL.createObjectURL(file);
+      if (tab && !tab.closed) {
+        tab.location.href = objectUrl;
+      } else {
+        const link = document.createElement('a');
+        link.href = objectUrl;
+        link.download = doc.file_name || `${doc.document_type}-document`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      }
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+    } catch (err) {
+      if (tab && !tab.closed) tab.close();
+      toast.error('Document Unavailable', err?.message || 'Could not open this uploaded file. Ask the seller to upload it again.');
     }
   };
 
@@ -364,7 +385,7 @@ export default function VendorHubModule() {
                   <span>Uploaded KYC & Governance Documents</span>
                 </h4>
                 <span className="text-[11px] text-[#6B6058] font-bold">
-                  {(selectedVendor.documents || []).filter(d => d.status === 'verified').length} of {(selectedVendor.documents || []).length} Verified
+                  {(selectedVendor.documents || []).filter(d => d.status === 'verified' && d.file_available).length} of {(selectedVendor.documents || []).length} Verified
                 </span>
               </div>
 
@@ -389,18 +410,40 @@ export default function VendorHubModule() {
                             <span className="text-[10px] text-[#6B6058]">
                               (Doc #{doc.id})
                             </span>
+                            {doc.file_available && doc.download_url ? (
+                              <button
+                                type="button"
+                                onClick={(event) => {
+                                  const tab = window.open('about:blank', '_blank');
+                                  if (tab) tab.opener = null;
+                                  handleViewDocument(doc, tab);
+                                }}
+                                className="inline-flex items-center space-x-1 rounded-lg border border-[#EAE3DC] bg-white px-2 py-1 text-[10px] font-bold text-[#FA661C] hover:bg-[#FFF3EC]"
+                                aria-label={`View ${doc.document_type} document`}
+                              >
+                                <Eye className="h-3 w-3" />
+                                <span>View Document</span>
+                                <Download className="h-3 w-3" />
+                              </button>
+                            ) : (
+                              <span className="text-[10px] font-semibold text-[#D7263D]" title="The stored file path does not resolve to an uploaded file.">
+                                File unavailable — ask seller to reupload
+                              </span>
+                            )}
                           </div>
 
                           <div className="flex items-center space-x-2">
                             {/* Document Status Pill */}
                             <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                              doc.status === 'verified'
+                              !doc.file_available
+                                ? 'bg-[#FDE8EA] text-[#D7263D] border border-[#D7263D]/40'
+                                : doc.status === 'verified'
                                 ? 'bg-[#EAF5ED] text-[#52B788] border border-[#52B788]/40'
                                 : doc.status === 'rejected'
                                 ? 'bg-[#FDE8EA] text-[#D7263D] border border-[#D7263D]/40'
                                 : 'bg-[#FFF8F2] text-[#FA661C] border border-[#FF811A]/40 animate-pulse'
                             }`}>
-                              {doc.status}
+                              {!doc.file_available ? 'Missing File' : doc.status}
                             </span>
 
                             {/* Action Buttons for Document */}
@@ -475,7 +518,12 @@ export default function VendorHubModule() {
               )}
             </div>
 
-            {/* Onboarding Review Form */}
+            {/* Completed onboarding decisions are read-only; document evidence remains inspectable above. */}
+            {['approved', 'verified', 'store_published'].includes(selectedVendor.onboarding_status) ? (
+              <div role="status" className="pt-4 border-t border-[#EAE3DC] text-sm font-semibold text-[#40916C]">
+                This merchant’s onboarding is already approved. Review the uploaded documents above; no further onboarding decision is pending.
+              </div>
+            ) : (
             <form onSubmit={handleOnboardingSubmit} className="space-y-4 pt-4 border-t border-[#EAE3DC]">
               <h4 className="font-['Outfit'] font-bold text-sm text-[#FA661C] flex items-center space-x-1.5">
                 <ShieldAlert className="w-4 h-4 text-[#FF811A]" />
@@ -555,6 +603,7 @@ export default function VendorHubModule() {
               </div>
 
             </form>
+            )}
 
           </div>
         </div>

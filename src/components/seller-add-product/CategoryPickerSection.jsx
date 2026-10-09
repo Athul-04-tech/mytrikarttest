@@ -12,7 +12,6 @@ import {
   ChevronRight,
   Loader2
 } from 'lucide-react';
-import { ADMIN_CATEGORY_SCHEMAS } from '../../data/categoryAttributesMockData';
 
 const ICON_MAP = {
   Smartphone,
@@ -213,54 +212,17 @@ export default function CategoryPickerSection({
             )}
           </div>
         ) : (
-          /* Fallback Mock Categories */
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-            {ADMIN_CATEGORY_SCHEMAS.map((cat) => {
-              const IconComponent = ICON_MAP[cat.icon] || Layers;
-              const isSelected = selectedCategory?.id === cat.id;
-
-              return (
-                <button
-                  key={cat.id}
-                  type="button"
-                  onClick={() => handleCategoryClick(cat)}
-                  className={`p-4 rounded-2xl border text-left transition-all relative overflow-hidden cursor-pointer btn-interactive ${
-                    isSelected
-                      ? 'bg-[#FA661C] text-[#FFFFFF] border-[#FF811A] shadow-md ring-2 ring-[#FF811A]/40'
-                      : 'bg-[#FFFFFF] text-[#FA661C] border-[#EAE3DC] hover:border-[#FA661C]/50 hover:bg-[#FFF3EC]/50'
-                  }`}
-                >
-                  {isSelected && (
-                    <div className="absolute top-2.5 right-2.5">
-                      <CheckCircle2 className="w-4 h-4 text-[#FF811A] fill-[#FA661C]" />
-                    </div>
-                  )}
-
-                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-2.5 ${
-                    isSelected ? 'bg-[#FF811A] text-[#FA661C]' : 'bg-white text-[#FA661C] border border-[#EAE3DC]'
-                  }`}>
-                    <IconComponent className="w-4 h-4 icon-interactive" />
-                  </div>
-
-                  <span className={`text-[10px] font-bold uppercase tracking-wider block ${
-                    isSelected ? 'text-[#FF811A]' : 'text-[#6B6058]'
-                  }`}>
-                    {cat.mainCategory}
-                  </span>
-
-                  <h3 className="font-['Outfit'] font-bold text-sm leading-snug mt-0.5">
-                    {cat.subCategory || cat.name}
-                  </h3>
-
-                  <div className={`mt-2.5 pt-2 border-t text-[10px] flex items-center justify-between ${
-                    isSelected ? 'border-[#FFFFFF]/20 text-[#EAE3DC]' : 'border-[#EAE3DC]/70 text-[#6B6058]'
-                  }`}>
-                    <span>{cat.attributes?.length || 0} Attributes</span>
-                    <span>GST {cat.defaultGst || 18}%</span>
-                  </div>
-                </button>
-              );
-            })}
+          /* Database Categories Empty State */
+          <div className="p-8 rounded-3xl border border-dashed border-[#EAE3DC] bg-[#FFF8F2]/50 text-center space-y-2">
+            <div className="w-10 h-10 rounded-2xl bg-[#FFF3EC] border border-[#FA661C]/20 text-[#FA661C] mx-auto flex items-center justify-center">
+              <Layers className="w-5 h-5" />
+            </div>
+            <h4 className="font-['Outfit'] font-bold text-sm text-[#FA661C]">
+              No Product Categories Available in Database
+            </h4>
+            <p className="text-xs text-[#6B6058] max-w-md mx-auto">
+              There are no active catalog categories in the database. An administrator must create catalog categories via the Admin Command Center before products can be classified.
+            </p>
           </div>
         )}
       </div>

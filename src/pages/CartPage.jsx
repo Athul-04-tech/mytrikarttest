@@ -1,15 +1,20 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { 
   ShoppingBag, 
   ArrowLeft, 
-  Sparkles
+  Sparkles,
+  AlertCircle,
+  Store
 } from 'lucide-react';
 import { useCart } from '../context/CartWishlistContext';
+import { useAuth } from '../context/AuthContext';
 import CartItemRow from '../components/cart/CartItemRow';
 import OrderSummarySidebar from '../components/cart/OrderSummarySidebar';
 
 export default function CartPage() {
+  const auth = useAuth();
+  const isProductOwnedByCurrentSeller = auth?.isProductOwnedByCurrentSeller;
   const {
     cart,
     savedForLater,
@@ -20,6 +25,11 @@ export default function CartPage() {
     moveToCartFromSaved,
     removeSavedForLater
   } = useCart();
+
+  const hasOwnProductsInCart = useMemo(() => {
+    if (!isProductOwnedByCurrentSeller || !Array.isArray(cart)) return false;
+    return cart.some(item => isProductOwnedByCurrentSeller(item));
+  }, [cart, isProductOwnedByCurrentSeller]);
 
   const navigate = useNavigate();
 
@@ -84,6 +94,19 @@ export default function CartPage() {
                   </span>
                 </div>
               </div>
+
+              {/* Seller Account Self-Purchase Warning Banner */}
+              {hasOwnProductsInCart && (
+                <div className="bg-[#FFF8F2] border border-[#FF811A]/40 rounded-2xl p-4 flex items-start space-x-3 text-xs text-[#FA661C] shadow-xs">
+                  <Store className="w-5 h-5 text-[#FF811A] shrink-0 mt-0.5" />
+                  <div className="flex-1 space-y-1">
+                    <span className="font-extrabold block text-sm">Seller Account Self-Purchase Notice</span>
+                    <p className="text-[#6B6058] font-medium leading-relaxed">
+                      Your bag contains products from your own merchant catalog. As a seller, you cannot purchase your own products, but you can buy products listed by other sellers. Please remove your own products to complete checkout.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Cart Items List */}
               <div className="space-y-3">

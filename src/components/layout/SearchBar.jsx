@@ -1,19 +1,45 @@
 import React, { useState, useEffect } from 'react';
 import { Search, X, Sparkles } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { apiRequest } from '../../utils/api';
 
 export default function SearchBar() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [query, setQuery] = useState(searchParams.get('search') || '');
   const [isFocused, setIsFocused] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
 
   useEffect(() => {
     setQuery(searchParams.get('search') || '');
   }, [searchParams]);
 
+  useEffect(() => {
+    const prefix = query.trim();
+    if (!prefix) {
+      setSuggestions([]);
+      setLoadingSuggestions(false);
+      return undefined;
+    }
+    let active = true;
+    const timer = setTimeout(async () => {
+      setLoadingSuggestions(true);
+      try {
+        const results = await apiRequest(`/api/products/published/?prefix=${encodeURIComponent(prefix)}`);
+        if (active) setSuggestions(Array.isArray(results) ? results : []);
+      } catch {
+        if (active) setSuggestions([]);
+      } finally {
+        if (active) setLoadingSuggestions(false);
+      }
+    }, 180);
+    return () => { active = false; clearTimeout(timer); };
+  }, [query]);
+
   const handleClear = () => {
     setQuery('');
+    setSuggestions([]);
   };
 
   const executeSearch = (searchTerm) => {
@@ -91,6 +117,34 @@ export default function SearchBar() {
       {/* Interactive Quick Suggestions overlay on focus */}
       {isFocused && (
         <div className="absolute top-full left-0 right-0 mt-1.5 bg-white border border-[#EAE3DC] rounded-xl shadow-xl z-50 p-3 text-xs text-[#6B6058] animate-dropdown">
+          {query.trim() ? (
+            <>
+              <p className="font-bold text-[#FA661C] mb-2 uppercase tracking-wider text-[10px]">Products starting with “{query.trim()}”</p>
+              {loadingSuggestions ? (
+                <p>Looking for matching products…</p>
+              ) : suggestions.length ? (
+                <ul role="listbox" aria-label="Matching products" className="max-h-72 overflow-y-auto">
+                  {suggestions.map((product) => (
+                    <li key={product.id}>
+                      <button
+                        type="button"
+                        role="option"
+                        aria-selected="false"
+                        onMouseDown={(e) => { e.preventDefault(); handleSuggestionClick(product.name); }}
+                        className="w-full rounded-lg px-2.5 py-2 text-left text-sm text-[#1B1B1B] hover:bg-[#FFF3EC]"
+                      >
+                        <span className="font-semibold">{product.name}</span>
+                        {product.category_name && <span className="ml-2 text-xs text-[#6B6058]">{product.category_name}</span>}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>No products start with those letters.</p>
+              )}
+            </>
+          ) : (
+          <>
           <p className="font-bold text-[#FA661C] mb-2 uppercase tracking-wider text-[10px] flex items-center justify-between">
             <span>Popular Categories</span>
             <span className="text-[#FF811A] text-[10px] font-extrabold flex items-center space-x-1">
@@ -113,9 +167,10 @@ export default function SearchBar() {
               </button>
             ))}
           </div>
+          </>
+          )}
         </div>
       )}
     </div>
   );
 }
-

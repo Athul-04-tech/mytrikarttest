@@ -469,7 +469,7 @@ export default function SellerRegisterPage() {
               <div>
                 <span className="font-extrabold text-sm block">Account Created — Action Required</span>
                 <p className="text-[#6B6058] mt-0.5">
-                  Your profile for <strong>{formData.username}</strong> was created on the server. Please complete authentication to finalize document uploads.
+                  Your profile for <strong>{formData.username}</strong> was created. Please complete authentication to finalize document uploads.
                 </p>
               </div>
             </div>
@@ -489,13 +489,13 @@ export default function SellerRegisterPage() {
       {/* 3. Main Form Container */}
       <main className="flex-1 max-w-4xl w-full mx-auto p-4 sm:p-6 lg:p-8 flex flex-col justify-start">
         
-        {/* Backend Validation Error Banner */}
+        {/* Validation Error Banner */}
         {apiError && (
           <div className="mb-6 p-4.5 rounded-2xl bg-[#FDE8EA] border-2 border-[#D7263D] text-[#D7263D] shadow-sm flex items-start space-x-3.5 text-xs animate-reveal">
             <ShieldAlert className="w-5 h-5 text-[#D7263D] shrink-0 mt-0.5" />
             <div className="flex-1">
               <h3 className="font-['Outfit'] font-extrabold text-sm text-[#D7263D]">
-                Registration Error (Server Response)
+                Registration Incomplete — Please Check Details
               </h3>
               <p className="mt-1 font-semibold leading-relaxed text-[#D7263D]">
                 {apiError}

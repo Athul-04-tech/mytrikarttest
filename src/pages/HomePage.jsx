@@ -135,7 +135,7 @@ export default function HomePage({ isLoggedIn, currentUser, onLogout }) {
                   <ChevronRight className="w-4 h-4 icon-interactive" />
                 </Link>
 
-                {(currentUser?.role === 'vendor' || currentUser?.role === 'seller' || currentUser?.role === 'admin') && (
+                {(currentUser?.role === 'vendor' || currentUser?.role === 'seller') && (
                   <Link
                     to="/seller/dashboard"
                     className="inline-flex items-center space-x-2 bg-[#0A2A1F] hover:bg-[#124233] text-[#FF811A] border border-[#FF811A]/40 font-extrabold text-xs px-4 py-2.5 rounded-xl btn-interactive cursor-pointer"

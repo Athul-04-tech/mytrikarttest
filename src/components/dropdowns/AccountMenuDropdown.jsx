@@ -82,6 +82,8 @@ export default function AccountMenuDropdown({
     if (onLogout) onLogout();
   };
 
+  const isSeller = (currentUser?.role === 'vendor' || currentUser?.role === 'seller');
+
   return (
     <>
       {/* Mobile Backdrop Sheet Modal overlay */}
@@ -129,7 +131,25 @@ export default function AccountMenuDropdown({
           {/* Menu Items List */}
           <div className="p-2 max-h-[65vh] md:max-h-96 overflow-y-auto divide-y divide-[#EAE3DC]/30">
             <div className="py-1">
-              {LOGIN_MENU_ITEMS.map((item, idx) => {
+              
+              {/* Back to Seller Dashboard Top Action (Seller Only) */}
+              {isSeller && (
+                <button
+                  type="button"
+                  onClick={() => { onClose(); navigate('/seller/dashboard'); }}
+                  className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-black bg-[#FFF3EC] text-[#FA661C] hover:bg-[#FA661C] hover:text-[#FFFFFF] border border-[#FA661C] transition-all cursor-pointer mb-2 shadow-2xs group"
+                >
+                  <div className="flex items-center space-x-2.5">
+                    <Store className="w-4 h-4 text-[#FA661C] group-hover:text-white transition-colors" />
+                    <span>Back to Seller Dashboard</span>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-[#FA661C] group-hover:text-white transition-colors" />
+                </button>
+              )}
+
+              {LOGIN_MENU_ITEMS
+                .filter(item => isSeller ? item.label !== 'Become a Seller' : true)
+                .map((item, idx) => {
                 const IconComponent = ICON_MAP[item.iconName] || Sparkles;
 
                 return (
