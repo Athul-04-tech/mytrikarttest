@@ -113,7 +113,7 @@ export default function ShippingComplianceSection({
               id="prod-hsn"
               type="text"
               value={hsnCode}
-              onChange={(e) => setBaseSku ? setHsnCode(e.target.value) : setHsnCode(e.target.value)}
+              onChange={(e) => setHsnCode(e.target.value)}
               placeholder="e.g. 85183000"
               className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#EAE3DC] text-[#FA661C] text-xs font-mono font-bold uppercase focus:border-[#FA661C] outline-none input-interactive"
               required

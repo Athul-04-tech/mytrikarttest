@@ -55,13 +55,11 @@ export default function SellerAddProductPage() {
   const [attributeValues, setAttributeValues] = useState({});
 
   // 3. Basic Identity State (Initialized empty when editing or adding)
-  const [title, setTitle] = useState(isEditMode ? '' : 'Apex Titan 5G Pro Flagship Smartphone');
+  const [title, setTitle] = useState('');
   const [brand, setBrand] = useState(isEditMode ? '' : '');
-  const [subtitle, setSubtitle] = useState(isEditMode ? '' : 'Snapdragon 8 Gen 3 • 120Hz AMOLED • 100W Fast Charge');
-  const [description, setDescription] = useState(
-    isEditMode ? '' : '• Next-generation flagship smartphone with aerospace-grade titanium frame\n• 50MP Sony LYTIA custom camera sensor with optical image stabilization\n• 5000mAh dual-cell silicon-carbon battery with 100W HyperCharge support\n• IP68 water and dust resistance with ceramic glass protection'
-  );
-  const [baseSku, setBaseSku] = useState(isEditMode ? '' : 'SKU-MOB-APX-9500');
+  const [subtitle, setSubtitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [baseSku, setBaseSku] = useState('');
   const [slug, setSlug] = useState('');
 
   // 3b. Official Brand Authorization State
@@ -88,9 +86,9 @@ export default function SellerAddProductPage() {
   }, []);
 
   // 4. Pricing & Inventory State
-  const [mrp, setMrp] = useState(isEditMode ? '' : '54999');
-  const [sellingPrice, setSellingPrice] = useState(isEditMode ? '' : '44999');
-  const [stockQuantity, setStockQuantity] = useState(isEditMode ? '' : '50');
+  const [mrp, setMrp] = useState('');
+  const [sellingPrice, setSellingPrice] = useState('');
+  const [stockQuantity, setStockQuantity] = useState('');
 
   // 5. Variants Matrix State
   const [variants, setVariants] = useState([]);
@@ -99,17 +97,17 @@ export default function SellerAddProductPage() {
   const [images, setImages] = useState([]);
 
   // 7. Shipping & Compliance State
-  const [weightKg, setWeightKg] = useState('0.45');
-  const [dimensions, setDimensions] = useState('16.3 x 7.6 x 0.8 cm');
-  const [countryOfOrigin, setCountryOfOrigin] = useState('India');
-  const [hsnCode, setHsnCode] = useState(isEditMode ? '' : '8517');
+  const [weightKg, setWeightKg] = useState('');
+  const [dimensions, setDimensions] = useState('');
+  const [countryOfOrigin, setCountryOfOrigin] = useState('');
+  const [hsnCode, setHsnCode] = useState('');
   const [gstRate, setGstRate] = useState('18');
   const [inheritShippingPolicy, setInheritShippingPolicy] = useState(true);
   const [inheritReturnPolicy, setInheritReturnPolicy] = useState(true);
 
   // 8. SEO Metadata State
-  const [metaTitle, setMetaTitle] = useState(isEditMode ? '' : 'Apex Titan 5G Pro (12GB RAM, 256GB Storage) - Lowest Price');
-  const [metaDescription, setMetaDescription] = useState(isEditMode ? '' : 'Buy Apex Titan 5G Pro online at best price. Experience ultra-fast 5G, 120Hz display, and 50MP OIS camera with free express delivery.');
+  const [metaTitle, setMetaTitle] = useState('');
+  const [metaDescription, setMetaDescription] = useState('');
 
   // 9. Governance, Draft & Submission State
   const [requestModalAttr, setRequestModalAttr] = useState(null);
@@ -271,6 +269,7 @@ export default function SellerAddProductPage() {
       mrp,
       sellingPrice,
       stockQuantity,
+      baseSku,
       coverImage: images[0] || null
     };
 
@@ -284,7 +283,7 @@ export default function SellerAddProductPage() {
     );
 
     setVariants(computed);
-  }, [attributeValues, selectedCategory, categoryAttributes]);
+  }, [attributeValues, selectedCategory, categoryAttributes, title, brand, mrp, sellingPrice, stockQuantity, baseSku, images]);
 
   // Handle Category Switching
   const handleSelectCategory = (newCat) => {
@@ -422,7 +421,9 @@ export default function SellerAddProductPage() {
     const attrsList = categoryAttributes.length > 0 ? categoryAttributes : (selectedCategory?.attributes || []);
     if (!attrsList || attrsList.length === 0) return;
 
-    const attributePayload = attrsList.flatMap(attr => {
+    const attributePayload = attrsList
+      .filter(attr => !(attr.is_variation_capable ?? attr.variationCapable))
+      .flatMap(attr => {
       const isBrand = attr.attribute_name?.toLowerCase() === 'brand' || attr.name?.toLowerCase() === 'brand';
       const value = isBrand ? brand.trim() : attributeValues[attr.id];
       if (value === undefined || value === null || value === '') return [];
@@ -433,11 +434,10 @@ export default function SellerAddProductPage() {
           String(opt.id) === String(value) ||
           String(opt.value || opt.name || opt).toLowerCase() === String(value).toLowerCase()
         );
-        if (option) {
-          return [{ category_attribute_id: attr.id, value_id: option.id }];
-        } else {
-          return [{ category_attribute_id: attr.id, raw_value: String(value) }];
+        if (!option) {
+          throw new Error(`Select a valid value for ${attr.attribute_name || attr.name}.`);
         }
+        return [{ category_attribute_id: attr.id, value_id: option.id }];
       }
       return [{ category_attribute_id: attr.id, raw_value: String(value) }];
     });
@@ -463,6 +463,8 @@ export default function SellerAddProductPage() {
   // Helper to persist variant updates (PATCH existing variants, POST new variants)
   const persistProductVariants = async (targetProductId) => {
     if (!variants || variants.length === 0) return;
+    // Drafts can be saved before variant SKU, price, and stock are entered.
+    if (variants.some(variant => !String(variant.sku || '').trim() || variant.price === '' || variant.price == null || variant.stock === '' || variant.stock == null)) return;
 
     const existingVariants = variants.filter(v => typeof v.id === 'number' || (!isNaN(v.id) && !String(v.id).startsWith('VAR-')));
 

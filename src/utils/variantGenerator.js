@@ -36,11 +36,9 @@ export function generateCartesianVariants(selectedAttributes, schemaAttributes, 
   );
 
   // 3. Map into full variant rows
-  const brandCode = (baseData.brand || 'APEX').replace(/[^a-zA-Z0-9]/g, '').substring(0, 3).toUpperCase();
-  const titleCode = (baseData.title || 'PROD').replace(/[^a-zA-Z0-9]/g, '').substring(0, 4).toUpperCase();
-  const baseMrp = parseFloat(baseData.mrp) || 9999;
-  const basePrice = parseFloat(baseData.sellingPrice) || 4999;
-  const baseStock = (baseData.stockQuantity === '' || baseData.stockQuantity == null) ? 0 : Number(baseData.stockQuantity);
+  const baseMrp = baseData.mrp === '' || baseData.mrp == null ? '' : Number(baseData.mrp);
+  const basePrice = baseData.sellingPrice === '' || baseData.sellingPrice == null ? '' : Number(baseData.sellingPrice);
+  const baseStock = baseData.stockQuantity === '' || baseData.stockQuantity == null ? '' : Number(baseData.stockQuantity);
 
   return rawCartesian.map((combinationValues, index) => {
     // Construct attribute mapping for this combination
@@ -59,7 +57,8 @@ export function generateCartesianVariants(selectedAttributes, schemaAttributes, 
     });
 
     const comboId = combinationValues.join('__');
-    const autoSku = `SKU-${brandCode}-${titleCode}-${skuParts.join('-')}`;
+    const baseSku = String(baseData.baseSku || '').trim();
+    const autoSku = baseSku ? `${baseSku}-${skuParts.join('-')}` : '';
     const combinationLabel = labelParts.join(' / ');
 
     // Check if seller had previously customized this exact variant combination
@@ -68,6 +67,10 @@ export function generateCartesianVariants(selectedAttributes, schemaAttributes, 
     if (existing) {
       return {
         ...existing,
+        sku: existing.sku || autoSku,
+        mrp: existing.mrp === '' || existing.mrp == null ? baseMrp : existing.mrp,
+        price: existing.price === '' || existing.price == null ? basePrice : existing.price,
+        stock: existing.stock === '' || existing.stock == null ? baseStock : existing.stock,
         combinationLabel,
         combinationMap
       };

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -21,6 +21,7 @@ import {
 import { ADMIN_NAV_GROUPS } from '../../data/adminMockData';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
+import { apiRequest } from '../../utils/api';
 
 const ICON_MAP = {
   LayoutDashboard,
@@ -75,6 +76,33 @@ export default function AdminSidebar({
     };
   }).filter(Boolean);
 
+  // Fetch pending governance and review counts for sidebar badges
+  const [pendingCounts, setPendingCounts] = useState({
+    brands: 0,
+    attributes: 0,
+    products: 0,
+  });
+
+  useEffect(() => {
+    const fetchCounts = async () => {
+      try {
+        const [brandData, attrData, prodData] = await Promise.all([
+          apiRequest('/api/products/admin/brand-requests/').catch(() => []),
+          apiRequest('/api/products/admin/attribute-value-requests/').catch(() => []),
+          apiRequest('/api/products/admin/products/').catch(() => []),
+        ]);
+        setPendingCounts({
+          brands: Array.isArray(brandData) ? brandData.length : (brandData.results?.length || 0),
+          attributes: Array.isArray(attrData) ? attrData.length : (attrData.results?.length || 0),
+          products: Array.isArray(prodData) ? prodData.length : (prodData.results?.length || 0),
+        });
+      } catch (err) {
+        console.error("Failed to fetch sidebar pending counts:", err);
+      }
+    };
+    fetchCounts();
+  }, [location.pathname]);
+
   const handleItemClick = (id) => {
     if (id === 'dashboard') {
       navigate('/admin');
@@ -88,6 +116,19 @@ export default function AdminSidebar({
     await logout();
     navigate('/', { replace: true });
     toast.info("Admin Sign Out", "You have signed out of Admin Operations Console.");
+  };
+
+  const getItemBadge = (itemId, defaultBadge) => {
+    if (itemId === 'brands' && pendingCounts.brands > 0) {
+      return `${pendingCounts.brands} pending`;
+    }
+    if (itemId === 'catalog-schema' && pendingCounts.attributes > 0) {
+      return `${pendingCounts.attributes} pending`;
+    }
+    if (itemId === 'products' && pendingCounts.products > 0) {
+      return `${pendingCounts.products} pending`;
+    }
+    return defaultBadge;
   };
 
   return (
@@ -167,7 +208,7 @@ export default function AdminSidebar({
                     onClick={() => handleItemClick(group.id)}
                     className={`w-full flex items-center justify-between px-3 py-2 rounded-xl font-bold transition-all cursor-pointer btn-interactive ${
                       isCurrent
-                        ? 'bg-[#FF811A] text-[#FA661C] shadow-sm'
+                        ? 'bg-[#FF811A] text-[#FFFFFF] shadow-sm'
                         : 'text-[#FFFFFF]/80 hover:bg-[#E0530B] hover:text-[#FFFFFF]'
                     }`}
                   >
@@ -199,6 +240,7 @@ export default function AdminSidebar({
                     <div className="pl-6 pr-1 space-y-1 border-l-2 border-[#FF811A]/30 ml-4 py-1">
                       {group.items.map((item) => {
                         const isCurrent = activeSection === item.id;
+                        const badgeText = getItemBadge(item.id, item.badge);
 
                         return (
                           <button
@@ -207,20 +249,20 @@ export default function AdminSidebar({
                             onClick={() => handleItemClick(item.id)}
                             className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition-all cursor-pointer ${
                               isCurrent
-                                ? 'bg-[#FF811A] text-[#FA661C] font-black shadow-xs'
+                                ? 'bg-[#FF811A] text-[#FFFFFF] font-black shadow-xs'
                                 : 'text-[#FFFFFF]/70 hover:bg-[#E0530B] hover:text-[#FFFFFF]'
                             }`}
                           >
                             <span className="truncate">{item.label}</span>
-                            {item.badge && (
+                            {badgeText && (
                               <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded-full ml-1 shrink-0 ${
-                                item.badge.includes('Alert') || item.badge.includes('Action')
-                                  ? 'bg-[#D7263D] text-white'
+                                badgeText.includes('Alert') || badgeText.includes('Action') || badgeText.includes('pending')
+                                  ? isCurrent ? 'bg-[#FFFFFF] text-[#FF811A]' : 'bg-[#D7263D] text-white'
                                   : isCurrent
                                   ? 'bg-[#1A1A1A] text-[#FFFFFF]'
                                   : 'bg-[#E0530B] text-[#FF811A]'
                               }`}>
-                                {item.badge}
+                                {badgeText}
                               </span>
                             )}
                           </button>

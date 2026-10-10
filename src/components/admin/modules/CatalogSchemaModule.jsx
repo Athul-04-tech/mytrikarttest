@@ -17,13 +17,18 @@ import {
   ShieldAlert,
   Info,
   SlidersHorizontal,
-  Sparkles
+  Sparkles,
+  Ban
 } from 'lucide-react';
 import { apiRequest } from '../../../utils/api';
 import { useToast } from '../../../context/ToastContext';
+import GovernanceQueueModule, { AttributeRequestCards, getCategoryFullPath } from './GovernanceQueueModule';
 
 export default function CatalogSchemaModule() {
   const toast = useToast();
+
+  // Module Active Tab: 'schema' | 'requests'
+  const [activeTab, setActiveTab] = useState('schema');
 
   // Categories list state
   const [categories, setCategories] = useState([]);
@@ -38,6 +43,16 @@ export default function CatalogSchemaModule() {
   // Allowed values state for selected attribute
   const [allowedValues, setAllowedValues] = useState([]);
   const [loadingValues, setLoadingValues] = useState(false);
+
+  // Pending Attribute Requests State
+  const [attrRequests, setAttrRequests] = useState([]);
+  const [loadingRequests, setLoadingRequests] = useState(false);
+  const [requestError, setRequestError] = useState(null);
+
+  // Rejection modal state for requests
+  const [rejectingReq, setRejectingReq] = useState(null);
+  const [rejectReason, setRejectReason] = useState('');
+  const [submittingReqAction, setSubmittingReqAction] = useState(false);
 
   // Search & Filter
   const [categorySearch, setCategorySearch] = useState('');
@@ -150,6 +165,73 @@ export default function CatalogSchemaModule() {
       setAllowedValues([]);
     }
   }, [selectedAttribute?.id]);
+
+  // Fetch Pending Attribute Value Requests
+  const fetchAttrRequests = async () => {
+    setLoadingRequests(true);
+    setRequestError(null);
+    try {
+      const data = await apiRequest('/api/products/admin/attribute-value-requests/');
+      setAttrRequests(Array.isArray(data) ? data : (data.results || []));
+    } catch (err) {
+      console.error("Failed to fetch attribute value requests:", err);
+      setRequestError(err.data?.detail || err.message || "Failed to load attribute value requests.");
+    } finally {
+      setLoadingRequests(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAttrRequests();
+  }, []);
+
+  // Approve Attribute Value Request
+  const handleApproveAttrReq = async (req) => {
+    setSubmittingReqAction(true);
+    setActionError(null);
+    try {
+      await apiRequest(`/api/products/admin/attribute-value-requests/${req.id}/review/`, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'approve' }),
+      });
+      toast?.success("Attribute Value Approved", `Value "${req.requested_value}" approved.`);
+      setAttrRequests(prev => prev.filter(r => r.id !== req.id));
+      if (selectedAttribute) {
+        fetchAllowedValues(selectedAttribute.id);
+      }
+    } catch (err) {
+      console.error("Failed to approve attribute request:", err);
+      const msg = err.data?.detail || err.message || "Failed to approve request.";
+      setActionError(typeof msg === 'string' ? msg : JSON.stringify(msg));
+    } finally {
+      setSubmittingReqAction(false);
+    }
+  };
+
+  // Reject Attribute Value Request
+  const handleRejectAttrReqSubmit = async (e) => {
+    e.preventDefault();
+    if (!rejectingReq || !rejectReason.trim()) return;
+
+    setSubmittingReqAction(true);
+    setActionError(null);
+    try {
+      await apiRequest(`/api/products/admin/attribute-value-requests/${rejectingReq.id}/review/`, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'reject', reason: rejectReason.trim() }),
+      });
+      toast?.success("Request Rejected", `Attribute value request #${rejectingReq.id} rejected.`);
+      setAttrRequests(prev => prev.filter(r => r.id !== rejectingReq.id));
+      setRejectingReq(null);
+      setRejectReason('');
+    } catch (err) {
+      console.error("Failed to reject attribute request:", err);
+      const msg = err.data?.detail || err.message || "Failed to reject request.";
+      setActionError(typeof msg === 'string' ? msg : JSON.stringify(msg));
+    } finally {
+      setSubmittingReqAction(false);
+    }
+  };
 
   // Auto-generate slug helper
   const handleCatNameChange = (name) => {
@@ -376,416 +458,616 @@ export default function CatalogSchemaModule() {
         </div>
 
         <div className="flex items-center space-x-3 self-start sm:self-auto">
-          <button
-            type="button"
-            onClick={() => {
-              setCatFormData({ id: null, name: '', slug: '', parent: '', is_active: true, always_requires_review: false });
-              setCategoryModalMode('create');
-              setCategoryModalOpen(true);
-            }}
-            className="px-4 py-2 bg-[#FA661C] hover:bg-[#FF811A] text-white text-xs font-bold rounded-xl btn-interactive flex items-center space-x-1.5 shadow-xs cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Create Category</span>
-          </button>
-        </div>
-      </div>
-
-      {/* 2. Admin Defines, Seller Selects Banner */}
-      <div className="p-4 bg-gradient-to-r from-[#FFF3EC] to-white border border-[#EAE3DC] rounded-2xl flex items-start space-x-3 shadow-xs">
-        <Sparkles className="w-5 h-5 text-[#FA661C] shrink-0 mt-0.5" />
-        <div className="text-xs text-[#6B6058] flex-1">
-          <span className="font-extrabold text-[#FA661C] uppercase tracking-wider block">
-            "Admin Defines, Seller Selects" Governance Architecture
-          </span>
-          Categories and attributes configured here directly dictate the dynamic input forms, variation fields, and dropdown choices presented to merchants when listing products on the Seller Portal.
-          <span className="text-[#D7263D] font-bold block mt-0.5">
-            Note: Categories, attributes, or values currently used by existing products cannot be deleted.
-          </span>
-        </div>
-      </div>
-
-      {/* Action Error Alert */}
-      {actionError && (
-        <div className="p-4 bg-[#FDE8EA] border border-[#D7263D]/40 rounded-2xl flex items-start space-x-3 text-xs text-[#D7263D] animate-shake shadow-xs">
-          <ShieldAlert className="w-5 h-5 shrink-0 mt-0.5 text-[#D7263D]" />
-          <div className="flex-1">
-            <div className="font-extrabold uppercase">Deletion Protection Active</div>
-            <p className="mt-0.5 font-medium">{actionError}</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setActionError(null)}
-            className="p-1 text-[#D7263D] hover:bg-[#FCD34D]/20 rounded-lg cursor-pointer"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      )}
-
-      {/* 4. Three-Column Interactive Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        
-        {/* PANE 1: Categories Tree / List (4 Cols) */}
-        <div className="lg:col-span-4 bg-white rounded-3xl border border-[#EAE3DC] p-5 space-y-4 shadow-xs">
-          <div className="flex items-center justify-between pb-3 border-b border-[#EAE3DC]">
-            <div className="flex items-center space-x-2">
-              <FolderTree className="w-4 h-4 text-[#FA661C]" />
-              <h3 className="font-['Outfit'] font-extrabold text-base text-[#FA661C]">
-                Categories ({categories.length})
-              </h3>
-            </div>
+          {activeTab === 'schema' && (
             <button
               type="button"
-              onClick={fetchCategories}
-              disabled={loadingCategories}
-              className="p-1.5 rounded-lg bg-[#FFF8F2] hover:bg-[#FFF3EC] text-[#FA661C] border border-[#EAE3DC] cursor-pointer"
-              title="Refresh Categories"
+              onClick={() => {
+                setCatFormData({ id: null, name: '', slug: '', parent: '', is_active: true, always_requires_review: false });
+                setCategoryModalMode('create');
+                setCategoryModalOpen(true);
+              }}
+              className="px-4 py-2 bg-[#FA661C] hover:bg-[#FF811A] text-white text-xs font-bold rounded-xl btn-interactive flex items-center space-x-1.5 shadow-xs cursor-pointer"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${loadingCategories ? 'animate-spin' : ''}`} />
+              <Plus className="w-4 h-4" />
+              <span>Create Category</span>
             </button>
-          </div>
+          )}
 
-          {/* Search Box */}
-          <input
-            type="text"
-            placeholder="Search categories..."
-            value={categorySearch}
-            onChange={(e) => setCategorySearch(e.target.value)}
-            className="w-full bg-[#FFF8F2] border border-[#EAE3DC] rounded-xl px-3 py-2 text-xs text-[#1A2420] focus:outline-none focus:ring-2 focus:ring-[#FA661C]"
-          />
-
-          {/* Category List */}
-          {loadingCategories ? (
-            <div className="p-6 text-center text-xs text-[#6B6058] animate-pulse">
-              Loading category hierarchy...
-            </div>
-          ) : filteredCategories.length === 0 ? (
-            <div className="p-6 text-center text-xs text-[#6B6058] border border-dashed border-[#EAE3DC] rounded-2xl">
-              No categories found.
-            </div>
-          ) : (
-            <div className="space-y-1.5 max-h-[500px] overflow-y-auto pr-1">
-              {filteredCategories.map((cat) => {
-                const isSelected = selectedCategory?.id === cat.id;
-                const parentCat = cat.parent ? categories.find(c => c.id === cat.parent) : null;
-
-                return (
-                  <div
-                    key={cat.id}
-                    onClick={() => setSelectedCategory(cat)}
-                    className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
-                      isSelected
-                        ? 'bg-[#FFF3EC] border-[#FA661C] shadow-xs'
-                        : 'bg-white border-[#EAE3DC] hover:bg-[#FFF8F2]'
-                    }`}
-                  >
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center space-x-1.5">
-                        <span className={`font-bold text-xs truncate ${isSelected ? 'text-[#FA661C]' : 'text-[#1A2420]'}`}>
-                          {cat.name}
-                        </span>
-                        {!cat.is_active && (
-                          <span className="bg-[#F1F5F9] text-[#64748B] text-[9px] px-1.5 py-0.5 rounded font-bold uppercase">
-                            Inactive
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center space-x-2 mt-0.5 text-[10px] text-[#6B6058]">
-                        <span className="font-mono">slug: {cat.slug}</span>
-                        {parentCat && (
-                          <span className="bg-[#FFF8F2] px-1.5 py-0.5 rounded text-[#FA661C] font-semibold">
-                            parent: {parentCat.name}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center space-x-1 shrink-0 ml-2">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setCatFormData({
-                            id: cat.id,
-                            name: cat.name,
-                            slug: cat.slug,
-                            parent: cat.parent || '',
-                            is_active: cat.is_active,
-                            always_requires_review: cat.always_requires_review,
-                          });
-                          setCategoryModalMode('edit');
-                          setCategoryModalOpen(true);
-                        }}
-                        className="p-1 rounded-lg bg-white hover:bg-[#FFF3EC] text-[#6B6058] hover:text-[#FA661C] border border-[#EAE3DC]"
-                        title="Edit Category"
-                      >
-                        <Edit2 className="w-3 h-3" />
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteCategory(cat);
-                        }}
-                        className="p-1 rounded-lg bg-white hover:bg-[#FDE8EA] text-[#6B6058] hover:text-[#D7263D] border border-[#EAE3DC]"
-                        title="Delete Category (Protected if in use)"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </button>
-
-                      <ChevronRight className={`w-4 h-4 ${isSelected ? 'text-[#FA661C]' : 'text-[#6B6058]'}`} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+          {activeTab === 'requests' && (
+            <button
+              type="button"
+              onClick={fetchAttrRequests}
+              disabled={loadingRequests}
+              className="p-2 rounded-xl bg-white hover:bg-[#FFF3EC] border border-[#EAE3DC] text-[#FA661C] btn-interactive cursor-pointer disabled:opacity-50"
+              title="Refresh Seller Requests"
+            >
+              <RefreshCw className={`w-4 h-4 ${loadingRequests ? 'animate-spin' : ''}`} />
+            </button>
           )}
         </div>
+      </div>
 
-        {/* PANE 2: Category Attributes Panel (4 Cols) */}
-        <div className="lg:col-span-4 bg-white rounded-3xl border border-[#EAE3DC] p-5 space-y-4 shadow-xs">
-          <div className="flex items-center justify-between pb-3 border-b border-[#EAE3DC]">
-            <div>
-              <div className="flex items-center space-x-1.5">
-                <SlidersHorizontal className="w-4 h-4 text-[#FA661C]" />
-                <h3 className="font-['Outfit'] font-extrabold text-base text-[#FA661C]">
-                  Attributes ({attributes.length})
-                </h3>
+      {/* 2. Top-Level Module Navigation Tabs */}
+      <div className="flex border-b border-[#EAE3DC] space-x-4">
+        <button
+          type="button"
+          onClick={() => setActiveTab('schema')}
+          className={`pb-3 text-xs font-bold transition-colors cursor-pointer relative flex items-center space-x-2 ${
+            activeTab === 'schema'
+              ? 'text-[#FA661C] border-b-2 border-[#FA661C]'
+              : 'text-[#6B6058] hover:text-[#FA661C]'
+          }`}
+        >
+          <Boxes className="w-4 h-4" />
+          <span>Catalog Schema &amp; Hierarchy</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('requests')}
+          className={`pb-3 text-xs font-bold transition-colors cursor-pointer relative flex items-center space-x-2 ${
+            activeTab === 'requests'
+              ? 'text-[#FA661C] border-b-2 border-[#FA661C]'
+              : 'text-[#6B6058] hover:text-[#FA661C]'
+          }`}
+        >
+          <Tag className="w-4 h-4" />
+          <span>Seller requests</span>
+          <span className={`px-2 py-0.5 rounded-full text-[10px] ${
+            attrRequests.length > 0 ? 'bg-[#FFF3EC] text-[#FA661C] font-black' : 'bg-gray-100 text-gray-600'
+          }`}>
+            {attrRequests.length}
+          </span>
+        </button>
+      </div>
+
+      {/* TAB 1: CATALOG SCHEMA & HIERARCHY */}
+      {activeTab === 'schema' && (
+        <div className="space-y-6">
+          {/* Admin Defines, Seller Selects Banner */}
+          <div className="p-4 bg-gradient-to-r from-[#FFF3EC] to-white border border-[#EAE3DC] rounded-2xl flex items-start space-x-3 shadow-xs">
+            <Sparkles className="w-5 h-5 text-[#FA661C] shrink-0 mt-0.5" />
+            <div className="text-xs text-[#6B6058] flex-1">
+              <span className="font-extrabold text-[#FA661C] uppercase tracking-wider block">
+                "Admin Defines, Seller Selects" Governance Architecture
+              </span>
+              Categories and attributes configured here directly dictate the dynamic input forms, variation fields, and dropdown choices presented to merchants when listing products on the Seller Portal.
+              <span className="text-[#D7263D] font-bold block mt-0.5">
+                Note: Categories, attributes, or values currently used by existing products cannot be deleted.
+              </span>
+            </div>
+          </div>
+
+          {/* Action Error Alert */}
+          {actionError && (
+            <div className="p-4 bg-[#FDE8EA] border border-[#D7263D]/40 rounded-2xl flex items-start space-x-3 text-xs text-[#D7263D] animate-shake shadow-xs">
+              <ShieldAlert className="w-5 h-5 shrink-0 mt-0.5 text-[#D7263D]" />
+              <div className="flex-1">
+                <div className="font-extrabold uppercase">Deletion Protection Active</div>
+                <p className="mt-0.5 font-medium">{actionError}</p>
               </div>
-              {selectedCategory && (
-                <span className="text-[10px] text-[#6B6058] font-bold block truncate max-w-xs mt-0.5">
-                  Category: {selectedCategory.name}
-                </span>
+              <button
+                type="button"
+                onClick={() => setActionError(null)}
+                className="p-1 text-[#D7263D] hover:bg-[#FCD34D]/20 rounded-lg cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          {/* Three-Column Interactive Layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            
+            {/* PANE 1: Categories Tree / List (4 Cols) */}
+            <div className="lg:col-span-4 bg-white rounded-3xl border border-[#EAE3DC] p-5 space-y-4 shadow-xs">
+              <div className="flex items-center justify-between pb-3 border-b border-[#EAE3DC]">
+                <div className="flex items-center space-x-2">
+                  <FolderTree className="w-4 h-4 text-[#FA661C]" />
+                  <h3 className="font-['Outfit'] font-extrabold text-base text-[#FA661C]">
+                    Categories ({categories.length})
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={fetchCategories}
+                  disabled={loadingCategories}
+                  className="p-1.5 rounded-lg bg-[#FFF8F2] hover:bg-[#FFF3EC] text-[#FA661C] border border-[#EAE3DC] cursor-pointer"
+                  title="Refresh Categories"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${loadingCategories ? 'animate-spin' : ''}`} />
+                </button>
+              </div>
+
+              {/* Search Box */}
+              <input
+                type="text"
+                placeholder="Search categories..."
+                value={categorySearch}
+                onChange={(e) => setCategorySearch(e.target.value)}
+                className="w-full bg-[#FFF8F2] border border-[#EAE3DC] rounded-xl px-3 py-2 text-xs text-[#1A2420] focus:outline-none focus:ring-2 focus:ring-[#FA661C]"
+              />
+
+              {/* Category List */}
+              {loadingCategories ? (
+                <div className="p-6 text-center text-xs text-[#6B6058] animate-pulse">
+                  Loading category hierarchy...
+                </div>
+              ) : filteredCategories.length === 0 ? (
+                <div className="p-6 text-center text-xs text-[#6B6058] border border-dashed border-[#EAE3DC] rounded-2xl">
+                  No categories found.
+                </div>
+              ) : (
+                <div className="space-y-1.5 max-h-[500px] overflow-y-auto pr-1">
+                  {filteredCategories.map((cat) => {
+                    const isSelected = selectedCategory?.id === cat.id;
+                    const parentCat = cat.parent ? categories.find(c => c.id === cat.parent) : null;
+
+                    return (
+                      <div
+                        key={cat.id}
+                        onClick={() => setSelectedCategory(cat)}
+                        className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
+                          isSelected
+                            ? 'bg-[#FFF3EC] border-[#FA661C] shadow-xs'
+                            : 'bg-white border-[#EAE3DC] hover:bg-[#FFF8F2]'
+                        }`}
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center space-x-1.5">
+                            <span className={`font-bold text-xs truncate ${isSelected ? 'text-[#FA661C]' : 'text-[#1A2420]'}`}>
+                              {cat.name}
+                            </span>
+                            {!cat.is_active && (
+                              <span className="bg-[#F1F5F9] text-[#64748B] text-[9px] px-1.5 py-0.5 rounded font-bold uppercase">
+                                Inactive
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center space-x-2 mt-0.5 text-[10px] text-[#6B6058]">
+                            <span className="font-mono">slug: {cat.slug}</span>
+                            {parentCat && (
+                              <span className="bg-[#FFF8F2] px-1.5 py-0.5 rounded text-[#FA661C] font-semibold">
+                                parent: {parentCat.name}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center space-x-1 shrink-0 ml-2">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCatFormData({
+                                id: cat.id,
+                                name: cat.name,
+                                slug: cat.slug,
+                                parent: cat.parent || '',
+                                is_active: cat.is_active,
+                                always_requires_review: cat.always_requires_review,
+                              });
+                              setCategoryModalMode('edit');
+                              setCategoryModalOpen(true);
+                            }}
+                            className="p-1 rounded-lg bg-white hover:bg-[#FFF3EC] text-[#6B6058] hover:text-[#FA661C] border border-[#EAE3DC]"
+                            title="Edit Category"
+                          >
+                            <Edit2 className="w-3 h-3" />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteCategory(cat);
+                            }}
+                            className="p-1 rounded-lg bg-white hover:bg-[#FDE8EA] text-[#6B6058] hover:text-[#D7263D] border border-[#EAE3DC]"
+                            title="Delete Category (Protected if in use)"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+
+                          <ChevronRight className={`w-4 h-4 ${isSelected ? 'text-[#FA661C]' : 'text-[#6B6058]'}`} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               )}
             </div>
 
-            {selectedCategory && (
-              <button
-                type="button"
-                onClick={() => {
-                  setAttrFormData({ id: null, attribute_name: '', field_type: 'dropdown', is_required: false, is_variation_capable: false, display_order: attributes.length + 1 });
-                  setAttributeModalMode('create');
-                  setAttributeModalOpen(true);
-                }}
-                className="px-3 py-1.5 bg-[#FA661C] hover:bg-[#FF811A] text-white text-xs font-bold rounded-xl btn-interactive flex items-center space-x-1 cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Add Attr</span>
-              </button>
-            )}
-          </div>
+            {/* PANE 2: Category Attributes Panel (4 Cols) */}
+            <div className="lg:col-span-4 bg-white rounded-3xl border border-[#EAE3DC] p-5 space-y-4 shadow-xs">
+              <div className="flex items-center justify-between pb-3 border-b border-[#EAE3DC]">
+                <div>
+                  <div className="flex items-center space-x-1.5">
+                    <SlidersHorizontal className="w-4 h-4 text-[#FA661C]" />
+                    <h3 className="font-['Outfit'] font-extrabold text-base text-[#FA661C]">
+                      Attributes ({attributes.length})
+                    </h3>
+                  </div>
+                  {selectedCategory && (
+                    <span className="text-[10px] text-[#6B6058] font-bold block truncate max-w-xs mt-0.5">
+                      Category: {selectedCategory.name}
+                    </span>
+                  )}
+                </div>
 
-          {!selectedCategory ? (
-            <div className="p-8 text-center text-xs text-[#6B6058] border border-dashed border-[#EAE3DC] rounded-2xl">
-              Select a category on the left to manage its custom attributes.
-            </div>
-          ) : loadingAttributes ? (
-            <div className="p-6 text-center text-xs text-[#6B6058] animate-pulse">
-              Loading category attributes...
-            </div>
-          ) : attributes.length === 0 ? (
-            <div className="p-6 text-center text-xs text-[#6B6058] border border-dashed border-[#EAE3DC] rounded-2xl space-y-2">
-              <p>No attributes defined for "{selectedCategory.name}".</p>
-              <button
-                type="button"
-                onClick={() => {
-                  setAttrFormData({ id: null, attribute_name: '', field_type: 'dropdown', is_required: false, is_variation_capable: false, display_order: 1 });
-                  setAttributeModalMode('create');
-                  setAttributeModalOpen(true);
-                }}
-                className="px-3 py-1.5 bg-[#FFF3EC] hover:bg-[#FFE3D1] text-[#FA661C] text-xs font-bold rounded-xl cursor-pointer"
-              >
-                + Define First Attribute
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
-              {attributes.map((attr) => {
-                const isSelected = selectedAttribute?.id === attr.id;
-
-                return (
-                  <div
-                    key={attr.id}
-                    onClick={() => setSelectedAttribute(attr)}
-                    className={`p-3 rounded-2xl border transition-all cursor-pointer ${
-                      isSelected
-                        ? 'bg-[#FFF3EC] border-[#FA661C] shadow-xs'
-                        : 'bg-white border-[#EAE3DC] hover:bg-[#FFF8F2]'
-                    }`}
+                {selectedCategory && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAttrFormData({ id: null, attribute_name: '', field_type: 'dropdown', is_required: false, is_variation_capable: false, display_order: attributes.length + 1 });
+                      setAttributeModalMode('create');
+                      setAttributeModalOpen(true);
+                    }}
+                    className="px-3 py-1.5 bg-[#FA661C] hover:bg-[#FF811A] text-white text-xs font-bold rounded-xl btn-interactive flex items-center space-x-1 cursor-pointer"
                   >
-                    <div className="flex items-center justify-between">
-                      <span className={`font-bold text-xs ${isSelected ? 'text-[#FA661C]' : 'text-[#1A2420]'}`}>
-                        {attr.attribute_name}
-                      </span>
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Add Attr</span>
+                  </button>
+                )}
+              </div>
 
-                      <div className="flex items-center space-x-1" onClick={(e) => e.stopPropagation()}>
+              {!selectedCategory ? (
+                <div className="p-8 text-center text-xs text-[#6B6058] border border-dashed border-[#EAE3DC] rounded-2xl">
+                  Select a category on the left to manage its custom attributes.
+                </div>
+              ) : loadingAttributes ? (
+                <div className="p-6 text-center text-xs text-[#6B6058] animate-pulse">
+                  Loading category attributes...
+                </div>
+              ) : attributes.length === 0 ? (
+                <div className="p-6 text-center text-xs text-[#6B6058] border border-dashed border-[#EAE3DC] rounded-2xl space-y-2">
+                  <p>No attributes defined for "{selectedCategory.name}".</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAttrFormData({ id: null, attribute_name: '', field_type: 'dropdown', is_required: false, is_variation_capable: false, display_order: 1 });
+                      setAttributeModalMode('create');
+                      setAttributeModalOpen(true);
+                    }}
+                    className="px-3 py-1.5 bg-[#FFF3EC] hover:bg-[#FFE3D1] text-[#FA661C] text-xs font-bold rounded-xl cursor-pointer"
+                  >
+                    + Define First Attribute
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
+                  {attributes.map((attr) => {
+                    const isSelected = selectedAttribute?.id === attr.id;
+
+                    return (
+                      <div
+                        key={attr.id}
+                        onClick={() => setSelectedAttribute(attr)}
+                        className={`p-3 rounded-2xl border transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-[#FFF3EC] border-[#FA661C] shadow-xs'
+                            : 'bg-white border-[#EAE3DC] hover:bg-[#FFF8F2]'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className={`font-bold text-xs ${isSelected ? 'text-[#FA661C]' : 'text-[#1A2420]'}`}>
+                            {attr.attribute_name}
+                          </span>
+
+                          <div className="flex items-center space-x-1" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setAttrFormData({
+                                  id: attr.id,
+                                  attribute_name: attr.attribute_name,
+                                  field_type: attr.field_type,
+                                  is_required: attr.is_required,
+                                  is_variation_capable: attr.is_variation_capable,
+                                  display_order: attr.display_order,
+                                });
+                                setAttributeModalMode('edit');
+                                setAttributeModalOpen(true);
+                              }}
+                              className="p-1 rounded-lg bg-white hover:bg-[#FFF3EC] text-[#6B6058] hover:text-[#FA661C] border border-[#EAE3DC]"
+                              title="Edit Attribute"
+                            >
+                              <Edit2 className="w-3 h-3" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteAttribute(attr)}
+                              className="p-1 rounded-lg bg-white hover:bg-[#FDE8EA] text-[#6B6058] hover:text-[#D7263D] border border-[#EAE3DC]"
+                              title="Delete Attribute (Protected if in use)"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Attribute Badges */}
+                        <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                          <span className="bg-[#FFF8F2] text-[#FA661C] border border-[#FA661C]/20 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase">
+                            {attr.field_type}
+                          </span>
+                          {attr.is_variation_capable && (
+                            <span className="bg-[#FEF3C7] text-[#B45309] border border-[#F59E0B]/30 px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase">
+                              Variation Capable
+                            </span>
+                          )}
+                          {attr.is_required ? (
+                            <span className="bg-[#FDE8EA] text-[#D7263D] px-1.5 py-0.5 rounded-md text-[9px] font-bold">
+                              Required
+                            </span>
+                          ) : (
+                            <span className="bg-[#F1F5F9] text-[#64748B] px-1.5 py-0.5 rounded-md text-[9px]">
+                              Optional
+                            </span>
+                          )}
+                          <span className="text-[10px] text-[#6B6058] ml-auto">Order: {attr.display_order}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* PANE 3: Allowed Values Panel (4 Cols) */}
+            <div className="lg:col-span-4 bg-white rounded-3xl border border-[#EAE3DC] p-5 space-y-4 shadow-xs">
+              <div className="flex items-center justify-between pb-3 border-b border-[#EAE3DC]">
+                <div>
+                  <div className="flex items-center space-x-1.5">
+                    <Tag className="w-4 h-4 text-[#FA661C]" />
+                    <h3 className="font-['Outfit'] font-extrabold text-base text-[#FA661C]">
+                      Allowed Values ({allowedValues.length})
+                    </h3>
+                  </div>
+                  {selectedAttribute && (
+                    <span className="text-[10px] text-[#6B6058] font-bold block truncate max-w-xs mt-0.5">
+                      Attr: {selectedAttribute.attribute_name} ({selectedAttribute.field_type})
+                    </span>
+                  )}
+                </div>
+
+                {selectedAttribute && selectedAttribute.field_type === 'dropdown' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setValFormData({ id: null, value: '', display_order: allowedValues.length + 1 });
+                      setValueModalMode('create');
+                      setValueModalOpen(true);
+                    }}
+                    className="px-3 py-1.5 bg-[#FA661C] hover:bg-[#FF811A] text-white text-xs font-bold rounded-xl btn-interactive flex items-center space-x-1 cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Add Value</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Requirement 2: Show attribute's pending requests above allowed values list */}
+              {selectedAttribute && (
+                (() => {
+                  const pendingForAttr = attrRequests.filter(
+                    r => r.category_attribute === selectedAttribute.id || r.category_attribute_name === selectedAttribute.attribute_name
+                  );
+                  if (pendingForAttr.length === 0) return null;
+
+                  return (
+                    <div className="p-3 bg-[#FFF3EC] border border-[#FA661C]/30 rounded-2xl space-y-2 mb-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-[#FA661C] flex items-center gap-1.5">
+                          <Sparkles className="w-3.5 h-3.5 text-[#FF811A]" />
+                          Pending Seller Requests ({pendingForAttr.length})
+                        </span>
+                      </div>
+                      <div className="space-y-2">
+                        {pendingForAttr.map((req) => (
+                          <div key={req.id} className="p-3 bg-white border border-[#EAE3DC] rounded-xl text-xs space-y-2 shadow-2xs">
+                            <div className="flex items-center justify-between gap-1">
+                              <span className="font-extrabold text-[#FA661C] bg-[#FFF3EC] px-2 py-0.5 rounded border border-[#FA661C]/30">
+                                "{req.requested_value}"
+                              </span>
+                              <span className="text-[10px] text-[#6B6058] font-semibold truncate max-w-[120px]">
+                                {req.vendor_name || 'Vendor'}
+                              </span>
+                            </div>
+                            {req.reason && (
+                              <p className="text-[10px] text-[#6B6058] italic bg-[#FFF8F2] p-1.5 rounded border border-[#EAE3DC]/60">
+                                "{req.reason}"
+                              </p>
+                            )}
+                            <div className="flex items-center justify-end space-x-2 pt-1 border-t border-[#EAE3DC]/40">
+                              <button
+                                type="button"
+                                disabled={submittingReqAction}
+                                onClick={() => handleApproveAttrReq(req)}
+                                className="px-2.5 py-1 rounded-lg bg-[#52B788] hover:bg-[#40916C] text-white font-bold text-[10px] flex items-center space-x-1 cursor-pointer disabled:opacity-50"
+                              >
+                                <Check className="w-3 h-3" />
+                                <span>Approve</span>
+                              </button>
+                              <button
+                                type="button"
+                                disabled={submittingReqAction}
+                                onClick={() => { setRejectingReq(req); setRejectReason(''); }}
+                                className="px-2.5 py-1 rounded-lg bg-[#D7263D] hover:bg-[#B01E30] text-white font-bold text-[10px] flex items-center space-x-1 cursor-pointer disabled:opacity-50"
+                              >
+                                <Ban className="w-3 h-3" />
+                                <span>Reject</span>
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()
+              )}
+
+              {!selectedAttribute ? (
+                <div className="p-8 text-center text-xs text-[#6B6058] border border-dashed border-[#EAE3DC] rounded-2xl">
+                  Select an attribute to manage its allowed dropdown values.
+                </div>
+              ) : selectedAttribute.field_type !== 'dropdown' ? (
+                <div className="p-8 text-center text-xs text-[#6B6058] border border-dashed border-[#EAE3DC] rounded-2xl space-y-1">
+                  <Info className="w-5 h-5 text-[#FA661C] mx-auto mb-1" />
+                  <div className="font-bold text-[#1A2420]">Free-form Attribute</div>
+                  <p>"{selectedAttribute.attribute_name}" is of type <code className="bg-[#FFF8F2] text-[#FA661C] px-1 py-0.5 rounded font-mono">{selectedAttribute.field_type}</code>. Sellers input raw values directly during product listing.</p>
+                </div>
+              ) : loadingValues ? (
+                <div className="p-6 text-center text-xs text-[#6B6058] animate-pulse">
+                  Loading allowed values...
+                </div>
+              ) : allowedValues.length === 0 ? (
+                <div className="p-6 text-center text-xs text-[#6B6058] border border-dashed border-[#EAE3DC] rounded-2xl space-y-2">
+                  <p>No allowed values defined for "{selectedAttribute.attribute_name}".</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setValFormData({ id: null, value: '', display_order: 1 });
+                      setValueModalMode('create');
+                      setValueModalOpen(true);
+                    }}
+                    className="px-3 py-1.5 bg-[#FFF3EC] hover:bg-[#FFE3D1] text-[#FA661C] text-xs font-bold rounded-xl cursor-pointer"
+                  >
+                    + Define First Allowed Value
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-1.5 max-h-[500px] overflow-y-auto pr-1">
+                  {allowedValues.map((val) => (
+                    <div
+                      key={val.id}
+                      className="p-3 bg-white hover:bg-[#FFF8F2] border border-[#EAE3DC] rounded-2xl flex items-center justify-between transition-all"
+                    >
+                      <div>
+                        <span className="font-bold text-xs text-[#1A2420] block">{val.value}</span>
+                        <span className="text-[10px] text-[#6B6058]">Display Order: {val.display_order}</span>
+                      </div>
+
+                      <div className="flex items-center space-x-1">
                         <button
                           type="button"
                           onClick={() => {
-                            setAttrFormData({
-                              id: attr.id,
-                              attribute_name: attr.attribute_name,
-                              field_type: attr.field_type,
-                              is_required: attr.is_required,
-                              is_variation_capable: attr.is_variation_capable,
-                              display_order: attr.display_order,
+                            setValFormData({
+                              id: val.id,
+                              value: val.value,
+                              display_order: val.display_order,
                             });
-                            setAttributeModalMode('edit');
-                            setAttributeModalOpen(true);
+                            setValueModalMode('edit');
+                            setValueModalOpen(true);
                           }}
                           className="p-1 rounded-lg bg-white hover:bg-[#FFF3EC] text-[#6B6058] hover:text-[#FA661C] border border-[#EAE3DC]"
-                          title="Edit Attribute"
+                          title="Edit Value"
                         >
                           <Edit2 className="w-3 h-3" />
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleDeleteAttribute(attr)}
+                          onClick={() => handleDeleteValue(val)}
                           className="p-1 rounded-lg bg-white hover:bg-[#FDE8EA] text-[#6B6058] hover:text-[#D7263D] border border-[#EAE3DC]"
-                          title="Delete Attribute (Protected if in use)"
+                          title="Delete Allowed Value (Protected if in use)"
                         >
                           <Trash2 className="w-3 h-3" />
                         </button>
                       </div>
                     </div>
-
-                    {/* Attribute Badges */}
-                    <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                      <span className="bg-[#FFF8F2] text-[#FA661C] border border-[#FA661C]/20 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase">
-                        {attr.field_type}
-                      </span>
-                      {attr.is_variation_capable && (
-                        <span className="bg-[#FEF3C7] text-[#B45309] border border-[#F59E0B]/30 px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase">
-                          Variation Capable
-                        </span>
-                      )}
-                      {attr.is_required ? (
-                        <span className="bg-[#FDE8EA] text-[#D7263D] px-1.5 py-0.5 rounded-md text-[9px] font-bold">
-                          Required
-                        </span>
-                      ) : (
-                        <span className="bg-[#F1F5F9] text-[#64748B] px-1.5 py-0.5 rounded-md text-[9px]">
-                          Optional
-                        </span>
-                      )}
-                      <span className="text-[10px] text-[#6B6058] ml-auto">Order: {attr.display_order}</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* PANE 3: Allowed Values Panel (4 Cols) */}
-        <div className="lg:col-span-4 bg-white rounded-3xl border border-[#EAE3DC] p-5 space-y-4 shadow-xs">
-          <div className="flex items-center justify-between pb-3 border-b border-[#EAE3DC]">
-            <div>
-              <div className="flex items-center space-x-1.5">
-                <Tag className="w-4 h-4 text-[#FA661C]" />
-                <h3 className="font-['Outfit'] font-extrabold text-base text-[#FA661C]">
-                  Allowed Values ({allowedValues.length})
-                </h3>
-              </div>
-              {selectedAttribute && (
-                <span className="text-[10px] text-[#6B6058] font-bold block truncate max-w-xs mt-0.5">
-                  Attr: {selectedAttribute.attribute_name} ({selectedAttribute.field_type})
-                </span>
+                  ))}
+                </div>
               )}
             </div>
 
-            {selectedAttribute && selectedAttribute.field_type === 'dropdown' && (
-              <button
-                type="button"
-                onClick={() => {
-                  setValFormData({ id: null, value: '', display_order: allowedValues.length + 1 });
-                  setValueModalMode('create');
-                  setValueModalOpen(true);
-                }}
-                className="px-3 py-1.5 bg-[#FA661C] hover:bg-[#FF811A] text-white text-xs font-bold rounded-xl btn-interactive flex items-center space-x-1 cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Add Value</span>
-              </button>
-            )}
           </div>
+        </div>
+      )}
 
-          {!selectedAttribute ? (
-            <div className="p-8 text-center text-xs text-[#6B6058] border border-dashed border-[#EAE3DC] rounded-2xl">
-              Select an attribute to manage its allowed dropdown values.
-            </div>
-          ) : selectedAttribute.field_type !== 'dropdown' ? (
-            <div className="p-8 text-center text-xs text-[#6B6058] border border-dashed border-[#EAE3DC] rounded-2xl space-y-1">
-              <Info className="w-5 h-5 text-[#FA661C] mx-auto mb-1" />
-              <div className="font-bold text-[#1A2420]">Free-form Attribute</div>
-              <p>"{selectedAttribute.attribute_name}" is of type <code className="bg-[#FFF8F2] text-[#FA661C] px-1 py-0.5 rounded font-mono">{selectedAttribute.field_type}</code>. Sellers input raw values directly during product listing.</p>
-            </div>
-          ) : loadingValues ? (
-            <div className="p-6 text-center text-xs text-[#6B6058] animate-pulse">
-              Loading allowed values...
-            </div>
-          ) : allowedValues.length === 0 ? (
-            <div className="p-6 text-center text-xs text-[#6B6058] border border-dashed border-[#EAE3DC] rounded-2xl space-y-2">
-              <p>No allowed values defined for "{selectedAttribute.attribute_name}".</p>
+      {/* TAB 2: SELLER REQUESTS */}
+      {activeTab === 'requests' && (
+        <AttributeRequestCards
+          requests={attrRequests}
+          categories={categories}
+          loading={loadingRequests}
+          error={requestError}
+          submittingAction={submittingReqAction}
+          onApprove={handleApproveAttrReq}
+          onReject={(req) => { setRejectingReq(req); setRejectReason(''); setActionError(null); }}
+        />
+      )}
+
+      {/* REJECTION REASON MODAL FOR ATTRIBUTE REQUESTS */}
+      {rejectingReq && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl border border-[#EAE3DC] w-full max-w-md shadow-2xl p-6 space-y-4 animate-reveal">
+            
+            <div className="flex items-start justify-between pb-3 border-b border-[#EAE3DC]">
+              <div>
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#D7263D] bg-[#FDE8EA] px-2.5 py-0.5 rounded-full">
+                  GOVERNANCE REJECTION
+                </span>
+                <h3 className="font-['Outfit'] text-lg font-black text-[#FA661C] mt-1">
+                  Reject Attribute Value Request #{rejectingReq.id}
+                </h3>
+              </div>
+
               <button
                 type="button"
-                onClick={() => {
-                  setValFormData({ id: null, value: '', display_order: 1 });
-                  setValueModalMode('create');
-                  setValueModalOpen(true);
-                }}
-                className="px-3 py-1.5 bg-[#FFF3EC] hover:bg-[#FFE3D1] text-[#FA661C] text-xs font-bold rounded-xl cursor-pointer"
+                onClick={() => setRejectingReq(null)}
+                className="p-1 rounded-xl text-[#6B6058] hover:bg-gray-100 cursor-pointer"
               >
-                + Define First Allowed Value
+                <X className="w-5 h-5" />
               </button>
             </div>
-          ) : (
-            <div className="space-y-1.5 max-h-[500px] overflow-y-auto pr-1">
-              {allowedValues.map((val) => (
-                <div
-                  key={val.id}
-                  className="p-3 bg-white hover:bg-[#FFF8F2] border border-[#EAE3DC] rounded-2xl flex items-center justify-between transition-all"
-                >
-                  <div>
-                    <span className="font-bold text-xs text-[#1A2420] block">{val.value}</span>
-                    <span className="text-[10px] text-[#6B6058]">Display Order: {val.display_order}</span>
-                  </div>
 
-                  <div className="flex items-center space-x-1">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setValFormData({
-                          id: val.id,
-                          value: val.value,
-                          display_order: val.display_order,
-                        });
-                        setValueModalMode('edit');
-                        setValueModalOpen(true);
-                      }}
-                      className="p-1 rounded-lg bg-white hover:bg-[#FFF3EC] text-[#6B6058] hover:text-[#FA661C] border border-[#EAE3DC]"
-                      title="Edit Value"
-                    >
-                      <Edit2 className="w-3 h-3" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteValue(val)}
-                      className="p-1 rounded-lg bg-white hover:bg-[#FDE8EA] text-[#6B6058] hover:text-[#D7263D] border border-[#EAE3DC]"
-                      title="Delete Allowed Value (Protected if in use)"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
-                  </div>
-                </div>
-              ))}
+            {actionError && (
+              <div className="p-3 bg-[#FDE8EA] border border-[#D7263D]/30 rounded-xl text-xs text-[#D7263D] font-semibold flex items-start space-x-2">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <div className="flex-1">{actionError}</div>
+              </div>
+            )}
+
+            <div className="text-xs text-[#6B6058] space-y-1 bg-[#FFF8F2] p-3 rounded-2xl border border-[#EAE3DC]">
+              <div><strong className="text-[#FA661C]">Vendor:</strong> {rejectingReq.vendor_name || 'Vendor'}</div>
+              <div><strong className="text-[#FA661C]">Category:</strong> {getCategoryFullPath(rejectingReq, categories)}</div>
+              <div><strong className="text-[#FA661C]">Attribute:</strong> {rejectingReq.category_attribute_name}</div>
+              <div><strong className="text-[#FA661C]">Requested Value:</strong> "{rejectingReq.requested_value}"</div>
             </div>
-          )}
-        </div>
 
-      </div>
+            <form onSubmit={handleRejectAttrReqSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-[#FA661C] mb-1">
+                  Rejection Reason <span className="text-[#D7263D]">* (Required)</span>
+                </label>
+                <textarea
+                  rows={3}
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  placeholder="Specify why this governance request is being rejected (e.g. Invalid formatting, duplicate entry, trademark issue)..."
+                  className="w-full p-3 rounded-xl border border-[#EAE3DC] text-xs text-[#FA661C] focus:outline-none focus:border-[#FA661C] bg-white"
+                />
+              </div>
+
+              <div className="flex items-center justify-end space-x-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setRejectingReq(null)}
+                  className="px-4 py-2 rounded-xl bg-gray-100 text-gray-700 font-bold text-xs hover:bg-gray-200 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingReqAction || !rejectReason.trim()}
+                  className="px-4 py-2 rounded-xl bg-[#D7263D] text-white font-bold text-xs hover:bg-[#B01E30] transition-colors cursor-pointer disabled:opacity-50 shadow-md"
+                >
+                  {submittingReqAction ? "Submitting..." : "Confirm Rejection"}
+                </button>
+              </div>
+            </form>
+
+          </div>
+        </div>
+      )}
 
       {/* 5. MODALS */}
 

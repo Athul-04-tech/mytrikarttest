@@ -14,9 +14,10 @@ import {
   ChevronUp, 
   ShieldCheck, 
   Clock,
-  DollarSign
+  DollarSign,
+  Search
 } from 'lucide-react';
-import { apiRequest } from '../../../utils/api';
+import { apiRequest, openProtectedFile } from '../../../utils/api';
 import { useToast } from '../../../context/ToastContext';
 
 export default function ProductReviewModule() {
@@ -32,6 +33,11 @@ export default function ProductReviewModule() {
 
   // Expanded detail drawer / card state
   const [expandedProductId, setExpandedProductId] = useState(null);
+  const [activeTab, setActiveTab] = useState('pending');
+  const [approvedProducts, setApprovedProducts] = useState([]);
+  const [approvedLoading, setApprovedLoading] = useState(false);
+  const [approvedError, setApprovedError] = useState(null);
+  const [approvedSearch, setApprovedSearch] = useState('');
 
   const toast = useToast();
 
@@ -52,6 +58,24 @@ export default function ProductReviewModule() {
   useEffect(() => {
     fetchPendingProducts();
   }, []);
+
+  useEffect(() => {
+    if (activeTab !== 'approved') return undefined;
+    const timer = window.setTimeout(async () => {
+      setApprovedLoading(true);
+      setApprovedError(null);
+      try {
+        const query = approvedSearch.trim() ? `?search=${encodeURIComponent(approvedSearch.trim())}` : '';
+        const data = await apiRequest(`/api/products/admin/products/approved/${query}`);
+        setApprovedProducts(Array.isArray(data) ? data : (data.results || []));
+      } catch (err) {
+        setApprovedError(err.data?.detail || err.message || 'Could not load approved products.');
+      } finally {
+        setApprovedLoading(false);
+      }
+    }, approvedSearch ? 250 : 0);
+    return () => window.clearTimeout(timer);
+  }, [activeTab, approvedSearch]);
 
   const handleApprove = async (product) => {
     setIsSubmitting(true);
@@ -160,8 +184,55 @@ export default function ProductReviewModule() {
         </div>
       </div>
 
+      <div className="flex gap-2 border-b border-[#EAE3DC]">
+        <button type="button" onClick={() => setActiveTab('pending')} className={`px-4 py-2.5 text-sm font-bold border-b-2 ${activeTab === 'pending' ? 'border-[#FA661C] text-[#FA661C]' : 'border-transparent text-[#6B6058] hover:text-[#1A2420]'}`}>
+          Pending Review <span className="ml-1 rounded-full bg-[#FFF3EC] px-2 py-0.5 text-xs">{products.length}</span>
+        </button>
+        <button type="button" onClick={() => setActiveTab('approved')} className={`px-4 py-2.5 text-sm font-bold border-b-2 ${activeTab === 'approved' ? 'border-[#FA661C] text-[#FA661C]' : 'border-transparent text-[#6B6058] hover:text-[#1A2420]'}`}>
+          Approved Products
+        </button>
+      </div>
+
+      {activeTab === 'approved' && (
+        <section className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 className="font-['Outfit'] font-black text-lg text-[#1A2420]">Approved Products</h3>
+              <p className="text-xs text-[#6B6058]">Search published listings by product, seller, brand, SKU, or category.</p>
+            </div>
+            <span className="text-xs font-bold text-[#1A2420] bg-[#F0F8F4] border border-emerald-200 px-3 py-1.5 rounded-xl">{approvedProducts.length} listing{approvedProducts.length !== 1 ? 's' : ''}</span>
+          </div>
+          <label className="flex items-center gap-2 rounded-xl border border-[#EAE3DC] bg-white px-3 py-2.5 focus-within:border-[#FA661C]">
+            <Search className="h-4 w-4 shrink-0 text-[#8A7D73]" />
+            <input value={approvedSearch} onChange={(event) => setApprovedSearch(event.target.value)} placeholder="Search product, seller, brand, SKU, or category..." className="w-full bg-transparent text-sm outline-none placeholder:text-[#A89B91]" />
+          </label>
+          {approvedError && <div role="alert" className="rounded-xl border border-[#D7263D]/30 bg-[#FDE8EA] p-3 text-sm text-[#D7263D]">{approvedError}</div>}
+          {approvedLoading ? (
+            <div className="rounded-2xl border border-[#EAE3DC] bg-white p-8 text-center text-sm text-[#6B6058]">Loading approved products?</div>
+          ) : approvedProducts.length ? (
+            <div className="overflow-x-auto rounded-2xl border border-[#EAE3DC] bg-white">
+              <table className="w-full min-w-[720px] text-left text-sm">
+                <thead className="bg-[#FFF8F2] text-[11px] uppercase tracking-wide text-[#6B6058]"><tr><th className="p-3">Product</th><th className="p-3">Seller</th><th className="p-3">Category</th><th className="p-3">Brand</th><th className="p-3">SKU</th><th className="p-3">Status</th></tr></thead>
+                <tbody className="divide-y divide-[#EAE3DC]">{approvedProducts.map((product) => (
+                  <tr key={product.id} className="hover:bg-[#FFF8F2]/60">
+                    <td className="p-3"><div className="font-bold text-[#1A2420]">{product.name}</div><div className="text-xs text-[#8A7D73]">Product #{product.id}</div></td>
+                    <td className="p-3">{product.vendor_business_name || '?'}</td>
+                    <td className="p-3">{product.category_name || '?'}</td>
+                    <td className="p-3">{product.official_brand_name || '?'}</td>
+                    <td className="p-3 font-mono text-xs">{product.variants?.map((variant) => variant.sku_code).filter(Boolean).join(', ') || '?'}</td>
+                    <td className="p-3"><span className={`rounded-full px-2 py-1 text-[10px] font-bold ${product.is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-600'}`}>{product.is_active ? 'Live' : 'Deactivated'}</span></td>
+                  </tr>
+                ))}</tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-dashed border-[#EAE3DC] bg-white p-8 text-center text-sm text-[#6B6058]">{approvedSearch ? 'No approved products match your search.' : 'No approved products yet.'}</div>
+          )}
+        </section>
+      )}
+
       {/* 2. Error Banner if API fetch failed */}
-      {error && (
+      {activeTab === 'pending' && error && (
         <div className="p-4 bg-[#FDE8EA] border border-[#D7263D]/30 rounded-2xl flex items-start space-x-3 text-xs text-[#D7263D]">
           <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
           <div className="flex-1">
@@ -179,7 +250,7 @@ export default function ProductReviewModule() {
       )}
 
       {/* 3. Loading State Skeleton */}
-      {loading && (
+      {activeTab === 'pending' && loading && (
         <div className="space-y-4">
           {[1, 2].map(n => (
             <div key={n} className="bg-white rounded-2xl border border-[#EAE3DC] p-6 animate-pulse space-y-4">
@@ -192,7 +263,7 @@ export default function ProductReviewModule() {
       )}
 
       {/* 4. Empty Queue State */}
-      {!loading && !error && products.length === 0 && (
+      {activeTab === 'pending' && !loading && !error && products.length === 0 && (
         <div className="bg-white rounded-3xl border border-dashed border-[#EAE3DC] p-10 text-center space-y-3">
           <div className="w-14 h-14 rounded-2xl bg-[#FFF3EC] text-[#FA661C] mx-auto flex items-center justify-center">
             <CheckCircle2 className="w-8 h-8 text-[#52B788]" />
@@ -207,7 +278,7 @@ export default function ProductReviewModule() {
       )}
 
       {/* 5. Real Pending Products List */}
-      {!loading && !error && products.length > 0 && (
+      {activeTab === 'pending' && !loading && !error && products.length > 0 && (
         <div className="space-y-4">
           {products.map((product) => {
             const isExpanded = expandedProductId === product.id;
@@ -405,17 +476,20 @@ export default function ProductReviewModule() {
                         </div>
 
                         {/* Brand Authorization Document if attached */}
-                        {product.brand_authorization?.document && (
+                        {(product.official_brand_name || product.attribute_values?.some((attr) => attr.attribute_name?.toLowerCase() === 'brand' && (attr.selected_value || attr.raw_value))) && (
                           <div className="pt-2 border-t border-[#EAE3DC]">
-                            <a 
-                              href={product.brand_authorization.document}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-xs text-[#FF811A] font-bold underline flex items-center space-x-1 hover:text-[#FA661C]"
-                            >
-                              <ExternalLink className="w-3.5 h-3.5" />
-                              <span>View Brand Authorization Evidence Document</span>
-                            </a>
+                            {product.brand_authorization?.document ? (
+                              <button
+                                type="button"
+                                onClick={() => openProtectedFile(product.brand_authorization_access_url).catch((err) => toast.error('Document Unavailable', err.message || 'Could not open the authorization document.'))}
+                                className="text-xs text-[#FF811A] font-bold underline flex items-center space-x-1 hover:text-[#FA661C]"
+                              >
+                                <ExternalLink className="w-3.5 h-3.5" />
+                                <span>Review Brand Authorization Document</span>
+                              </button>
+                            ) : (
+                              <p className="text-xs font-bold text-[#D7263D]">No brand authorization document is attached. Approval is blocked until the seller provides one.</p>
+                            )}
                           </div>
                         )}
                       </div>

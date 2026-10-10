@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Menu, 
@@ -13,10 +13,14 @@ import {
   ShoppingBag,
   Store,
   ChevronDown,
-  LogOut
+  LogOut,
+  Tag,
+  Boxes,
+  Building2
 } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
+import { apiRequest } from '../../utils/api';
 
 export default function AdminTopBar({ 
   onToggleSidebar, 
@@ -27,6 +31,54 @@ export default function AdminTopBar({
   const toast = useToast();
   const navigate = useNavigate();
   const { logout } = useAuth();
+
+  // Real pending counts state
+  const [counts, setCounts] = useState({
+    products: 0,
+    vendors: 0,
+    attributes: 0,
+    brands: 0,
+  });
+  const [loadingCounts, setLoadingCounts] = useState(true);
+
+  const fetchRealPendingCounts = async () => {
+    setLoadingCounts(true);
+    try {
+      const [prodData, attrData, brandData, overviewData] = await Promise.all([
+        apiRequest('/api/products/admin/products/').catch(() => []),
+        apiRequest('/api/products/admin/attribute-value-requests/').catch(() => []),
+        apiRequest('/api/products/admin/brand-requests/').catch(() => []),
+        apiRequest('/api/reports/admin/overview/').catch(() => null),
+      ]);
+
+      const pCount = Array.isArray(prodData) ? prodData.length : (prodData.results?.length || 0);
+      const aCount = Array.isArray(attrData) ? attrData.length : (attrData.results?.length || 0);
+      const bCount = Array.isArray(brandData) ? brandData.length : (brandData.results?.length || 0);
+      
+      let vCount = 0;
+      if (overviewData && overviewData.vendors && overviewData.vendors.by_onboarding_status) {
+        const statuses = overviewData.vendors.by_onboarding_status;
+        vCount = (statuses.SUBMITTED || 0) + (statuses.UNDER_REVIEW || 0);
+      }
+
+      setCounts({
+        products: pCount,
+        vendors: vCount,
+        attributes: aCount,
+        brands: bCount,
+      });
+    } catch (err) {
+      console.error("Failed to fetch notification bell counts:", err);
+    } finally {
+      setLoadingCounts(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRealPendingCounts();
+  }, []);
+
+  const totalPendingCount = counts.products + counts.vendors + counts.attributes + counts.brands;
 
   const handleSimulateQuickAction = (msg) => {
     toast.success("Admin Action Executed", msg);
@@ -84,9 +136,11 @@ export default function AdminTopBar({
               aria-label="Open ops notifications"
             >
               <Bell className="w-4 h-4 icon-interactive" />
-              <span className="absolute -top-1 -right-1 bg-[#D7263D] text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center border-2 border-white animate-badge-pop">
-                3
-              </span>
+              {totalPendingCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-[#D7263D] text-white text-[9px] font-black min-w-4 h-4 px-1 rounded-full flex items-center justify-center border-2 border-white animate-badge-pop">
+                  {totalPendingCount}
+                </span>
+              )}
             </button>
 
             {/* Notification Popover Dropdown */}
@@ -94,45 +148,79 @@ export default function AdminTopBar({
               <div className="absolute right-0 mt-2 w-80 bg-white border border-[#FF811A]/50 rounded-2xl shadow-xl z-50 p-4 animate-dropdown text-xs">
                 <div className="flex items-center justify-between pb-2 border-b border-[#EAE3DC]">
                   <span className="font-bold text-[#FA661C] uppercase tracking-wider text-[10px]">
-                    Ops Action Stream (3 Urgent)
+                    Ops Action Stream ({totalPendingCount} Pending)
                   </span>
                   <button
                     type="button"
-                    onClick={() => handleSimulateQuickAction("All notifications marked as reviewed.")}
+                    onClick={() => { fetchRealPendingCounts(); handleSimulateQuickAction("Refreshed governance action stream."); }}
                     className="text-[10px] text-[#FF811A] hover:underline font-bold"
                   >
-                    Clear All
+                    Refresh
                   </button>
                 </div>
 
                 <div className="py-2 space-y-2 divide-y divide-[#EAE3DC]/40">
-                  <div className="pt-2 flex items-start space-x-2.5">
-                    <span className="p-1 rounded-lg bg-[#FDE8EA] text-[#D7263D] shrink-0 mt-0.5">
+                  <div
+                    onClick={() => { navigate('/admin/products'); setIsNotifOpen(false); }}
+                    className="pt-2 flex items-start space-x-2.5 cursor-pointer hover:bg-[#FFF8F2] p-1.5 rounded-xl transition-colors"
+                  >
+                    <span className="p-1 rounded-lg bg-[#FFF3EC] text-[#FA661C] shrink-0 mt-0.5">
+                      <Boxes className="w-3.5 h-3.5" />
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <h5 className="font-bold text-[#FA661C]">Products Awaiting Review</h5>
+                        <span className="text-[10px] font-black bg-[#D7263D] text-white px-1.5 py-0.2 rounded-full">{counts.products}</span>
+                      </div>
+                      <p className="text-[10px] text-[#6B6058] truncate">Vendor product listings submitted for moderation</p>
+                    </div>
+                  </div>
+
+                  <div
+                    onClick={() => { navigate('/admin/catalog-schema'); setIsNotifOpen(false); }}
+                    className="pt-2 flex items-start space-x-2.5 cursor-pointer hover:bg-[#FFF8F2] p-1.5 rounded-xl transition-colors"
+                  >
+                    <span className="p-1 rounded-lg bg-[#FFF3EC] text-[#FA661C] shrink-0 mt-0.5">
+                      <Tag className="w-3.5 h-3.5" />
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <h5 className="font-bold text-[#FA661C]">Attribute Value Requests</h5>
+                        <span className="text-[10px] font-black bg-[#D7263D] text-white px-1.5 py-0.2 rounded-full">{counts.attributes}</span>
+                      </div>
+                      <p className="text-[10px] text-[#6B6058] truncate">Seller requested dropdown attribute values</p>
+                    </div>
+                  </div>
+
+                  <div
+                    onClick={() => { navigate('/admin/brands'); setIsNotifOpen(false); }}
+                    className="pt-2 flex items-start space-x-2.5 cursor-pointer hover:bg-[#FFF8F2] p-1.5 rounded-xl transition-colors"
+                  >
+                    <span className="p-1 rounded-lg bg-[#FFF3EC] text-[#FA661C] shrink-0 mt-0.5">
+                      <Building2 className="w-3.5 h-3.5" />
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <h5 className="font-bold text-[#FA661C]">Brand Requests</h5>
+                        <span className="text-[10px] font-black bg-[#D7263D] text-white px-1.5 py-0.2 rounded-full">{counts.brands}</span>
+                      </div>
+                      <p className="text-[10px] text-[#6B6058] truncate">Seller official brand authorization requests</p>
+                    </div>
+                  </div>
+
+                  <div
+                    onClick={() => { navigate('/admin/vendors'); setIsNotifOpen(false); }}
+                    className="pt-2 flex items-start space-x-2.5 cursor-pointer hover:bg-[#FFF8F2] p-1.5 rounded-xl transition-colors"
+                  >
+                    <span className="p-1 rounded-lg bg-[#FFF3EC] text-[#FA661C] shrink-0 mt-0.5">
                       <Store className="w-3.5 h-3.5" />
                     </span>
-                    <div>
-                      <h5 className="font-bold text-[#FA661C]">Vendor KYC: Silk Haven</h5>
-                      <p className="text-[10px] text-[#6B6058]">GST & Bank Certificate awaiting approval</p>
-                    </div>
-                  </div>
-
-                  <div className="pt-2 flex items-start space-x-2.5">
-                    <span className="p-1 rounded-lg bg-[#FDE8EA] text-[#D7263D] shrink-0 mt-0.5">
-                      <RotateCcw className="w-3.5 h-3.5" />
-                    </span>
-                    <div>
-                      <h5 className="font-bold text-[#FA661C]">Refund Dispute #RFD-201</h5>
-                      <p className="text-[10px] text-[#6B6058]">Inspection cleared • ₹8,499 pending release</p>
-                    </div>
-                  </div>
-
-                  <div className="pt-2 flex items-start space-x-2.5">
-                    <span className="p-1 rounded-lg bg-[#FFF8F2] text-[#FF811A] shrink-0 mt-0.5">
-                      <ShoppingBag className="w-3.5 h-3.5" />
-                    </span>
-                    <div>
-                      <h5 className="font-bold text-[#FA661C]">Bulk Payout Cycle Scheduled</h5>
-                      <p className="text-[10px] text-[#6B6058]">42 vendor settlements queuing for Friday</p>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <h5 className="font-bold text-[#FA661C]">Vendors Under Review</h5>
+                        <span className="text-[10px] font-black bg-[#D7263D] text-white px-1.5 py-0.2 rounded-full">{counts.vendors}</span>
+                      </div>
+                      <p className="text-[10px] text-[#6B6058] truncate">GSTIN & merchant onboarding approval queue</p>
                     </div>
                   </div>
                 </div>

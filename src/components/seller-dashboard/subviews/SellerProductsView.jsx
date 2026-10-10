@@ -287,12 +287,13 @@ export default function SellerProductsView({ onNavigateToAddProduct }) {
                       {/* Status */}
                       <td className="p-3.5 font-bold uppercase text-[10px]">
                         <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${
+                          product.is_active === false ? 'bg-gray-100 text-gray-700 border border-gray-300' :
                           product.status === 'published' ? 'bg-[#10B981]/10 text-[#10B981] border border-[#10B981]/30' :
                           product.status === 'pending_review' ? 'bg-[#F59E0B]/10 text-[#F59E0B] border border-[#F59E0B]/30' :
                           product.status === 'rejected' ? 'bg-[#D7263D]/10 text-[#D7263D] border border-[#D7263D]/30' :
                           'bg-gray-100 text-gray-700 border border-gray-300'
                         }`}>
-                          {product.status ? product.status.replaceAll('_', ' ') : 'Draft'}
+                          {product.is_active === false ? 'Deactivated' : (product.status ? product.status.replaceAll('_', ' ') : 'Draft')}
                         </span>
                       </td>
 

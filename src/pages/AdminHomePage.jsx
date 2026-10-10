@@ -147,7 +147,7 @@ export default function AdminHomePage() {
       case 'categories':
         return <GovernanceQueueModule defaultTab="attributes" />;
       case 'brands':
-        return <GovernanceQueueModule defaultTab="brands" />;
+        return <GovernanceQueueModule defaultTab="brand-management" />;
       case 'order-ops':
         return <OrderOpsModule />;
       case 'rma':

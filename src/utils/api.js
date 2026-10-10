@@ -189,6 +189,24 @@ export async function fetchProtectedFile(endpoint) {
   return response.blob();
 }
 
+export async function openProtectedFile(endpoint) {
+  const fileTab = typeof window !== 'undefined' ? window.open('', '_blank') : null;
+  try {
+    const blob = await fetchProtectedFile(endpoint);
+    const objectUrl = URL.createObjectURL(blob);
+    if (fileTab) {
+      fileTab.location = objectUrl;
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+    } else {
+      URL.revokeObjectURL(objectUrl);
+      throw new ApiError('Allow pop-ups to view this document.', 0, null);
+    }
+  } catch (error) {
+    fileTab?.close();
+    throw error;
+  }
+}
+
 export default {
   apiRequest,
   setTokens,
