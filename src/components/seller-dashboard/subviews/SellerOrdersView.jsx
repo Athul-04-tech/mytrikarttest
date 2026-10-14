@@ -20,6 +20,7 @@ import {
 import { apiRequest } from '../../../utils/api';
 import { formatSellerINR } from '../../../data/sellerDashboardData';
 import { useToast } from '../../../context/ToastContext';
+import { downloadSellerInvoice } from '../../../utils/sellerInvoice';
 
 // Map raw backend status choices to UI badge styling and human labels
 const STATUS_CONFIG = {
@@ -50,7 +51,7 @@ const STATUS_CONFIG = {
   }
 };
 
-export default function SellerOrdersView() {
+export default function SellerOrdersView({ onInspectOrder, vendorProfile } = {}) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -59,6 +60,16 @@ export default function SellerOrdersView() {
   const [selectedOrder, setSelectedOrder] = useState(null);
 
   const toast = useToast();
+
+  const handleInvoice = (ord) => {
+    try {
+      downloadSellerInvoice(ord, vendorProfile || {});
+      toast.success("Invoice Downloaded", `Invoice_ORD-${ord.id}.pdf saved.`);
+    } catch (err) {
+      console.error('Invoice generation failed:', err);
+      toast.info("Invoice Failed", "Could not generate the invoice PDF.");
+    }
+  };
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -358,7 +369,7 @@ export default function SellerOrdersView() {
                       <td className="p-3.5 text-right space-x-1.5">
                         <button
                           type="button"
-                          onClick={() => setSelectedOrder(ord)}
+                          onClick={() => (onInspectOrder ? onInspectOrder(ord.id) : setSelectedOrder(ord))}
                           className="px-2.5 py-1 bg-[#FFF3EC] hover:bg-[#FA661C] text-[#FA661C] hover:text-[#FFFFFF] border border-[#FF811A]/40 rounded-lg font-bold text-[10px] cursor-pointer inline-flex items-center space-x-1 transition-colors"
                         >
                           <Eye className="w-3 h-3" />
@@ -367,7 +378,7 @@ export default function SellerOrdersView() {
 
                         <button
                           type="button"
-                          onClick={() => toast.success("Invoice Generated", `Tax Invoice for #ORD-${ord.id} downloaded.`)}
+                          onClick={() => handleInvoice(ord)}
                           className="px-2.5 py-1 bg-[#FFFFFF] hover:bg-[#FFF3EC] border border-[#EAE3DC] text-[#FA661C] rounded-lg font-bold text-[10px] cursor-pointer inline-flex items-center space-x-1"
                           title="Download Tax Invoice"
                         >
@@ -548,7 +559,7 @@ export default function SellerOrdersView() {
             <div className="flex items-center justify-between pt-3 border-t border-[#EAE3DC]">
               <button
                 type="button"
-                onClick={() => toast.success("Invoice Downloaded", `Tax invoice PDF for #ORD-${selectedOrder.id} generated.`)}
+                onClick={() => handleInvoice(selectedOrder)}
                 className="px-4 py-2 bg-white hover:bg-[#FFF3EC] border border-[#EAE3DC] text-[#FA661C] font-bold text-xs rounded-xl btn-interactive flex items-center space-x-1.5 cursor-pointer"
               >
                 <Download className="w-3.5 h-3.5 text-[#FF811A]" />

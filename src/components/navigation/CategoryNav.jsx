@@ -151,7 +151,7 @@ export default function CategoryNav({ activeCategory = 'for-you', onSelectCatego
   return (
     <nav 
       aria-label="Marketplace Category Navigation"
-      className="bg-white border-b border-[#EAE3DC] py-2.5 shadow-2xs sticky top-[105px] sm:top-[73px] z-30 transition-colors"
+      className="bg-white border-b border-[#EAE3DC] py-2.5 shadow-2xs sticky top-[var(--header-h,105px)] z-30 transition-colors"
     >
       <div className="max-w-7xl mx-auto px-2 sm:px-6 relative group/nav">
         

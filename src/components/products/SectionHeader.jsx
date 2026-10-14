@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Sparkles, ArrowRight, TrendingUp } from 'lucide-react';
 
 export default function SectionHeader({ title = "Popular Picks", subtitle = "Handpicked marketplace deals curated for you" }) {
@@ -21,14 +22,13 @@ export default function SectionHeader({ title = "Popular Picks", subtitle = "Han
         </p>
       </div>
 
-      <a
-        href="#all-products"
-        onClick={(e) => { e.preventDefault(); alert("Explore all popular picks"); }}
-        className="relative z-10 inline-flex items-center space-x-1.5 bg-[#FF811A] hover:bg-[#E3BE46] text-[#FA661C] font-bold text-xs px-4 py-2 rounded-xl transition-all shadow-sm hover:scale-105 shrink-0"
+      <Link
+        to="/products"
+        className="relative z-10 inline-flex items-center space-x-1.5 bg-[#FF811A] hover:bg-[#E3BE46] text-[#FA661C] font-bold text-xs px-4 py-2 rounded-xl transition-all shadow-sm hover:scale-105 shrink-0 btn-interactive"
       >
         <span>View All Picks</span>
         <ArrowRight className="w-3.5 h-3.5" />
-      </a>
+      </Link>
     </div>
   );
 }

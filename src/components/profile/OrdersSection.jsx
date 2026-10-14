@@ -13,7 +13,9 @@ import {
   ArrowRight, 
   Sparkles, 
   Calendar, 
-  AlertTriangle 
+  AlertTriangle,
+  Star,
+  MessageSquarePlus
 } from 'lucide-react';
 
 const TRACKING_STEPS = [
@@ -203,8 +205,9 @@ export default function OrdersSection({ orders = [], isLoading = false, error = 
                 ))}
               </div>
 
-              {/* STEPPED TRACKER COMPONENT */}
-              {isTrackingOpen && order.statusType !== 'cancelled' && (
+          {isTrackingOpen && order.statusType !== 'cancelled' && (() => {
+            const trackingStep = order.trackingStep ?? 1;
+            return (
                 <div className="px-5 pb-6 pt-2 bg-white border-t border-[#EAE3DC] animate-dropdown">
                   <div className="flex items-center justify-between mb-3 text-xs">
                     <span className="font-bold text-[#FA661C] flex items-center space-x-1.5">
@@ -224,15 +227,15 @@ export default function OrdersSection({ orders = [], isLoading = false, error = 
                     {/* Active progress fill line */}
                     <div 
                       className="absolute top-1/2 left-4 h-1 bg-gradient-to-r from-[#FA661C] to-[#FF811A] -translate-y-1/2 z-0 transition-all duration-500"
-                      style={{ width: `${((order.trackingStep - 1) / (TRACKING_STEPS.length - 1)) * 92}%` }}
+                      style={{ width: `${((trackingStep - 1) / (TRACKING_STEPS.length - 1)) * 92}%` }}
                     />
 
                     {/* Step Nodes */}
                     <div className="relative z-10 flex items-center justify-between">
                       {TRACKING_STEPS.map((stepName, sIdx) => {
                         const stepNum = sIdx + 1;
-                        const isCompleted = stepNum <= order.trackingStep;
-                        const isCurrent = stepNum === order.trackingStep;
+                        const isCompleted = stepNum <= trackingStep;
+                        const isCurrent = stepNum === trackingStep;
 
                         return (
                           <div key={sIdx} className="flex flex-col items-center">
@@ -254,7 +257,8 @@ export default function OrdersSection({ orders = [], isLoading = false, error = 
                     </div>
                   </div>
                 </div>
-              )}
+              );
+            })()}
 
               {/* Bottom Action Tray */}
               <div className="px-4 py-3 bg-[#FFF3EC]/40 border-t border-[#EAE3DC]/80 flex flex-wrap items-center justify-between gap-2 text-xs">
@@ -296,6 +300,16 @@ export default function OrdersSection({ orders = [], isLoading = false, error = 
                         Exchange
                       </button>
                     </>
+                  )}
+                  {/* Write a Review — visible only on delivered orders */}
+                  {order.canReturn && order.items?.[0]?.productId && (
+                    <Link
+                      to={`/products/${order.items[0].productId}#product-reviews`}
+                      className="px-3 py-1 bg-[#FFF8F2] hover:bg-[#FF811A]/20 text-[#FA661C] border border-[#FF811A] hover:border-[#FA661C] rounded-lg font-bold btn-interactive flex items-center space-x-1 cursor-pointer transition-all"
+                    >
+                      <Star className="w-3 h-3 text-[#FF811A] fill-[#FF811A] icon-interactive" />
+                      <span>Write a Review</span>
+                    </Link>
                   )}
                 </div>
 

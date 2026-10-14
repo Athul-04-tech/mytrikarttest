@@ -29,7 +29,7 @@ export default function OrderSummarySidebar({ onProceedToCheckout, isCheckoutPag
   const formatINR = (val) => `₹${Number(val).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   return (
-    <div className="bg-white rounded-3xl border border-[#EAE3DC] p-5 sm:p-6 shadow-xs sticky top-20 space-y-4 text-xs">
+    <div className="bg-white rounded-3xl border border-[#EAE3DC] p-5 sm:p-6 shadow-xs lg:sticky lg:top-[calc(var(--header-h,80px)+16px)] space-y-4 text-xs">
       
       {/* Header */}
       <div className="flex items-center justify-between pb-3 border-b border-[#EAE3DC]">

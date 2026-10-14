@@ -1,7 +1,9 @@
 import React from 'react';
 import { ArrowLeft, Store, ShieldCheck, Sparkles } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export default function SellerAuthHeader({ onBackToHome, onGoToSellerLogin }) {
+  const navigate = useNavigate();
   return (
     <header className="bg-[#1A1A1A] text-[#FFFFFF] border-b border-[#FF811A]/30 py-3.5 px-4 sm:px-8 sticky top-0 z-40 shadow-md">
       <div className="max-w-7xl mx-auto w-full flex items-center justify-between">
@@ -34,7 +36,7 @@ export default function SellerAuthHeader({ onBackToHome, onGoToSellerLogin }) {
             <span>Already a seller?</span>
             <button
               type="button"
-              onClick={onGoToSellerLogin || (() => alert("Opening Seller Login Portal..."))}
+              onClick={onGoToSellerLogin || (() => navigate('/login'))}
               className="text-[#FF811A] hover:text-[#FFF2B2] font-bold link-interactive cursor-pointer"
             >
               Sign In to Hub

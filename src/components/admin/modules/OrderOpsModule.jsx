@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Truck, RefreshCw, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Truck, RefreshCw, AlertCircle, ChevronLeft, ChevronRight, Eye, Download } from 'lucide-react';
 import { apiRequest } from '../../../utils/api';
 import { useToast } from '../../../context/ToastContext';
+import { downloadSellerInvoice } from '../../../utils/sellerInvoice';
 
 const PAGE_SIZE = 25;
 const ALLOWED_NEXT = {
@@ -24,7 +25,7 @@ function errorMessage(error) {
   return error?.message || 'The order transition failed.';
 }
 
-export default function OrderOpsModule() {
+export default function OrderOpsModule({ onInspectOrder } = {}) {
   const [orders, setOrders] = useState([]);
   const [count, setCount] = useState(0);
   const [page, setPage] = useState(1);
@@ -85,6 +86,16 @@ export default function OrderOpsModule() {
     setConfirmAction({ order, status });
   };
 
+  const downloadInvoice = async (order) => {
+    try {
+      const full = await apiRequest(`/api/orders/admin/vendor-orders/${order.id}/`);
+      downloadSellerInvoice(full);
+      toast.success('Invoice Downloaded', `Invoice_ORD-${order.id}.pdf saved.`);
+    } catch (err) {
+      toast.error('Invoice Failed', errorMessage(err));
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#EAE3DC]">
@@ -116,7 +127,7 @@ export default function OrderOpsModule() {
       {!loading && !error && orders.length > 0 && <div className="bg-white rounded-2xl border border-[#EAE3DC] overflow-hidden shadow-xs">
         <div className="overflow-x-auto"><table className="w-full text-left text-xs border-collapse">
           <thead><tr className="bg-[#FFF3EC] text-[#FA661C] border-b border-[#EAE3DC] font-extrabold uppercase text-[10px] tracking-wider">
-            <th className="p-3">Vendor Order</th><th className="p-3">Vendor / Customer</th><th className="p-3 text-right">Total</th><th className="p-3 text-center">Status</th><th className="p-3">Allowed Actions</th>
+            <th className="p-3">Vendor Order</th><th className="p-3">Vendor / Customer</th><th className="p-3 text-right">Total</th><th className="p-3 text-center">Status</th><th className="p-3">Allowed Actions</th><th className="p-3 text-right">Details</th>
           </tr></thead>
           <tbody className="divide-y divide-[#EAE3DC]/60 font-medium">
             {orders.map((order) => <tr key={order.id} className="hover:bg-[#FFF8F2]/50">
@@ -131,6 +142,16 @@ export default function OrderOpsModule() {
                   {status === 'cancelled' ? 'Cancel…' : `Mark ${status}`}
                 </button>)}
                 {!(ALLOWED_NEXT[order.status] || []).length && <span className="text-[10px] text-[#6B6058]">No further transitions</span>}
+              </div></td>
+              <td className="p-3"><div className="flex justify-end gap-1.5">
+                {onInspectOrder && <button type="button" onClick={() => onInspectOrder(order.id)} title="Inspect order"
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-[#FFF3EC] hover:bg-[#FA661C] text-[#FA661C] hover:text-white border border-[#FF811A]/40 transition-colors">
+                  <Eye className="w-3 h-3" />Inspect
+                </button>}
+                <button type="button" onClick={() => downloadInvoice(order)} title="Download invoice"
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-white hover:bg-[#FFF3EC] text-[#FA661C] border border-[#EAE3DC]">
+                  <Download className="w-3 h-3 text-[#FF811A]" />Invoice
+                </button>
               </div></td>
             </tr>)}
           </tbody>

@@ -128,10 +128,18 @@ export function isRouteAllowedForRole(targetPath, role) {
  */
 export function resolvePostLoginRedirect(targetFrom, role) {
   const fromPath = typeof targetFrom === 'object' && targetFrom !== null ? targetFrom.pathname : targetFrom;
-  
+  const normalizedRole = String(role || 'customer').trim().toLowerCase();
+  const isPrivileged = ['admin', 'vendor', 'seller'].includes(normalizedRole);
+
   if (fromPath && isRouteAllowedForRole(fromPath, role)) {
-    return fromPath;
+    // Admins and sellers must land in their own workspace. Only honor a return
+    // path that is a protected route for their role (e.g. /admin/rma); public
+    // storefront paths like "/", "/profile" or a product page from a cart or
+    // wishlist login gate would otherwise drop them on the customer homepage.
+    if (!isPrivileged) return fromPath;
+    const rule = getRouteRule(fromPath);
+    if (rule && Array.isArray(rule.allowedRoles)) return fromPath;
   }
-  
+
   return getHomeRouteForRole(role);
 }

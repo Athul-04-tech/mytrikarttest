@@ -12,6 +12,7 @@ import TaxManagementModule from '../components/admin/modules/TaxManagementModule
 import CommissionModule from '../components/admin/modules/CommissionModule';
 import WalletModule from '../components/admin/modules/WalletModule';
 import OrderOpsModule from '../components/admin/modules/OrderOpsModule';
+import SellerOrderDetailView from '../components/seller-dashboard/subviews/SellerOrderDetailView';
 import VendorHubModule from '../components/admin/modules/VendorHubModule';
 import RmaModule from '../components/admin/modules/RmaModule';
 import ReportsModule from '../components/admin/modules/ReportsModule';
@@ -26,7 +27,7 @@ import { apiRequest } from '../utils/api';
 import { Boxes, ArrowLeft } from 'lucide-react';
 
 export default function AdminHomePage() {
-  const { moduleId } = useParams();
+  const { moduleId, recordId } = useParams();
   const navigate = useNavigate();
 
   const [activeSection, setActiveSection] = useState(moduleId || 'dashboard');
@@ -149,7 +150,17 @@ export default function AdminHomePage() {
       case 'brands':
         return <GovernanceQueueModule defaultTab="brand-management" />;
       case 'order-ops':
-        return <OrderOpsModule />;
+        return recordId ? (
+          <SellerOrderDetailView
+            key={recordId}
+            orderId={recordId}
+            endpoint={`/api/orders/admin/vendor-orders/${recordId}/`}
+            showVendor
+            onBack={() => navigate('/admin/order-ops')}
+          />
+        ) : (
+          <OrderOpsModule onInspectOrder={(id) => navigate(`/admin/order-ops/${id}`)} />
+        );
       case 'rma':
         return <RmaModule />;
       case 'settlement-calc':

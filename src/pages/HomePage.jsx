@@ -79,24 +79,24 @@ export default function HomePage({ isLoggedIn, currentUser, onLogout }) {
         <section aria-label="Marketplace Perks" className="max-w-7xl mx-auto px-4 sm:px-8">
           <div className="bg-white border border-[#EAE3DC] rounded-2xl p-3 sm:p-4 shadow-xs grid grid-cols-2 md:grid-cols-4 gap-2.5 text-center">
             
-            <div className="flex items-center justify-center space-x-2 py-1 px-2 rounded-xl bg-[#FFFFFF]">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-1.5 px-1 sm:px-2 rounded-xl bg-[#FFFFFF] min-w-0">
               <Zap className="w-4 h-4 text-[#FF811A]" />
-              <span className="text-xs font-bold text-[#FA661C]">Flash Deals Daily</span>
+              <span className="text-[11px] sm:text-xs font-bold text-[#FA661C] leading-tight">Flash Deals Daily</span>
             </div>
 
-            <div className="flex items-center justify-center space-x-2 py-1 px-2 rounded-xl bg-[#FFFFFF]">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-1.5 px-1 sm:px-2 rounded-xl bg-[#FFFFFF] min-w-0">
               <ShieldCheck className="w-4 h-4 text-[#FA661C]" />
-              <span className="text-xs font-bold text-[#FA661C]">Verified Sellers Only</span>
+              <span className="text-[11px] sm:text-xs font-bold text-[#FA661C] leading-tight">Verified Sellers Only</span>
             </div>
 
-            <div className="flex items-center justify-center space-x-2 py-1 px-2 rounded-xl bg-[#FFFFFF]">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-1.5 px-1 sm:px-2 rounded-xl bg-[#FFFFFF] min-w-0">
               <Tag className="w-4 h-4 text-[#D7263D]" />
-              <span className="text-xs font-bold text-[#FA661C]">Best Price Assurance</span>
+              <span className="text-[11px] sm:text-xs font-bold text-[#FA661C] leading-tight">Best Price Assurance</span>
             </div>
 
-            <div className="flex items-center justify-center space-x-2 py-1 px-2 rounded-xl bg-[#FFFFFF]">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-1.5 px-1 sm:px-2 rounded-xl bg-[#FFFFFF] min-w-0">
               <Gift className="w-4 h-4 text-[#FF811A]" />
-              <span className="text-xs font-bold text-[#FA661C]">Mytri Plus Rewards</span>
+              <span className="text-[11px] sm:text-xs font-bold text-[#FA661C] leading-tight">Mytri Plus Rewards</span>
             </div>
 
           </div>

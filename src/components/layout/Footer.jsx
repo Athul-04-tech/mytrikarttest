@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   ShieldCheck, 
   Truck, 
@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 
 export default function Footer() {
+  const navigate = useNavigate();
   return (
     <footer className="bg-[#1A1A1A] text-[#FFFFFF] border-t-4 border-[#FF811A] mt-12">
       
@@ -84,14 +85,13 @@ export default function Footer() {
                 <p className="text-[10px] text-[#FFFFFF]/70">Reach millions of buyers today</p>
               </div>
             </div>
-            <a
-              href="#seller-register"
-              onClick={(e) => { e.preventDefault(); alert("Redirecting to Seller Registration Hub..."); }}
+            <Link
+              to="/seller/register"
               className="px-3 py-1.5 bg-[#FF811A] hover:bg-[#E3BE46] text-[#FA661C] font-bold text-xs rounded-xl transition-all shadow-xs flex items-center space-x-1"
             >
               <span>Join Now</span>
               <ArrowRight className="w-3 h-3" />
-            </a>
+            </Link>
           </div>
         </div>
 
@@ -99,21 +99,21 @@ export default function Footer() {
         <div className="space-y-3">
           <h4 className="font-bold text-sm text-[#FF811A] uppercase tracking-wider">About Us</h4>
           <ul className="space-y-2 text-[#FFFFFF]/80">
-            <li><a href="#about" className="hover:text-[#FF811A] transition-colors">Company Info</a></li>
-            <li><a href="#careers" className="hover:text-[#FF811A] transition-colors">Careers</a></li>
-            <li><a href="#press" className="hover:text-[#FF811A] transition-colors">Press & Media</a></li>
-            <li><a href="#sustainability" className="hover:text-[#FF811A] transition-colors">Sustainability</a></li>
+            <li><Link to="/" className="hover:text-[#FF811A] transition-colors">Company Info</Link></li>
+            <li><Link to="/" className="hover:text-[#FF811A] transition-colors">Careers</Link></li>
+            <li><Link to="/" className="hover:text-[#FF811A] transition-colors">Press &amp; Media</Link></li>
+            <li><Link to="/" className="hover:text-[#FF811A] transition-colors">Sustainability</Link></li>
           </ul>
         </div>
 
         {/* Column 2: Help & Support */}
         <div className="space-y-3">
-          <h4 className="font-bold text-sm text-[#FF811A] uppercase tracking-wider">Help & Support</h4>
+          <h4 className="font-bold text-sm text-[#FF811A] uppercase tracking-wider">Help &amp; Support</h4>
           <ul className="space-y-2 text-[#FFFFFF]/80">
-            <li><a href="#payments" className="hover:text-[#FF811A] transition-colors">Payments & EMI</a></li>
-            <li><a href="#shipping" className="hover:text-[#FF811A] transition-colors">Shipping & Delivery</a></li>
-            <li><a href="#returns" className="hover:text-[#FF811A] transition-colors">Cancellation & Returns</a></li>
-            <li><a href="#faq" className="hover:text-[#FF811A] transition-colors">FAQs</a></li>
+            <li><Link to="/profile/wallet" className="hover:text-[#FF811A] transition-colors">Payments &amp; EMI</Link></li>
+            <li><Link to="/" className="hover:text-[#FF811A] transition-colors">Shipping &amp; Delivery</Link></li>
+            <li><Link to="/profile/refunds" className="hover:text-[#FF811A] transition-colors">Cancellation &amp; Returns</Link></li>
+            <li><Link to="/profile/support" className="hover:text-[#FF811A] transition-colors">FAQs</Link></li>
           </ul>
         </div>
 
@@ -121,10 +121,10 @@ export default function Footer() {
         <div className="space-y-3">
           <h4 className="font-bold text-sm text-[#FF811A] uppercase tracking-wider">Consumer Policy</h4>
           <ul className="space-y-2 text-[#FFFFFF]/80">
-            <li><a href="#privacy" className="hover:text-[#FF811A] transition-colors">Privacy Policy</a></li>
-            <li><a href="#terms" className="hover:text-[#FF811A] transition-colors">Terms of Use</a></li>
-            <li><a href="#security" className="hover:text-[#FF811A] transition-colors">Security</a></li>
-            <li><a href="#sitemap" className="hover:text-[#FF811A] transition-colors">Sitemap</a></li>
+            <li><Link to="/profile/settings" className="hover:text-[#FF811A] transition-colors">Privacy Policy</Link></li>
+            <li><Link to="/profile/settings" className="hover:text-[#FF811A] transition-colors">Terms of Use</Link></li>
+            <li><Link to="/profile/settings" className="hover:text-[#FF811A] transition-colors">Security</Link></li>
+            <li><Link to="/" className="hover:text-[#FF811A] transition-colors">Sitemap</Link></li>
           </ul>
         </div>
 

@@ -25,6 +25,7 @@ import {
   Layers,
   Store
 } from 'lucide-react';
+import ProductReviewsSection from '../components/profile/ProductReviewsSection';
 
 export default function ProductDetailPage({ isLoggedIn, currentUser, onLogout }) {
   const { id } = useParams();
@@ -80,6 +81,16 @@ export default function ProductDetailPage({ isLoggedIn, currentUser, onLogout })
       isMounted = false;
     };
   }, [id]);
+
+  // Scroll to reviews section if navigated with #product-reviews hash
+  useEffect(() => {
+    if (!loading && window.location.hash === '#product-reviews') {
+      setTimeout(() => {
+        const el = document.getElementById('product-reviews');
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 300);
+    }
+  }, [loading]);
 
   // Pricing calculations for current selected variant
   const currentPricing = useMemo(() => {
@@ -524,6 +535,13 @@ export default function ProductDetailPage({ isLoggedIn, currentUser, onLogout })
               </div>
 
             </div>
+
+            {/* Reviews Section */}
+            <ProductReviewsSection
+              productId={product.id}
+              averageRating={product.average_rating}
+              reviewCount={product.review_count || 0}
+            />
 
           </div>
         )}

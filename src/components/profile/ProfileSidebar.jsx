@@ -11,13 +11,17 @@ import {
   LogOut, 
   ChevronRight, 
   Sparkles, 
-  CheckCircle2 
+  CheckCircle2,
+  Wallet,
+  Gift
 } from 'lucide-react';
 
 export const PROFILE_SECTIONS = [
   { id: 'profile', label: 'Personal Details', icon: User },
   { id: 'addresses', label: 'Address Book', icon: MapPin },
   { id: 'orders', label: 'My Orders', icon: Package },
+  { id: 'wallet', label: 'Wallet & Payments', icon: Wallet },
+  { id: 'rewards', label: 'Rewards & Loyalty', icon: Gift },
   { id: 'refunds', label: 'Refunds & Returns', icon: RotateCcw },
   { id: 'warranty', label: 'Warranty & Claims', icon: ShieldCheck },
   { id: 'notifications', label: 'Notifications & Channels', icon: Bell },

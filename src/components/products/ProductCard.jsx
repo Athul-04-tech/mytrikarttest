@@ -98,12 +98,12 @@ export default function ProductCard({ product }) {
       <div className="p-3 flex flex-col flex-1 justify-between">
         <div>
           {/* Category & Ratings Row */}
-          <div className="flex items-center justify-between text-xs mb-1">
-            <span className="text-[9px] font-bold uppercase tracking-wider text-[#6B6058] truncate max-w-[90px]">
+          <div className="flex items-center justify-between gap-1.5 text-xs mb-1 min-w-0">
+            <span className="text-[9px] font-bold uppercase tracking-wider text-[#6B6058] truncate min-w-0 flex-1">
               {product.category}
             </span>
             {hasReviews ? (
-              <div className="flex items-center space-x-1 bg-[#FFF8F2] px-1.5 py-0.2 rounded border border-[#FF811A]/30">
+              <div className="shrink-0 whitespace-nowrap flex items-center space-x-1 bg-[#FFF8F2] px-1.5 py-0.2 rounded border border-[#FF811A]/30">
                 <Star className="w-2.5 h-2.5 text-[#FF811A] fill-[#FF811A]" />
                 <span className="text-[10px] font-extrabold text-[#FA661C]">
                   {Number(product.rating).toFixed(1)}
@@ -113,8 +113,9 @@ export default function ProductCard({ product }) {
                 </span>
               </div>
             ) : (
-              <span className="text-[9px] font-medium text-[#6B6058] bg-[#F7F4F0] px-1.5 py-0.2 rounded border border-[#EAE3DC]">
-                No reviews yet
+              <span className="shrink-0 whitespace-nowrap text-[9px] font-medium text-[#6B6058] bg-[#F7F4F0] px-1.5 py-0.2 rounded border border-[#EAE3DC]">
+                <span className="sm:hidden">New</span>
+                <span className="hidden sm:inline">No reviews yet</span>
               </span>
             )}
           </div>
@@ -150,10 +151,10 @@ export default function ProductCard({ product }) {
             <button
               type="button"
               onClick={handleNavigateToDetail}
-              className="py-1 px-1.5 bg-[#FFFFFF] hover:bg-[#FFF3EC] text-[#000000] border border-[#EAE3DC] hover:border-[#FA661C] rounded-lg text-[11px] font-bold btn-interactive flex items-center justify-center space-x-1 cursor-pointer"
+              className="min-h-[32px] py-1.5 px-1 bg-[#FFFFFF] hover:bg-[#FFF3EC] text-[#000000] border border-[#EAE3DC] hover:border-[#FA661C] rounded-lg text-[11px] font-bold btn-interactive flex items-center justify-center gap-1 cursor-pointer min-w-0"
             >
-              <Eye className="w-3 h-3 text-[#000000]" />
-              <span className="truncate text-[#000000]">Details</span>
+              <Eye className="w-3 h-3 text-[#000000] shrink-0 hidden min-[380px]:block" />
+              <span className="truncate text-[#000000]">View</span>
             </button>
 
             <button 
@@ -161,7 +162,7 @@ export default function ProductCard({ product }) {
               onClick={handleAddToCart}
               disabled={isOwnProduct}
               title={isOwnProduct ? "As a seller, you cannot purchase your own listed products." : "Add to Shopping Bag"}
-              className={`py-1 px-1.5 border rounded-lg text-[11px] font-black flex items-center justify-center space-x-1 shadow-xs group/cart transition-all ${
+              className={`min-h-[32px] py-1.5 px-1 border rounded-lg text-[11px] font-black flex items-center justify-center gap-1 min-w-0 shadow-xs group/cart transition-all ${
                 isOwnProduct
                   ? 'bg-[#EAE3DC] text-[#6B6058] border-[#EAE3DC] cursor-not-allowed opacity-80'
                   : 'bg-[#FA661C] hover:bg-[#E0530B] text-[#000000] border-[#FA661C] btn-interactive cursor-pointer'

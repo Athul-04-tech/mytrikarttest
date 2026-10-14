@@ -9,6 +9,8 @@ import WarrantySection from '../components/profile/WarrantySection';
 import NotificationsSection from '../components/profile/NotificationsSection';
 import SupportSection from '../components/profile/SupportSection';
 import AccountSettingsSection from '../components/profile/AccountSettingsSection';
+import WalletSection from '../components/profile/WalletSection';
+import RewardsSection from '../components/profile/RewardsSection';
 import { useAuth } from '../context/AuthContext';
 import { apiRequest } from '../utils/api';
 import { 
@@ -46,23 +48,47 @@ export default function ProfilePage({ onLogout }) {
       .then((response) => {
         if (!active) return;
         const rows = Array.isArray(response) ? response : (response?.results || []);
+        // Map vendor_order_status → numeric tracking step
+        const VENDOR_STATUS_TO_STEP = {
+          pending: 1,
+          processing: 2,
+          shipped: 3,
+          delivered: 5,
+          cancelled: 1,
+        };
         setOrders(rows.map((order) => {
           const paymentStatus = String(order.payment_status || 'pending').toLowerCase();
-          const statusType = ['failed', 'refunded'].includes(paymentStatus) ? 'cancelled' : 'processing';
+          const vendorStatus = String(order.vendor_order_status || 'pending').toLowerCase();
+          // Determine UI statusType from fulfillment status (vendor side) not just payment
+          let statusType = 'processing';
+          if (vendorStatus === 'delivered') statusType = 'delivered';
+          else if (vendorStatus === 'cancelled' || ['failed', 'refunded'].includes(paymentStatus)) statusType = 'cancelled';
+          const trackingStep = VENDOR_STATUS_TO_STEP[vendorStatus] ?? 1;
           const amount = Number(order.grand_total || 0);
           const currency = order.currency || 'INR';
+          // Format delivered_at for display
+          let deliveredOn = null;
+          if (order.delivered_at) {
+            deliveredOn = new Date(order.delivered_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+          }
           return {
             ...order,
             statusType,
-            status: paymentStatus === 'paid' ? 'Paid' : paymentStatus === 'pending' ? 'Payment Pending' : paymentStatus,
+            trackingStep,
+            deliveredOn,
+            status: vendorStatus === 'delivered' ? 'Delivered' : vendorStatus === 'shipped' ? 'Shipped' : vendorStatus === 'processing' ? 'Processing' : paymentStatus === 'paid' ? 'Paid' : paymentStatus === 'pending' ? 'Payment Pending' : paymentStatus,
             date: order.created_at ? new Date(order.created_at).toLocaleDateString() : '',
             total: new Intl.NumberFormat('en-IN', { style: 'currency', currency }).format(amount),
+            carrier: 'Express Direct',
+            canCancel: ['pending', 'processing'].includes(vendorStatus) && paymentStatus !== 'paid',
+            canReturn: vendorStatus === 'delivered',
             items: (order.items || []).map((item) => ({
               name: item.product_name_snapshot,
               qty: item.quantity,
               price: new Intl.NumberFormat('en-IN', { style: 'currency', currency }).format(Number(item.line_total || item.unit_price || 0)),
               seller: 'MytriKart seller',
-              image: '/products/spatial_headphones_1786529304124.png'
+              image: '/products/spatial_headphones_1786529304124.png',
+              productId: item.product_id || null,
             }))
           };
         }));
@@ -264,6 +290,16 @@ export default function ProfilePage({ onLogout }) {
               {/* 5. Extended Warranty */}
               {activeSection === 'warranty' && (
                 <WarrantySection />
+              )}
+
+              {/* 6. Wallet & Payments */}
+              {activeSection === 'wallet' && (
+                <WalletSection />
+              )}
+
+              {/* 7. Rewards & Loyalty */}
+              {activeSection === 'rewards' && (
+                <RewardsSection />
               )}
 
               {/* 8. Notifications Preferences */}

@@ -283,6 +283,16 @@ function MarketplaceRouter() {
           } 
         />
         <Route 
+          path="/seller/orders/:orderId" 
+          element={
+            <ProtectedRoute allowedRoles={getAllowedRolesForRoute('/seller/dashboard')}>
+              <PageTransitionWrapper>
+                <SellerDashboardPage />
+              </PageTransitionWrapper>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
           path="/seller/settlements" 
           element={
             <ProtectedRoute allowedRoles={getAllowedRolesForRoute('/seller/dashboard')}>
@@ -326,6 +336,16 @@ function MarketplaceRouter() {
         />
         <Route 
           path="/admin/:moduleId" 
+          element={
+            <ProtectedRoute allowedRoles={getAllowedRolesForRoute('/admin')}>
+              <PageTransitionWrapper>
+                <AdminHomePage />
+              </PageTransitionWrapper>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin/:moduleId/:recordId" 
           element={
             <ProtectedRoute allowedRoles={getAllowedRolesForRoute('/admin')}>
               <PageTransitionWrapper>

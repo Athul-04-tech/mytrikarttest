@@ -86,15 +86,15 @@ export default function AccountMenuDropdown({
 
   return (
     <>
-      {/* Mobile Backdrop Sheet Modal overlay */}
+      {/* Backdrop overlay - semi-transparent on mobile, transparent on desktop (both close on click) */}
       <div 
-        className="fixed inset-0 bg-[#FA661C]/40 backdrop-blur-xs z-40 md:hidden"
+        className="fixed inset-0 bg-[#FA661C]/40 backdrop-blur-xs z-40 md:bg-transparent md:backdrop-blur-none"
         onClick={onClose}
         aria-hidden="true"
       />
 
       {/* Main Container */}
-      <div className="fixed inset-x-0 bottom-0 z-50 md:z-50 md:absolute md:top-full md:right-0 md:left-auto md:bottom-auto md:w-80 md:mt-2 animate-bottom-sheet md:animate-dropdown">
+      <div className="fixed inset-x-0 bottom-0 z-50 md:inset-x-auto md:top-16 md:right-4 md:bottom-auto md:w-80 md:mt-2 animate-bottom-sheet md:animate-dropdown">
         
         {/* Card Surface */}
         <div className="bg-[#FFFFFF] border border-[#FF811A]/30 rounded-t-2xl md:rounded-2xl shadow-2xl overflow-hidden glass-panel">

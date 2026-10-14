@@ -11,6 +11,7 @@ import SellerProductsWidget from '../components/seller-dashboard/SellerProductsW
 import SellerCustomerWidget from '../components/seller-dashboard/SellerCustomerWidget';
 import SellerProductsView from '../components/seller-dashboard/subviews/SellerProductsView';
 import SellerOrdersView from '../components/seller-dashboard/subviews/SellerOrdersView';
+import SellerOrderDetailView from '../components/seller-dashboard/subviews/SellerOrderDetailView';
 import SellerSettlementsView from '../components/seller-dashboard/subviews/SellerSettlementsView';
 import SellerSettingsView from '../components/seller-dashboard/subviews/SellerSettingsView';
 import SellerProfileView from '../components/seller-dashboard/subviews/SellerProfileView';
@@ -235,9 +236,18 @@ export default function SellerDashboardPage() {
           )}
 
           {/* Sub-view: Orders Fulfillment */}
-          {activeSection === 'orders' && (
-            <SellerOrdersView />
-          )}
+          {activeSection === 'orders' && (() => {
+            const match = location.pathname.match(/\/seller\/orders\/(\d+)/);
+            return match ? (
+              <SellerOrderDetailView
+                orderId={match[1]}
+                vendorProfile={vendorProfile}
+                onBack={() => navigate('/seller/orders')}
+              />
+            ) : (
+              <SellerOrdersView onInspectOrder={(id) => navigate(`/seller/orders/${id}`)} vendorProfile={vendorProfile} />
+            );
+          })()}
 
           {/* Sub-view: Settlements & Payouts */}
           {activeSection === 'settlements' && (

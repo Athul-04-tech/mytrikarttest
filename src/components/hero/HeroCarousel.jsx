@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Sparkles, ArrowRight } from 'lucide-react';
 import { HERO_SLIDES } from '../../data/mockData';
 
@@ -118,14 +119,13 @@ export default function HeroCarousel({ activeCategory = 'for-you' }) {
                 </p>
 
                 {/* CTA Button */}
-                <a
-                  href="#explore"
-                  onClick={(e) => { e.preventDefault(); alert(`Navigating to promotional campaign: ${slide.title}`); }}
+                <Link
+                  to="/products"
                   className="inline-flex items-center space-x-2 bg-[#FF811A] hover:bg-[#E3BE46] text-[#FA661C] font-extrabold text-xs sm:text-sm px-5 py-2.5 rounded-xl shadow-lg transition-all btn-interactive"
                 >
                   <span>{slide.cta}</span>
                   <ArrowRight className="w-4 h-4" />
-                </a>
+                </Link>
 
               </div>
 

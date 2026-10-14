@@ -37,8 +37,21 @@ export default function Header({
         setIsScrolled(false);
       }
     };
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Publish live header height so sticky elements below it (e.g. CategoryNav) never overlap
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const update = () => {
+      document.documentElement.style.setProperty('--header-h', `${el.offsetHeight}px`);
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
   }, []);
 
   // Handle click outside to close dropdowns
@@ -131,12 +144,12 @@ export default function Header({
             {/* Mobile Wishlist Icon */}
             <Link
               to="/wishlist"
-              className="p-2 bg-white border border-[#EAE3DC] text-[#FA661C] rounded-xl shadow-xs btn-interactive relative cursor-pointer"
+              className="relative p-2 bg-white border border-[#EAE3DC] text-[#FA661C] rounded-xl shadow-xs btn-interactive cursor-pointer"
               aria-label="Wishlist"
             >
               <Heart className="w-4 h-4 text-[#FF811A]" />
               {wishlistCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-[#FF811A] text-[#FA661C] text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-white">
+                <span className="absolute -top-1 -right-1 bg-[#FF811A] text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-white">
                   {wishlistCount}
                 </span>
               )}
@@ -209,15 +222,6 @@ export default function Header({
               </Link>
             )}
 
-            {/* Post-Login Dropdown Menu */}
-            {isLoggedIn && (
-              <AccountMenuDropdown 
-                isOpen={isAccountDropdownOpen} 
-                onClose={() => setIsAccountDropdownOpen(false)} 
-                currentUser={currentUser}
-                onLogout={onLogout}
-              />
-            )}
           </div>
 
           {/* WISHLIST BUTTON */}
@@ -278,6 +282,16 @@ export default function Header({
           </Link>
 
         </div>
+
+        {/* Account Menu Dropdown - fixed positioning works for both mobile (bottom sheet) and desktop (dropdown) */}
+        {isLoggedIn && (
+          <AccountMenuDropdown 
+            isOpen={isAccountDropdownOpen} 
+            onClose={() => setIsAccountDropdownOpen(false)} 
+            currentUser={currentUser}
+            onLogout={onLogout}
+          />
+        )}
 
       </div>
     </header>
