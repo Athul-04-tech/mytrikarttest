@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { 
   Menu, 
   Bell, 
@@ -95,7 +95,7 @@ export default function AdminTopBar({
     <header className="bg-white border-b border-[#EAE3DC] sticky top-0 z-30 shadow-xs px-3 sm:px-6 lg:px-8 py-2.5 sm:py-3">
       <div className="flex items-center justify-between gap-2 sm:gap-4">
         
-        {/* Left: Mobile Sidebar Trigger + Logo + Breadcrumb */}
+        {/* Left: Mobile Sidebar Trigger + Breadcrumb */}
         <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
           <button
             type="button"
@@ -106,29 +106,13 @@ export default function AdminTopBar({
             <Menu className="w-5 h-5 shrink-0" />
           </button>
 
-          {/* Platform Brand Logo */}
-          <Link
-            to="/"
-            className="flex items-center btn-interactive shrink-0"
-            aria-label="Return to Marketplace"
-            title="MytriKart Marketplace"
-          >
-            <img 
-              src="/mytrikart-logo.png" 
-              alt="MytriKart Logo" 
-              className="h-7 sm:h-8 w-auto object-contain" 
-            />
-          </Link>
-
-          <span className="text-[#EAE3DC] hidden md:inline">|</span>
-
           <div className="min-w-0">
             <div className="flex items-center space-x-1.5 sm:space-x-2">
               <span className="text-[11px] text-[#6B6058] font-bold uppercase tracking-wider hidden sm:inline shrink-0">
                 Admin Console
               </span>
               <span className="text-[#EAE3DC] hidden sm:inline">/</span>
-              <h1 className="font-['Outfit'] text-xs sm:text-base md:text-lg font-extrabold text-[#FA661C] leading-tight truncate max-w-[120px] xs:max-w-[170px] sm:max-w-none">
+              <h1 className="font-['Outfit'] text-sm sm:text-base md:text-lg font-extrabold text-[#FA661C] leading-tight truncate max-w-[180px] xs:max-w-[260px] sm:max-w-none">
                 {activeSectionLabel}
               </h1>
             </div>

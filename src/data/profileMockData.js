@@ -225,120 +225,7 @@ export const MOCK_ORDERS = [
   }
 ];
 
-export const AVAILABLE_COUPONS = [
-  {
-    code: 'WELCOME100',
-    title: 'Flat ₹100 Off First Order',
-    discountType: 'flat',
-    discountAmount: 100,
-    minSpend: 499,
-    maxDiscount: 100,
-    expiresAt: '2026-12-31',
-    description: 'Welcome to MytriKart! Get flat ₹100 instant discount on your first order above ₹499.',
-    terms: 'Valid on all product categories. One-time redemption per customer account. Cannot be combined with other promotional codes.',
-    category: 'all',
-    tag: 'FIRST ORDER',
-    isAvailable: true
-  },
-  {
-    code: 'SAVE10',
-    title: '10% Instant Marketplace Discount',
-    discountType: 'percentage',
-    discountPercent: 10,
-    minSpend: 999,
-    maxDiscount: 500,
-    expiresAt: '2026-11-30',
-    description: 'Save 10% on orders above ₹999 across top verified brand collections.',
-    terms: 'Maximum discount ₹500. Applicable on Electronics, Fashion, Artisanal Crafts, and Home Decor.',
-    category: 'all',
-    tag: 'POPULAR',
-    isAvailable: true
-  },
-  {
-    code: 'FESTIVE20',
-    title: '20% Mega Festive Savings',
-    discountType: 'percentage',
-    discountPercent: 20,
-    minSpend: 1999,
-    maxDiscount: 1000,
-    expiresAt: '2026-10-31',
-    description: 'Enjoy 20% savings up to ₹1,000 on festive artisan specials and flagship electronics.',
-    terms: 'Valid on minimum cart value of ₹1,999. Applicable once per verified customer.',
-    category: 'festive',
-    tag: 'FESTIVE SPECIAL',
-    isAvailable: true
-  },
-  {
-    code: 'FREESHIP',
-    title: '100% Free Express Shipping',
-    discountType: 'shipping',
-    discountAmount: 40,
-    minSpend: 399,
-    maxDiscount: 40,
-    expiresAt: '2026-12-31',
-    description: 'Zero express shipping fee on any order above ₹399 delivered to your doorstep.',
-    terms: 'Valid across all delivery pincodes in India. Instant automatic deduction at checkout.',
-    category: 'shipping',
-    tag: 'FREE DELIVERY',
-    isAvailable: true
-  },
-  {
-    code: 'SUPER500',
-    title: 'Flat ₹500 Off Luxury & Audio',
-    discountType: 'flat',
-    discountAmount: 500,
-    minSpend: 4999,
-    maxDiscount: 500,
-    expiresAt: '2026-11-15',
-    description: 'Special ₹500 savings on flagship audio gear, laptops, and premium accessories.',
-    terms: 'Minimum cart value ₹4,999. Valid on verified premier seller items.',
-    category: 'electronics',
-    tag: 'FLAGSHIP',
-    isAvailable: true
-  },
-  {
-    code: 'PLUSGOLD',
-    title: 'Extra 15% VIP Member Voucher',
-    discountType: 'percentage',
-    discountPercent: 15,
-    minSpend: 1499,
-    maxDiscount: 750,
-    expiresAt: '2026-12-15',
-    description: 'Exclusive 15% discount voucher for MytriKart Plus and VIP loyalty patrons.',
-    terms: 'Requires active Gold/Plus loyalty tier. Compatible with standard seller warranty.',
-    category: 'vip',
-    tag: 'VIP EXCLUSIVE',
-    isAvailable: true
-  },
-  {
-    code: 'EXPIRED50',
-    title: '50% Monsoon Flash Voucher',
-    discountType: 'percentage',
-    discountPercent: 50,
-    minSpend: 2999,
-    maxDiscount: 1500,
-    expiresAt: '2026-07-31',
-    description: 'Seasonal 50% discount voucher for Monsoon Clearance Sale.',
-    terms: 'Campaign concluded on 31 July 2026.',
-    category: 'seasonal',
-    tag: 'EXPIRED',
-    isAvailable: false
-  },
-  {
-    code: 'NEWUSER50',
-    title: 'Flat ₹50 Early Sign Up Bonus',
-    discountType: 'flat',
-    discountAmount: 50,
-    minSpend: 299,
-    maxDiscount: 50,
-    expiresAt: '2026-06-30',
-    description: 'Early sign up reward voucher.',
-    terms: 'Successfully redeemed on Order #ORD-76112.',
-    category: 'redeemed',
-    tag: 'ALREADY USED',
-    isAvailable: false
-  }
-];
+export const AVAILABLE_COUPONS = [];
 
 export const MOCK_REFUNDS = [
   {
@@ -447,19 +334,14 @@ export const MOCK_TRANSACTIONS = [
 ];
 
 export const MOCK_REWARDS = {
-  currentPoints: 2450,
-  tier: "Gold Plus",
-  pointsToNextTier: 550,
-  nextTier: "Platinum VIP",
-  tierProgressPercent: 82,
-  referralCode: "MYTRI-GOLD-774",
-  birthdayGiftUnlocked: true,
-  redemptionCatalogue: [
-    { id: "RC-1", title: "₹500 Mytri Marketplace Voucher", cost: "500 Coins", tag: "Most Popular" },
-    { id: "RC-2", title: "₹1,000 Luxury Fashion Store Pass", cost: "950 Coins", tag: "Save 50 Coins" },
-    { id: "RC-3", title: "Free Express Shipping on Next 10 Orders", cost: "300 Coins", tag: "Best Value" },
-    { id: "RC-4", title: "6 Months Coffee Subscription Privilege", cost: "1,800 Coins", tag: "Exclusive" }
-  ]
+  currentPoints: 0,
+  tier: "Classic",
+  pointsToNextTier: 1000,
+  nextTier: "Silver",
+  tierProgressPercent: 0,
+  referralCode: "",
+  birthdayGiftUnlocked: false,
+  redemptionCatalogue: []
 };
 
 export const MOCK_NOTIFICATIONS = [

@@ -13,8 +13,7 @@ import {
   Truck, 
   Sparkles, 
   CheckCircle2, 
-  X, 
-  RefreshCw
+  X
 } from 'lucide-react';
 import { useCoupons } from '../../../utils/couponManager';
 import { useToast } from '../../../context/ToastContext';
@@ -27,8 +26,7 @@ export default function CouponManagementModule() {
     addCoupon, 
     editCoupon, 
     removeCoupon, 
-    toggleStatus, 
-    resetToSeed 
+    toggleStatus
   } = useCoupons();
 
   // Search & Filters
@@ -210,13 +208,6 @@ export default function CouponManagementModule() {
     toast.info("Status Updated", `Coupon "${coupon.code}" is now ${coupon.isAvailable ? 'Inactive' : 'Active'}.`);
   };
 
-  const handleResetDefaults = () => {
-    if (window.confirm("Reset all coupons back to standard platform defaults? Any custom added coupons will be overwritten.")) {
-      resetToSeed();
-      toast.info("Coupons Reset", "Restored standard default platform vouchers.");
-    }
-  };
-
   return (
     <div className="space-y-6">
       
@@ -236,16 +227,6 @@ export default function CouponManagementModule() {
         </div>
 
         <div className="flex items-center space-x-2 shrink-0">
-          <button
-            type="button"
-            onClick={handleResetDefaults}
-            className="px-3 py-2 bg-white hover:bg-[#FFF8F2] text-[#6B6058] border border-[#EAE3DC] hover:border-[#FF811A]/50 rounded-xl text-xs font-bold transition-colors flex items-center space-x-1.5 cursor-pointer"
-            title="Reset to default seed coupons"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            <span className="hidden md:inline">Reset Defaults</span>
-          </button>
-
           <button
             type="button"
             onClick={handleOpenAddModal}
@@ -380,22 +361,33 @@ export default function CouponManagementModule() {
       {/* 4. Coupons Table / List */}
       <div className="bg-white rounded-3xl border border-[#EAE3DC] overflow-hidden shadow-xs">
         
-        {filteredCoupons.length === 0 ? (
+        {coupons.length === 0 ? (
+          <div className="p-12 text-center space-y-3">
+            <div className="w-12 h-12 rounded-2xl bg-[#FFF3EC] text-[#FA661C] mx-auto flex items-center justify-center">
+              <Tag className="w-6 h-6" />
+            </div>
+            <h3 className="font-['Outfit'] font-bold text-base text-[#1A2420]">No Coupons Configured</h3>
+            <p className="text-xs text-[#6B6058] max-w-sm mx-auto">
+              There are no coupons configured in the system yet. Click below to add your first discount code.
+            </p>
+            <button
+              type="button"
+              onClick={handleOpenAddModal}
+              className="mt-2 px-4 py-2 bg-[#FA661C] text-white text-xs font-bold rounded-xl shadow-xs cursor-pointer hover:bg-[#E0530B] inline-flex items-center space-x-1.5"
+            >
+              <Plus className="w-4 h-4 text-white" />
+              <span>Add New Coupon</span>
+            </button>
+          </div>
+        ) : filteredCoupons.length === 0 ? (
           <div className="p-12 text-center space-y-3">
             <div className="w-12 h-12 rounded-2xl bg-[#FFF3EC] text-[#FA661C] mx-auto flex items-center justify-center">
               <Tag className="w-6 h-6" />
             </div>
             <h3 className="font-['Outfit'] font-bold text-base text-[#FA661C]">No Matching Coupons</h3>
             <p className="text-xs text-[#6B6058] max-w-sm mx-auto">
-              No coupons matched your current search and filter criteria. Try adjusting your query or create a new coupon.
+              No coupons matched your current search and filter criteria. Try adjusting your query or resetting filters.
             </p>
-            <button
-              type="button"
-              onClick={handleOpenAddModal}
-              className="mt-2 px-4 py-2 bg-[#FA661C] text-white text-xs font-bold rounded-xl shadow-xs cursor-pointer hover:bg-[#E0530B]"
-            >
-              Create New Coupon
-            </button>
           </div>
         ) : (
           <div className="overflow-x-auto">

@@ -1,41 +1,47 @@
 import { useState, useEffect } from 'react';
-import { AVAILABLE_COUPONS as DEFAULT_COUPONS } from '../data/profileMockData';
 
 const STORAGE_KEY = 'mytrikart_coupons_v1';
 const EVENT_NAME = 'mytrikart_coupons_changed';
 
-// Enhanced initial list with usage stats and metadata
-const SEED_COUPONS = DEFAULT_COUPONS.map((coupon, idx) => ({
-  ...coupon,
-  id: coupon.code,
-  usageLimit: coupon.usageLimit || (coupon.discountType === 'shipping' ? 2000 : 500),
-  usedCount: coupon.usedCount || (coupon.code === 'NEWUSER50' ? 1 : coupon.isAvailable ? 40 + idx * 17 : 350),
-  status: coupon.isAvailable ? 'active' : (coupon.tag === 'ALREADY USED' ? 'used' : 'expired'),
-  usedOnOrder: coupon.code === 'NEWUSER50' ? 'ORD-76112' : null,
-  usedDate: coupon.code === 'NEWUSER50' ? '14 Jun 2026' : null,
-  createdAt: '2026-01-15'
-}));
+// No static mock coupons - only database or dynamically created coupons
+const SEED_COUPONS = [];
+
+const LEGACY_STATIC_CODES = new Set([
+  'WELCOME100',
+  'SAVE10',
+  'FESTIVE20',
+  'FREESHIP',
+  'SUPER500',
+  'PLUSGOLD',
+  'EXPIRED50',
+  'NEWUSER50',
+  'MYTRI500-5566'
+]);
 
 /**
- * Get all stored coupons from localStorage (or fallback to seed)
+ * Get all stored coupons from localStorage
  */
 export function getStoredCoupons() {
-  if (typeof window === 'undefined') return SEED_COUPONS;
+  if (typeof window === 'undefined') return [];
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(SEED_COUPONS));
-      return SEED_COUPONS;
+      return [];
     }
     const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed) || parsed.length === 0) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(SEED_COUPONS));
-      return SEED_COUPONS;
+    if (!Array.isArray(parsed)) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify([]));
+      return [];
     }
-    return parsed;
+    // Filter out any legacy static mock coupons
+    const cleaned = parsed.filter(c => c && c.code && !LEGACY_STATIC_CODES.has(c.code));
+    if (cleaned.length !== parsed.length) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
+    }
+    return cleaned;
   } catch (err) {
-    console.warn('Failed to parse coupons from localStorage, returning seed:', err);
-    return SEED_COUPONS;
+    console.warn('Failed to parse coupons from localStorage:', err);
+    return [];
   }
 }
 
