@@ -194,7 +194,7 @@ export default function CommissionModule() {
             </h2>
           </div>
           <p className="text-xs text-[#6B6058] mt-0.5">
-            Wired to live DRF rules engine: <code className="bg-[#FFF3EC] px-1 py-0.5 rounded text-[#FA661C]">/api/settlements/admin/commission-rules/</code>
+            Configure platform commission rates, fee tiers, and category deductions
           </p>
         </div>
 
@@ -325,7 +325,7 @@ export default function CommissionModule() {
         {loading ? (
           <div className="p-12 text-center space-y-3">
             <RefreshCw className="w-6 h-6 text-[#FA661C] animate-spin mx-auto" />
-            <p className="text-xs text-[#6B6058] font-medium">Fetching rules from backend...</p>
+            <p className="text-xs text-[#6B6058] font-medium">Loading rules...</p>
           </div>
         ) : error ? (
           <div className="p-8 text-center space-y-2 text-red-600 bg-red-50">

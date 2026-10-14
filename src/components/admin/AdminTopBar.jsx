@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { 
   Menu, 
   Bell, 
@@ -24,6 +24,7 @@ import { apiRequest } from '../../utils/api';
 
 export default function AdminTopBar({ 
   onToggleSidebar, 
+  onToggleMobileSidebar,
   activeSectionLabel = 'Dashboard',
   onBackToMarketplace 
 }) {
@@ -91,27 +92,43 @@ export default function AdminTopBar({
   };
 
   return (
-    <header className="bg-white border-b border-[#EAE3DC] sticky top-0 z-30 shadow-xs px-4 sm:px-8 py-3">
-      <div className="flex items-center justify-between gap-4">
+    <header className="bg-white border-b border-[#EAE3DC] sticky top-0 z-30 shadow-xs px-3 sm:px-6 lg:px-8 py-2.5 sm:py-3">
+      <div className="flex items-center justify-between gap-2 sm:gap-4">
         
-        {/* Left: Mobile Sidebar Trigger + Breadcrumb */}
-        <div className="flex items-center space-x-3">
+        {/* Left: Mobile Sidebar Trigger + Logo + Breadcrumb */}
+        <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
           <button
             type="button"
-            onClick={onToggleSidebar}
-            className="lg:hidden p-2 rounded-xl text-[#FA661C] bg-[#FFFFFF] hover:bg-[#FFF3EC] border border-[#EAE3DC] icon-interactive cursor-pointer"
+            onClick={onToggleSidebar || onToggleMobileSidebar}
+            className="lg:hidden w-9 h-9 rounded-xl text-[#FA661C] bg-[#FFFFFF] hover:bg-[#FFF3EC] border border-[#EAE3DC] flex items-center justify-center shrink-0 cursor-pointer shadow-2xs"
             aria-label="Toggle admin sidebar"
           >
-            <Menu className="w-5 h-5" />
+            <Menu className="w-5 h-5 shrink-0" />
           </button>
 
-          <div>
-            <div className="flex items-center space-x-2">
-              <span className="text-[11px] text-[#6B6058] font-bold uppercase tracking-wider hidden sm:inline">
+          {/* Platform Brand Logo */}
+          <Link
+            to="/"
+            className="flex items-center btn-interactive shrink-0"
+            aria-label="Return to Marketplace"
+            title="MytriKart Marketplace"
+          >
+            <img 
+              src="/mytrikart-logo.png" 
+              alt="MytriKart Logo" 
+              className="h-7 sm:h-8 w-auto object-contain" 
+            />
+          </Link>
+
+          <span className="text-[#EAE3DC] hidden md:inline">|</span>
+
+          <div className="min-w-0">
+            <div className="flex items-center space-x-1.5 sm:space-x-2">
+              <span className="text-[11px] text-[#6B6058] font-bold uppercase tracking-wider hidden sm:inline shrink-0">
                 Admin Console
               </span>
               <span className="text-[#EAE3DC] hidden sm:inline">/</span>
-              <h1 className="font-['Outfit'] text-base sm:text-lg font-extrabold text-[#FA661C] leading-tight">
+              <h1 className="font-['Outfit'] text-xs sm:text-base md:text-lg font-extrabold text-[#FA661C] leading-tight truncate max-w-[120px] xs:max-w-[170px] sm:max-w-none">
                 {activeSectionLabel}
               </h1>
             </div>
@@ -119,23 +136,23 @@ export default function AdminTopBar({
         </div>
 
         {/* Right: Environment Tag, Notifications, Admin Avatar & Sign Out */}
-        <div className="flex items-center space-x-2.5 sm:space-x-3.5">
+        <div className="flex items-center space-x-1.5 sm:space-x-3 shrink-0">
           
           {/* Environment Status Tag */}
-          <div className="hidden md:flex items-center space-x-1.5 bg-[#FFF3EC] text-[#FA661C] border border-[#FA661C]/20 px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider">
+          <div className="hidden md:flex items-center space-x-1.5 bg-[#FFF3EC] text-[#FA661C] border border-[#FA661C]/20 px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider shrink-0">
             <span className="w-2 h-2 rounded-full bg-[#E0530B] animate-pulse" />
             <span>Production Ops (v2.4)</span>
           </div>
 
           {/* Notification Bell with Dropdown */}
-          <div className="relative">
+          <div className="relative shrink-0">
             <button
               type="button"
               onClick={() => setIsNotifOpen(!isNotifOpen)}
-              className="p-2 rounded-xl text-[#6B6058] hover:text-[#FA661C] bg-[#FFFFFF] hover:bg-[#FFF3EC] border border-[#EAE3DC] btn-interactive relative cursor-pointer"
+              className="w-9 h-9 rounded-xl text-[#6B6058] hover:text-[#FA661C] bg-[#FFFFFF] hover:bg-[#FFF3EC] border border-[#EAE3DC] flex items-center justify-center shrink-0 cursor-pointer relative shadow-2xs"
               aria-label="Open ops notifications"
             >
-              <Bell className="w-4 h-4 icon-interactive" />
+              <Bell className="w-4 h-4 shrink-0 text-[#6B6058]" />
               {totalPendingCount > 0 && (
                 <span className="absolute -top-1 -right-1 bg-[#D7263D] text-white text-[9px] font-black min-w-4 h-4 px-1 rounded-full flex items-center justify-center border-2 border-white animate-badge-pop">
                   {totalPendingCount}
@@ -145,7 +162,7 @@ export default function AdminTopBar({
 
             {/* Notification Popover Dropdown */}
             {isNotifOpen && (
-              <div className="absolute right-0 mt-2 w-80 bg-white border border-[#FF811A]/50 rounded-2xl shadow-xl z-50 p-4 animate-dropdown text-xs">
+              <div className="fixed sm:absolute top-14 sm:top-full right-2 sm:right-0 mt-1 sm:mt-2 w-[calc(100vw-1rem)] max-w-sm sm:w-80 bg-white border border-[#FF811A]/50 rounded-2xl shadow-xl z-50 p-4 animate-dropdown text-xs">
                 <div className="flex items-center justify-between pb-2 border-b border-[#EAE3DC]">
                   <span className="font-bold text-[#FA661C] uppercase tracking-wider text-[10px]">
                     Ops Action Stream ({totalPendingCount} Pending)
@@ -153,13 +170,13 @@ export default function AdminTopBar({
                   <button
                     type="button"
                     onClick={() => { fetchRealPendingCounts(); handleSimulateQuickAction("Refreshed governance action stream."); }}
-                    className="text-[10px] text-[#FF811A] hover:underline font-bold"
+                    className="text-[10px] text-[#FF811A] hover:underline font-bold cursor-pointer"
                   >
                     Refresh
                   </button>
                 </div>
 
-                <div className="py-2 space-y-2 divide-y divide-[#EAE3DC]/40">
+                <div className="py-2 space-y-2 divide-y divide-[#EAE3DC]/40 max-h-[70vh] overflow-y-auto">
                   <div
                     onClick={() => { navigate('/admin/products'); setIsNotifOpen(false); }}
                     className="pt-2 flex items-start space-x-2.5 cursor-pointer hover:bg-[#FFF8F2] p-1.5 rounded-xl transition-colors"
@@ -229,11 +246,11 @@ export default function AdminTopBar({
           </div>
 
           {/* Super Admin User Profile Chip */}
-          <div className="flex items-center space-x-2.5 pl-2 border-l border-[#EAE3DC]">
-            <div className="w-8 h-8 rounded-full bg-[#1A1A1A] text-[#FF811A] font-black text-xs flex items-center justify-center shadow-xs border border-[#FF811A] avatar-interactive">
+          <div className="flex items-center space-x-2 pl-1.5 sm:pl-2 border-l border-[#EAE3DC] shrink-0">
+            <div className="w-8 h-8 rounded-full bg-[#1A1A1A] text-[#FF811A] font-black text-xs flex items-center justify-center shadow-xs border border-[#FF811A] shrink-0" title="Super Admin: Priya Sen">
               PS
             </div>
-            <div className="hidden sm:block text-left">
+            <div className="hidden lg:block text-left">
               <h4 className="font-extrabold text-xs text-[#FA661C] leading-tight">
                 Priya Sen
               </h4>
@@ -247,10 +264,11 @@ export default function AdminTopBar({
           <button
             type="button"
             onClick={handleAdminSignOut}
-            className="px-3 py-1.5 rounded-xl border border-[#EAE3DC] bg-[#FFFFFF] hover:bg-[#FDE8EA] text-xs font-bold text-[#D7263D] hover:border-[#D7263D]/50 transition-all flex items-center space-x-1.5 btn-interactive shadow-2xs cursor-pointer"
+            className="w-9 h-9 sm:w-auto sm:px-3 sm:py-1.5 rounded-xl border border-[#EAE3DC] bg-[#FFFFFF] hover:bg-[#FDE8EA] text-xs font-bold text-[#D7263D] hover:border-[#D7263D]/50 transition-all flex items-center justify-center space-x-1.5 shrink-0 shadow-2xs cursor-pointer"
             aria-label="Sign Out of Admin Console"
+            title="Sign Out"
           >
-            <LogOut className="w-3.5 h-3.5" />
+            <LogOut className="w-4 h-4 sm:w-3.5 sm:h-3.5 shrink-0" />
             <span className="hidden sm:inline">Sign Out</span>
           </button>
 

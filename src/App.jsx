@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, Link, useNavigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Link, useNavigate, useLocation, useParams } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import ProductListingPage from './pages/ProductListingPage';
 import ProductDetailPage from './pages/ProductDetailPage';
@@ -17,11 +17,18 @@ import CheckoutPage from './pages/CheckoutPage';
 import ScrollToTop from './components/routing/ScrollToTop';
 import PageTransitionWrapper from './components/routing/PageTransitionWrapper';
 import ProtectedRoute from './components/routing/ProtectedRoute';
+import ErrorBoundary from './components/common/ErrorBoundary';
 import { ToastProvider, useToast } from './context/ToastContext';
 import { CartWishlistProvider } from './context/CartWishlistContext';
 import { SellerProductsProvider } from './context/SellerProductsContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { getHomeRouteForRole, getAllowedRolesForRoute } from './utils/authRouting';
+
+function AccountSectionRedirect() {
+  const { sectionId } = useParams();
+  return <Navigate to={sectionId ? `/profile/${sectionId}` : '/profile'} replace />;
+}
+
 function MarketplaceRouter() {
   const toast = useToast();
   const navigate = useNavigate();
@@ -174,10 +181,17 @@ function MarketplaceRouter() {
           } 
         />
         <Route path="/account" element={<Navigate to="/profile" replace />} />
-        <Route path="/account/:sectionId" element={<Navigate to="/profile" replace />} />
+        <Route path="/account/:sectionId" element={<AccountSectionRedirect />} />
         <Route path="/orders" element={<Navigate to="/profile/orders" replace />} />
         <Route path="/wallet" element={<Navigate to="/profile/wallet" replace />} />
         <Route path="/rewards" element={<Navigate to="/profile/rewards" replace />} />
+        <Route path="/notifications" element={<Navigate to="/profile/notifications" replace />} />
+        <Route path="/support" element={<Navigate to="/profile/support" replace />} />
+        <Route path="/refunds" element={<Navigate to="/profile/refunds" replace />} />
+        <Route path="/warranty" element={<Navigate to="/profile/warranty" replace />} />
+        <Route path="/addresses" element={<Navigate to="/profile/addresses" replace />} />
+        <Route path="/coupons" element={<Navigate to="/profile/coupons" replace />} />
+        <Route path="/vouchers" element={<Navigate to="/profile/coupons" replace />} />
 
         {/* 4. Commerce Flows */}
         <Route 
@@ -371,7 +385,9 @@ export default function App() {
         <AuthProvider>
           <CartWishlistProvider>
             <SellerProductsProvider>
-              <MarketplaceRouter />
+              <ErrorBoundary>
+                <MarketplaceRouter />
+              </ErrorBoundary>
             </SellerProductsProvider>
           </CartWishlistProvider>
         </AuthProvider>

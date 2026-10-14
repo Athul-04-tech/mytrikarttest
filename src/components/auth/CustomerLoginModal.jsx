@@ -196,9 +196,11 @@ export default function CustomerLoginModal({ isOpen, onClose, initialStep = 'ide
           <div className="flex flex-col space-y-3 mb-3">
             <div className="flex items-center justify-between">
               <div className="md:hidden flex items-center space-x-1">
-                <span className="font-['Outfit'] font-extrabold text-xl text-[#FA661C]">
-                  Mytri<span className="text-[#FF811A]">Kart</span>
-                </span>
+                <img 
+                  src="/mytrikart-logo.png" 
+                  alt="MytriKart Logo" 
+                  className="h-7 w-auto object-contain" 
+                />
               </div>
               
               <button

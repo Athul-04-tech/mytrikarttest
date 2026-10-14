@@ -39,16 +39,18 @@ export default function SellerEarningsWidget({
 
   return (
     <section aria-labelledby="earnings-widget-heading" className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center space-x-2">
-          <span className="p-1 rounded-lg bg-[#FFF8F2] text-[#FA661C]">
-            <Landmark className="w-3.5 h-3.5 text-[#FF811A]" />
-          </span>
-          <h2 id="earnings-widget-heading" className="font-['Outfit'] font-extrabold text-sm uppercase tracking-wider text-[#FA661C]">
-            Earnings & Settlements Breakdown
-          </h2>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center space-x-2">
+            <span className="p-1 rounded-lg bg-[#FFF8F2] text-[#FA661C]">
+              <Landmark className="w-3.5 h-3.5 text-[#FF811A]" />
+            </span>
+            <h2 id="earnings-widget-heading" className="font-['Outfit'] font-extrabold text-sm uppercase tracking-wider text-[#FA661C]">
+              Earnings & Settlements Breakdown
+            </h2>
+          </div>
           {pendingSettlementOrderCount !== undefined && pendingSettlementOrderCount > 0 && (
-            <span className="text-[10px] font-extrabold bg-[#FFF8F2] text-[#FA661C] border border-[#FF811A]/50 px-2 py-0.5 rounded-full">
+            <span className="text-[10px] font-extrabold bg-[#FFF8F2] text-[#FA661C] border border-[#FF811A]/50 px-2 py-0.5 rounded-full shrink-0">
               {pendingSettlementOrderCount} Pending Release
             </span>
           )}
@@ -57,7 +59,7 @@ export default function SellerEarningsWidget({
         <button
           type="button"
           onClick={handleOpenSettlements}
-          className="text-xs font-bold text-[#FA661C] hover:text-[#FF811A] link-interactive flex items-center space-x-1 cursor-pointer"
+          className="text-xs font-bold text-[#FA661C] hover:text-[#FF811A] link-interactive flex items-center space-x-1 cursor-pointer self-start sm:self-auto shrink-0"
         >
           <FileText className="w-3.5 h-3.5" />
           <span>View Settlement Statement →</span>
@@ -65,7 +67,7 @@ export default function SellerEarningsWidget({
       </div>
 
       {/* Main Earnings Card with Prominent Net Earnings Feature */}
-      <div className="bg-white rounded-3xl border border-[#EAE3DC] p-5 sm:p-6 shadow-xs space-y-4">
+      <div className="bg-white rounded-3xl border border-[#EAE3DC] p-4 sm:p-6 shadow-xs space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-center">
           
           {/* PROMINENT NET EARNINGS (Strongest Visual Treatment, Gold Accent) */}

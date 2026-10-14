@@ -68,7 +68,7 @@ export default function WalletModule() {
             </h2>
           </div>
           <p className="text-xs text-[#6B6058] mt-0.5">
-            Wired to backend endpoint: <code className="bg-[#FFF3EC] px-1 py-0.5 rounded text-[#FA661C]">/api/settlements/admin/wallets/</code>
+            Monitor seller wallet balances, pending credits, and ledger transfers
           </p>
         </div>
 

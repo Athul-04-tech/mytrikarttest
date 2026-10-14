@@ -221,6 +221,20 @@ export default function CustomerAddressFormPage() {
       <header className="bg-white border-b border-[#EAE3DC] py-3 px-4 sm:px-8 sticky top-0 z-30 shadow-2xs">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-3">
+            <Link
+              to="/"
+              className="flex items-center btn-interactive shrink-0"
+              aria-label="Return to Marketplace"
+            >
+              <img 
+                src="/mytrikart-logo.png" 
+                alt="MytriKart Logo" 
+                className="h-7 sm:h-8 w-auto object-contain" 
+              />
+            </Link>
+
+            <span className="text-[#EAE3DC] hidden sm:inline">|</span>
+
             <button
               type="button"
               onClick={() => navigate('/profile/addresses')}

@@ -164,7 +164,7 @@ export default function SellerSettingsView() {
           <button
             type="submit"
             disabled={isSaving}
-            className="px-5 py-2.5 bg-[#FA661C] hover:bg-[#E0530B] text-[#FFFFFF] font-bold text-xs rounded-xl btn-interactive shadow-xs cursor-pointer flex items-center space-x-1.5 disabled:opacity-50"
+            className="px-5 py-2.5 bg-[#FA661C] hover:bg-[#E0530B] text-[#FFFFFF] font-bold text-xs rounded-xl btn-interactive shadow-xs cursor-pointer flex items-center justify-center space-x-1.5 disabled:opacity-50 w-full sm:w-auto"
           >
             <Save className="w-3.5 h-3.5 text-[#FF811A]" />
             <span>{isSaving ? 'Saving Changes...' : 'Save Store Preferences'}</span>

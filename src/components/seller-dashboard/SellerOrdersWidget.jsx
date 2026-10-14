@@ -30,7 +30,7 @@ export default function SellerOrdersWidget({ orderStatusCounts, recentOrders, on
   }));
 
   return (
-    <section aria-labelledby="orders-widget-heading" className="bg-white rounded-3xl border border-[#EAE3DC] p-5 sm:p-6 shadow-xs flex flex-col justify-between h-full">
+    <section aria-labelledby="orders-widget-heading" className="bg-white rounded-3xl border border-[#EAE3DC] p-4 sm:p-6 shadow-xs flex flex-col justify-between h-full">
       <div>
         
         {/* Header */}
@@ -47,7 +47,7 @@ export default function SellerOrdersWidget({ orderStatusCounts, recentOrders, on
           <button
             type="button"
             onClick={onNavigateToOrders}
-            className="text-xs font-bold text-[#FA661C] hover:text-[#FF811A] link-interactive flex items-center space-x-0.5 cursor-pointer"
+            className="text-xs font-bold text-[#FA661C] hover:text-[#FF811A] link-interactive flex items-center space-x-0.5 cursor-pointer shrink-0"
           >
             <span>View All Orders</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -59,7 +59,7 @@ export default function SellerOrdersWidget({ orderStatusCounts, recentOrders, on
           {countsList.map((st) => (
             <div
               key={st.id}
-              className={`p-2.5 rounded-xl border flex flex-col justify-between ${
+              className={`p-2.5 rounded-xl border flex flex-col justify-between last:col-span-2 sm:last:col-span-1 ${
                 st.isHighlight
                   ? 'bg-[#FFF8F2] border-[#FF811A]/60 shadow-2xs'
                   : st.isUrgent

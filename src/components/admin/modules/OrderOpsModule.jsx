@@ -104,7 +104,7 @@ export default function OrderOpsModule({ onInspectOrder } = {}) {
             <span className="p-1 rounded-lg bg-[#FFF3EC] text-[#FA661C]"><Truck className="w-4 h-4" /></span>
             <h2 className="font-['Outfit'] font-black text-xl text-[#FA661C]">Order Management &amp; Fulfillment</h2>
           </div>
-          <p className="text-xs text-[#6B6058] mt-0.5">Real vendor orders. Status actions follow the backend transition rules.</p>
+          <p className="text-xs text-[#6B6058] mt-0.5">Manage vendor orders according to marketplace fulfillment policies.</p>
         </div>
         <div className="flex items-center space-x-3 self-start sm:self-auto">
           <span className="text-xs font-bold text-[#FA661C] bg-[#FFF8F2] border border-[#FF811A]/50 px-3 py-1.5 rounded-xl">

@@ -56,6 +56,7 @@ export function AuthProvider({ children }) {
           setTokensState(getTokens());
         }
       } catch (err) {
+        console.error("rehydrateSession error:", err);
         if (isMounted) {
           clearTokens();
           setTokensState({ access: null, refresh: null });

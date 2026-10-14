@@ -72,15 +72,14 @@ export const MOCK_ORDERS = [
         qty: 1
       }
     ],
-    trackingStep: 4, // 1: Placed, 2: Confirmed, 3: Shipped, 4: Out for Delivery, 5: Delivered
     estimatedDelivery: "Today by 6:00 PM",
-    carrier: "Mytri Express Logistics (TRK-882194)",
     canReturn: false,
     canCancel: true
   },
   {
     id: "ORD-89310",
-    date: "28 Jul 2026",
+    date: "28 Sep 2026",
+    created_at: "2026-09-28T10:15:00Z",
     total: "₹3,299.00",
     status: "Delivered",
     statusType: "delivered",
@@ -91,17 +90,19 @@ export const MOCK_ORDERS = [
         seller: "Artisan Heritage Store",
         image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=200&q=80",
         price: "₹3,299",
-        qty: 1
+        qty: 1,
+        productId: 2
       }
     ],
     trackingStep: 5,
-    deliveredOn: "31 Jul 2026",
+    deliveredOn: "01 Oct 2026",
     canReturn: true,
     canCancel: false
   },
   {
     id: "ORD-76112",
     date: "14 Jun 2026",
+    created_at: "2026-06-14T12:30:00Z",
     total: "₹1,199.00",
     status: "Delivered",
     statusType: "delivered",
@@ -112,7 +113,8 @@ export const MOCK_ORDERS = [
         seller: "Pure Flora Naturals",
         image: "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=200&q=80",
         price: "₹1,199",
-        qty: 1
+        qty: 1,
+        productId: 3
       }
     ],
     trackingStep: 5,
@@ -123,6 +125,7 @@ export const MOCK_ORDERS = [
   {
     id: "ORD-65201",
     date: "02 May 2026",
+    created_at: "2026-05-02T09:00:00Z",
     total: "₹24,499.00",
     status: "Cancelled",
     statusType: "cancelled",
@@ -133,13 +136,207 @@ export const MOCK_ORDERS = [
         seller: "Apex Displays Global",
         image: "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?auto=format&fit=crop&w=200&q=80",
         price: "₹24,499",
-        qty: 1
+        qty: 1,
+        productId: 4
       }
     ],
     trackingStep: 1,
     cancelledReason: "Customer requested cancellation before dispatch",
     canReturn: false,
     canCancel: false
+  },
+  {
+    id: "ORD-58309",
+    date: "18 Mar 2026",
+    created_at: "2026-03-18T16:45:00Z",
+    total: "₹2,499.00",
+    status: "Returned",
+    statusType: "returned",
+    itemCount: 1,
+    items: [
+      {
+        name: "Ergonomic Memory Foam Lumbar Support Cushion",
+        seller: "PostureCraft Life",
+        image: "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=200&q=80",
+        price: "₹2,499",
+        qty: 1,
+        productId: 5
+      }
+    ],
+    trackingStep: 5,
+    returnedOn: "24 Mar 2026",
+    refundStatus: "Full Refund of ₹2,499 Credited to Wallet",
+    canReturn: false,
+    canCancel: false
+  },
+  {
+    id: "ORD-44912",
+    date: "12 Nov 2025",
+    created_at: "2025-11-12T11:20:00Z",
+    total: "₹7,899.00",
+    status: "Delivered",
+    statusType: "delivered",
+    itemCount: 2,
+    items: [
+      {
+        name: "Handcrafted Pure Brass Diwali Puja Thali Set",
+        seller: "Artisan Heritage Store",
+        image: "https://images.unsplash.com/photo-1606293926075-69a00dbfde81?auto=format&fit=crop&w=200&q=80",
+        price: "₹4,899",
+        qty: 1,
+        productId: 6
+      },
+      {
+        name: "Organic Himalayan Cedarwood Essential Oil (30ml)",
+        seller: "Pure Flora Naturals",
+        image: "https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?auto=format&fit=crop&w=200&q=80",
+        price: "₹3,000",
+        qty: 1,
+        productId: 7
+      }
+    ],
+    trackingStep: 5,
+    deliveredOn: "16 Nov 2025",
+    canReturn: false,
+    canCancel: false
+  },
+  {
+    id: "ORD-33104",
+    date: "04 May 2024",
+    created_at: "2024-05-04T15:10:00Z",
+    total: "₹1,850.00",
+    status: "Delivered",
+    statusType: "delivered",
+    itemCount: 1,
+    items: [
+      {
+        name: "Vintage Ceramic Tea Infuser Mug with Bamboo Lid",
+        seller: "Clay & Kiln Studio",
+        image: "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=200&q=80",
+        price: "₹1,850",
+        qty: 1,
+        productId: 8
+      }
+    ],
+    trackingStep: 5,
+    deliveredOn: "09 May 2024",
+    canReturn: false,
+    canCancel: false
+  }
+];
+
+export const AVAILABLE_COUPONS = [
+  {
+    code: 'WELCOME100',
+    title: 'Flat ₹100 Off First Order',
+    discountType: 'flat',
+    discountAmount: 100,
+    minSpend: 499,
+    maxDiscount: 100,
+    expiresAt: '2026-12-31',
+    description: 'Welcome to MytriKart! Get flat ₹100 instant discount on your first order above ₹499.',
+    terms: 'Valid on all product categories. One-time redemption per customer account. Cannot be combined with other promotional codes.',
+    category: 'all',
+    tag: 'FIRST ORDER',
+    isAvailable: true
+  },
+  {
+    code: 'SAVE10',
+    title: '10% Instant Marketplace Discount',
+    discountType: 'percentage',
+    discountPercent: 10,
+    minSpend: 999,
+    maxDiscount: 500,
+    expiresAt: '2026-11-30',
+    description: 'Save 10% on orders above ₹999 across top verified brand collections.',
+    terms: 'Maximum discount ₹500. Applicable on Electronics, Fashion, Artisanal Crafts, and Home Decor.',
+    category: 'all',
+    tag: 'POPULAR',
+    isAvailable: true
+  },
+  {
+    code: 'FESTIVE20',
+    title: '20% Mega Festive Savings',
+    discountType: 'percentage',
+    discountPercent: 20,
+    minSpend: 1999,
+    maxDiscount: 1000,
+    expiresAt: '2026-10-31',
+    description: 'Enjoy 20% savings up to ₹1,000 on festive artisan specials and flagship electronics.',
+    terms: 'Valid on minimum cart value of ₹1,999. Applicable once per verified customer.',
+    category: 'festive',
+    tag: 'FESTIVE SPECIAL',
+    isAvailable: true
+  },
+  {
+    code: 'FREESHIP',
+    title: '100% Free Express Shipping',
+    discountType: 'shipping',
+    discountAmount: 40,
+    minSpend: 399,
+    maxDiscount: 40,
+    expiresAt: '2026-12-31',
+    description: 'Zero express shipping fee on any order above ₹399 delivered to your doorstep.',
+    terms: 'Valid across all delivery pincodes in India. Instant automatic deduction at checkout.',
+    category: 'shipping',
+    tag: 'FREE DELIVERY',
+    isAvailable: true
+  },
+  {
+    code: 'SUPER500',
+    title: 'Flat ₹500 Off Luxury & Audio',
+    discountType: 'flat',
+    discountAmount: 500,
+    minSpend: 4999,
+    maxDiscount: 500,
+    expiresAt: '2026-11-15',
+    description: 'Special ₹500 savings on flagship audio gear, laptops, and premium accessories.',
+    terms: 'Minimum cart value ₹4,999. Valid on verified premier seller items.',
+    category: 'electronics',
+    tag: 'FLAGSHIP',
+    isAvailable: true
+  },
+  {
+    code: 'PLUSGOLD',
+    title: 'Extra 15% VIP Member Voucher',
+    discountType: 'percentage',
+    discountPercent: 15,
+    minSpend: 1499,
+    maxDiscount: 750,
+    expiresAt: '2026-12-15',
+    description: 'Exclusive 15% discount voucher for MytriKart Plus and VIP loyalty patrons.',
+    terms: 'Requires active Gold/Plus loyalty tier. Compatible with standard seller warranty.',
+    category: 'vip',
+    tag: 'VIP EXCLUSIVE',
+    isAvailable: true
+  },
+  {
+    code: 'EXPIRED50',
+    title: '50% Monsoon Flash Voucher',
+    discountType: 'percentage',
+    discountPercent: 50,
+    minSpend: 2999,
+    maxDiscount: 1500,
+    expiresAt: '2026-07-31',
+    description: 'Seasonal 50% discount voucher for Monsoon Clearance Sale.',
+    terms: 'Campaign concluded on 31 July 2026.',
+    category: 'seasonal',
+    tag: 'EXPIRED',
+    isAvailable: false
+  },
+  {
+    code: 'NEWUSER50',
+    title: 'Flat ₹50 Early Sign Up Bonus',
+    discountType: 'flat',
+    discountAmount: 50,
+    minSpend: 299,
+    maxDiscount: 50,
+    expiresAt: '2026-06-30',
+    description: 'Early sign up reward voucher.',
+    terms: 'Successfully redeemed on Order #ORD-76112.',
+    category: 'redeemed',
+    tag: 'ALREADY USED',
+    isAvailable: false
   }
 ];
 

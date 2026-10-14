@@ -47,7 +47,7 @@ export default function ReportsModule() {
             </h2>
           </div>
           <p className="text-xs text-[#6B6058] mt-0.5">
-            Wired to live DRF endpoint: <code className="bg-[#FFF3EC] px-1 py-0.5 rounded text-[#FA661C]">/api/reports/admin/overview/</code>
+            Real-time marketplace revenue, volume, and entity summaries
           </p>
         </div>
 
@@ -98,7 +98,7 @@ export default function ReportsModule() {
                         {currency} Revenue Account
                       </span>
                       <span className="text-[10px] font-bold bg-[#FA661C] text-white px-2 py-0.5 rounded-full">
-                        Live Backend
+                        Real-Time
                       </span>
                     </div>
 
@@ -233,7 +233,7 @@ export default function ReportsModule() {
               </div>
 
               <p className="text-xs text-[#6B6058] leading-relaxed">
-                The current live endpoint (<code className="bg-white px-1.5 py-0.5 rounded border text-[#FA661C]">/api/reports/admin/overview/</code>) returns real-time entity counts (vendors, users, products) and verified revenue by currency. GMV calculations, monthly trend charts, and order volume aggregations are not yet backed by the Django backend API. Synthetic mock trend charts have been removed in compliance with data integrity guidelines.
+                Platform reporting reflects verified real-time entity counts (vendors, users, products) and settled revenue by currency. GMV analytics and multi-period trend tracking will activate once historical transaction datasets are finalized.
               </p>
             </div>
           </div>

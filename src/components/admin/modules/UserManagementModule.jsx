@@ -316,7 +316,7 @@ export default function UserManagementModule({ defaultTab = 'all' }) {
           <div>
             <span className="font-bold text-[#1A2420]">Password Protection & Privilege Security:</span>
             <p className="text-[#6B6058] text-[11px] mt-0.5">
-              Password hashes are write-only (<code className="bg-[#FFF3EC] text-[#FA661C] px-1 py-0.5 rounded">write_only=True</code>) and strictly omitted from all responses.
+              Password hashes are write-only and strictly omitted from all responses.
             </p>
           </div>
         </div>
@@ -765,7 +765,7 @@ export default function UserManagementModule({ defaultTab = 'all' }) {
                   <span>Soft-Deactivation Recommendation:</span>
                 </span>
                 <p className="text-[#1A2420]">
-                  Soft-deactivating setting <code className="bg-white px-1 py-0.5 rounded font-mono text-[10px]">is_active = false</code> is safer than hard DELETE. Deleting permanently removes the user and may fail if associated with orders, reviews, or seller entities.
+                  Deactivating user account status is safer than permanent deletion. Permanent deletion removes the user and may fail if associated with orders, reviews, or seller entities.
                 </p>
               </div>
             )}

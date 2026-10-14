@@ -131,12 +131,12 @@ export default function SellerOrdersView({ onInspectOrder, vendorProfile } = {})
           </p>
         </div>
 
-        <div className="flex items-center space-x-2.5 self-start sm:self-auto">
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 w-full sm:w-auto">
           <button
             type="button"
             onClick={fetchOrders}
             disabled={loading}
-            className="px-3.5 py-2 bg-white border border-[#EAE3DC] hover:bg-[#FFF3EC] text-[#6B6058] hover:text-[#FA661C] rounded-2xl font-bold text-xs btn-interactive flex items-center space-x-1.5 cursor-pointer disabled:opacity-50"
+            className="px-3.5 py-2 bg-white border border-[#EAE3DC] hover:bg-[#FFF3EC] text-[#6B6058] hover:text-[#FA661C] rounded-2xl font-bold text-xs btn-interactive flex items-center justify-center space-x-1.5 cursor-pointer disabled:opacity-50 flex-1 sm:flex-initial"
             title="Refresh Orders"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
@@ -152,7 +152,7 @@ export default function SellerOrdersView({ onInspectOrder, vendorProfile } = {})
                 toast.success("Batch Manifest Generated", `Shipping labels generated for ${filteredOrders.length} active orders.`);
               }
             }}
-            className="px-4 py-2 bg-[#FA661C] hover:bg-[#E0530B] text-[#FFFFFF] rounded-2xl font-black text-xs btn-interactive flex items-center space-x-1.5 shadow-xs cursor-pointer"
+            className="px-4 py-2 bg-[#FA661C] hover:bg-[#E0530B] text-[#FFFFFF] rounded-2xl font-black text-xs btn-interactive flex items-center justify-center space-x-1.5 shadow-xs cursor-pointer flex-1 sm:flex-initial"
           >
             <Printer className="w-4 h-4 text-[#FF811A]" />
             <span>Print Shipping Labels</span>

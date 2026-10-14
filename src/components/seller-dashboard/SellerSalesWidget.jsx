@@ -69,7 +69,7 @@ export default function SellerSalesWidget({ salesByCurrency, selectedCurrency = 
           return (
             <div
               key={p.id}
-              className="p-3.5 bg-white rounded-2xl border border-[#EAE3DC] hover:border-[#FF811A]/60 shadow-2xs card-interactive flex flex-col justify-between"
+              className="p-3.5 bg-white rounded-2xl border border-[#EAE3DC] hover:border-[#FF811A]/60 shadow-2xs card-interactive flex flex-col justify-between last:col-span-2 sm:last:col-span-1"
             >
               <div>
                 <div className="flex items-center justify-between gap-1 mb-2">

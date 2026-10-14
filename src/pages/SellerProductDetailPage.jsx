@@ -68,9 +68,7 @@ export default function SellerProductDetailPage() {
   }, [id]);
 
   const getImageUrl = (url) => {
-    if (!url) return '';
-    if (url.startsWith('http://') || url.startsWith('https://')) return url;
-    return `${BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+    return resolveMediaUrl(url);
   };
 
   const getStatusBadge = (status) => {

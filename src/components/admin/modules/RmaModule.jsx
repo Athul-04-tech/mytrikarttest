@@ -315,7 +315,7 @@ export default function RmaModule() {
       {loading && (
         <div className="bg-white rounded-2xl border border-[#EAE3DC] p-10 text-center animate-pulse text-xs text-[#6B6058] space-y-2">
           <RefreshCw className="w-6 h-6 animate-spin text-[#FA661C] mx-auto" />
-          <div>Fetching paginated RMA requests from backend API...</div>
+          <div>Fetching RMA requests...</div>
         </div>
       )}
 
@@ -710,7 +710,7 @@ export default function RmaModule() {
               </div>
 
               <p className="text-xs text-[#6B6058]">
-                Processing this refund will invoke the backend service <code className="bg-[#FFF8F2] text-[#FA661C] px-1 py-0.5 rounded font-mono">process_refund()</code>, calculating exact ledger reversals and issuing gateway credits.
+                Processing this refund will calculate exact ledger reversals and issue gateway credits.
               </p>
 
               <div className="pt-2 flex items-center justify-end space-x-3">

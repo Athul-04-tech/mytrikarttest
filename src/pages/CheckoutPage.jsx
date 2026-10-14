@@ -3,8 +3,6 @@ import { useNavigate, Link } from 'react-router-dom';
 import { 
   ArrowLeft, 
   Lock, 
-  UserCheck, 
-  UserX,
   Loader2,
   AlertCircle
 } from 'lucide-react';
@@ -13,6 +11,7 @@ import ShippingAddressSection, { DEFAULT_FALLBACK_ADDRESS } from '../components/
 import PaymentMethodSection from '../components/checkout/PaymentMethodSection';
 import OrderSummarySidebar from '../components/cart/OrderSummarySidebar';
 import OrderSuccessConfirmation from '../components/checkout/OrderSuccessConfirmation';
+import CouponApplyBox from '../components/cart/CouponApplyBox';
 
 export default function CheckoutPage() {
   const {
@@ -24,7 +23,7 @@ export default function CheckoutPage() {
 
   const navigate = useNavigate();
 
-  const [isGuest, setIsGuest] = useState(false);
+  const isGuest = false;
   const [selectedAddress, setSelectedAddress] = useState(DEFAULT_FALLBACK_ADDRESS);
   const [sameAsShipping, setSameAsShipping] = useState(true);
   const [paymentMethod, setPaymentMethod] = useState('upi');
@@ -61,8 +60,16 @@ export default function CheckoutPage() {
       <div className="min-h-screen bg-[#FFFFFF] flex flex-col text-[#1A2420] font-sans selection:bg-[#FF811A]/30 selection:text-[#FA661C]">
         <header className="sticky top-0 z-40 bg-[#FFFFFF]/95 backdrop-blur-md border-b border-[#EAE3DC] shadow-xs px-4 sm:px-8 py-3.5">
           <div className="max-w-7xl mx-auto flex items-center justify-between">
-            <Link to="/" className="font-['Outfit'] font-black text-lg text-[#FA661C]">
-              Mytri<span className="text-[#FF811A]">Kart</span> Receipt
+            <Link to="/" className="flex items-center space-x-2 btn-interactive" aria-label="MytriKart Homepage">
+              <img 
+                src="/mytrikart-logo.png" 
+                alt="MytriKart Logo" 
+                className="h-7 sm:h-8 w-auto object-contain" 
+              />
+              <span className="text-[#EAE3DC] hidden sm:inline">|</span>
+              <span className="font-['Outfit'] font-black text-sm sm:text-base text-[#FA661C]">
+                Official Receipt
+              </span>
             </Link>
           </div>
         </header>
@@ -80,6 +87,20 @@ export default function CheckoutPage() {
       <header className="sticky top-0 z-40 bg-[#FFFFFF]/95 backdrop-blur-md border-b border-[#EAE3DC] shadow-xs px-4 sm:px-8 py-3.5">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-3">
+            <Link
+              to="/"
+              className="flex items-center btn-interactive shrink-0"
+              aria-label="Return to Marketplace"
+            >
+              <img 
+                src="/mytrikart-logo.png" 
+                alt="MytriKart Logo" 
+                className="h-7 sm:h-8 w-auto object-contain" 
+              />
+            </Link>
+
+            <span className="text-[#EAE3DC] hidden sm:inline">|</span>
+
             <Link
               to="/cart"
               className="p-2 rounded-xl bg-white hover:bg-[#FFF3EC] border border-[#EAE3DC] text-[#FA661C] icon-interactive cursor-pointer"
@@ -111,32 +132,6 @@ export default function CheckoutPage() {
           {/* LEFT COLUMN: One-Page Checkout Sections (8 Cols) */}
           <div className="lg:col-span-7 xl:col-span-8 space-y-6">
             
-            {/* 1. Guest Checkout Notice / Toggle */}
-            <div className="bg-[#FFF8F2] border border-[#FF811A]/50 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-              <div className="flex items-center space-x-2.5">
-                <div className="p-2 bg-white rounded-xl text-[#FA661C] border border-[#FF811A]/40 shrink-0">
-                  {isGuest ? <UserX className="w-4 h-4 text-[#D7263D]" /> : <UserCheck className="w-4 h-4 text-[#FA661C]" />}
-                </div>
-                <div>
-                  <span className="font-bold text-[#FA661C] block">
-                    {isGuest ? 'Checking out as Guest Visitor' : 'Logged in Customer Checkout'}
-                  </span>
-                  <p className="text-[10px] text-[#6B6058]">
-                    {isGuest 
-                      ? 'Saved addresses are hidden in guest mode.' 
-                      : 'Saved delivery addresses are automatically loaded.'}
-                  </p>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setIsGuest(!isGuest)}
-                className="px-3.5 py-1.5 bg-white hover:bg-[#FFFFFF] text-[#FA661C] border border-[#EAE3DC] rounded-xl text-[11px] font-bold btn-interactive cursor-pointer self-start sm:self-auto shrink-0 shadow-2xs"
-              >
-                {isGuest ? 'Switch to Logged In' : 'Continue as Guest'}
-              </button>
-            </div>
 
             {/* 2. Shipping Address & Same as Shipping Billing */}
             <ShippingAddressSection
@@ -160,6 +155,7 @@ export default function CheckoutPage() {
           {/* RIGHT COLUMN: Sticky Order Summary & Primary Place Order CTA */}
           <div className="lg:col-span-5 xl:col-span-4 space-y-4">
             
+            <CouponApplyBox />
             <OrderSummarySidebar isCheckoutPage={true} />
 
             {/* Error Callout Banner if API fails */}

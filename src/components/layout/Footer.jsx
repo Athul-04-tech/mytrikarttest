@@ -111,7 +111,7 @@ export default function Footer() {
           <h4 className="font-bold text-sm text-[#FF811A] uppercase tracking-wider">Help &amp; Support</h4>
           <ul className="space-y-2 text-[#FFFFFF]/80">
             <li><Link to="/profile/wallet" className="hover:text-[#FF811A] transition-colors">Payments &amp; EMI</Link></li>
-            <li><Link to="/" className="hover:text-[#FF811A] transition-colors">Shipping &amp; Delivery</Link></li>
+            <li><Link to="/profile/support" className="hover:text-[#FF811A] transition-colors">Shipping &amp; Delivery</Link></li>
             <li><Link to="/profile/refunds" className="hover:text-[#FF811A] transition-colors">Cancellation &amp; Returns</Link></li>
             <li><Link to="/profile/support" className="hover:text-[#FF811A] transition-colors">FAQs</Link></li>
           </ul>

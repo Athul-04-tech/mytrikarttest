@@ -206,7 +206,7 @@ export default function VendorHubModule() {
       {/* 3. Loading State */}
       {loading && (
         <div className="bg-white rounded-2xl border border-[#EAE3DC] p-6 text-center animate-pulse text-xs text-[#6B6058]">
-          Loading real merchant profiles and KYC documents from backend API...
+          Loading merchant profiles and KYC documents...
         </div>
       )}
 

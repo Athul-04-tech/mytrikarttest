@@ -19,6 +19,7 @@ export const LOGIN_MENU_ITEMS = [
   { label: 'Wishlist', iconName: 'Heart' },
   { label: 'Become a Seller', iconName: 'Store', isHighlight: true },
   { label: 'Rewards', iconName: 'Gift' },
+  { label: 'Coupons & Offers', iconName: 'Tag' },
   { label: 'Gift Cards', iconName: 'CreditCard' },
   { label: 'Notification Preferences', iconName: 'Bell' },
   { label: '24x7 Customer Care', iconName: 'Headphones' },

@@ -13,7 +13,8 @@ import {
   Sparkles, 
   CheckCircle2,
   Wallet,
-  Gift
+  Gift,
+  Tag
 } from 'lucide-react';
 
 export const PROFILE_SECTIONS = [
@@ -21,6 +22,7 @@ export const PROFILE_SECTIONS = [
   { id: 'addresses', label: 'Address Book', icon: MapPin },
   { id: 'orders', label: 'My Orders', icon: Package },
   { id: 'wallet', label: 'Wallet & Payments', icon: Wallet },
+  { id: 'coupons', label: 'Coupons & Vouchers', icon: Tag },
   { id: 'rewards', label: 'Rewards & Loyalty', icon: Gift },
   { id: 'refunds', label: 'Refunds & Returns', icon: RotateCcw },
   { id: 'warranty', label: 'Warranty & Claims', icon: ShieldCheck },
@@ -34,7 +36,8 @@ export default function ProfileSidebar({
   onSelectSection, 
   user,
   userProfile,
-  onLogout 
+  onLogout,
+  isDrawer = false
 }) {
   const currentUser = user || userProfile || {};
   const displayName = currentUser?.fullName || currentUser?.name || currentUser?.username || 'Account';
@@ -45,7 +48,11 @@ export default function ProfileSidebar({
   return (
     <aside 
       aria-label="Account Navigation"
-      className="w-full lg:w-72 shrink-0 bg-white border border-[#EAE3DC] rounded-3xl p-4 sm:p-5 shadow-xs flex flex-col justify-between"
+      className={`w-full shrink-0 bg-white flex flex-col justify-between ${
+        isDrawer 
+          ? 'border-0 p-0 shadow-none' 
+          : 'border border-[#EAE3DC] rounded-3xl p-4 sm:p-5 shadow-xs lg:w-72'
+      }`}
     >
       <div>
         {/* Profile Summary Card Header */}

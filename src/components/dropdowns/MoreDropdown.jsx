@@ -41,33 +41,33 @@ export default function MoreDropdown({ isOpen, onClose }) {
     }
 
     if (item.label === 'Advertise on MytriKart') {
-      alert("Opening MytriKart Ads Console...");
+      navigate('/seller/register');
       return;
     }
   };
 
   return (
     <>
-      {/* Backdrop overlay - semi-transparent on mobile, transparent on desktop */}
+      {/* Backdrop overlay - transparent click-outside listener for mobile and desktop */}
       <div 
-        className="fixed inset-0 bg-[#FA661C]/40 backdrop-blur-xs z-40 md:bg-transparent md:backdrop-blur-none"
+        className="fixed inset-0 z-40 bg-transparent"
         onClick={onClose}
         aria-hidden="true"
       />
 
-      {/* Main Container */}
-      <div className="fixed inset-x-0 bottom-0 z-50 md:inset-x-auto md:top-16 md:right-4 md:bottom-auto md:w-64 md:mt-2 animate-bottom-sheet md:animate-dropdown">
-        <div className="bg-[#FFFFFF] border border-[#FF811A]/30 rounded-t-2xl md:rounded-2xl shadow-2xl overflow-hidden glass-panel">
+      {/* Main Container: Floating dropdown box on both mobile & desktop */}
+      <div className="absolute top-full mt-1.5 sm:mt-2 right-0 z-50 w-64 animate-dropdown">
+        <div className="bg-[#FFFFFF] border border-[#FF811A]/30 rounded-2xl shadow-2xl overflow-hidden glass-panel">
           
           {/* Mobile Bar */}
-          <div className="md:hidden flex items-center justify-between px-4 py-2.5 border-b border-[#EAE3DC] bg-[#FFF3EC]/50">
+          <div className="sm:hidden flex items-center justify-between px-3.5 py-2 border-b border-[#EAE3DC] bg-[#FFF3EC]/50">
             <span className="text-xs font-bold text-[#FA661C] uppercase tracking-wider">More Options</span>
             <button 
               onClick={onClose} 
               className="p-1 text-[#6B6058] hover:text-[#FA661C] icon-interactive cursor-pointer"
               aria-label="Close menu"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </button>
           </div>
 

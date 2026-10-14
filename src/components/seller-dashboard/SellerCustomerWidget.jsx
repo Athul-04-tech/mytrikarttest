@@ -25,21 +25,23 @@ export default function SellerCustomerWidget() {
 
   return (
     <section aria-labelledby="customer-widget-heading" className="space-y-3">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <span className="p-1 rounded-lg bg-[#FFF3EC] text-[#FA661C]">
-            <Users className="w-3.5 h-3.5" />
-          </span>
-          <h2 id="customer-widget-heading" className="font-['Outfit'] font-extrabold text-sm uppercase tracking-wider text-[#FA661C]">
-            Buyer Engagement & Customer Care
-          </h2>
-          <span className="text-[10px] font-black uppercase tracking-wider bg-[#FFF8F2] text-[#FA661C] border border-[#FF811A]/60 px-2 py-0.5 rounded-full flex items-center space-x-1">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center space-x-2">
+            <span className="p-1 rounded-lg bg-[#FFF3EC] text-[#FA661C]">
+              <Users className="w-3.5 h-3.5" />
+            </span>
+            <h2 id="customer-widget-heading" className="font-['Outfit'] font-extrabold text-sm uppercase tracking-wider text-[#FA661C]">
+              Buyer Engagement & Customer Care
+            </h2>
+          </div>
+          <span className="text-[10px] font-black uppercase tracking-wider bg-[#FFF8F2] text-[#FA661C] border border-[#FF811A]/60 px-2 py-0.5 rounded-full flex items-center space-x-1 shrink-0">
             <Clock className="w-3 h-3 text-[#FF811A]" />
             <span>Coming Soon</span>
           </span>
         </div>
 
-        <span className="text-[11px] text-[#6B6058] italic">
+        <span className="text-[11px] text-[#6B6058] italic shrink-0">
           No live API endpoint available yet
         </span>
       </div>

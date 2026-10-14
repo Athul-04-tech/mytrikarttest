@@ -53,7 +53,25 @@ export default function AdminStatCardsGrid({
   let revenueDisplay = "No settled revenue yet";
   if (revenueCurrencies.length > 0) {
     revenueDisplay = revenueCurrencies
-      .map(curr => `${curr} ${Number(overviewData.revenue.by_currency[curr]).toLocaleString()}`)
+      .map(curr => {
+        const revObj = overviewData.revenue.by_currency[curr];
+        let amount = 0;
+        if (typeof revObj === 'number') {
+          amount = revObj;
+        } else if (typeof revObj === 'string') {
+          amount = parseFloat(revObj) || 0;
+        } else if (revObj && typeof revObj === 'object') {
+          amount = parseFloat(
+            revObj.net_platform_revenue ??
+            revObj.commission_revenue ??
+            revObj.gross_platform_commission ??
+            revObj.total ??
+            revObj.amount ??
+            0
+          ) || 0;
+        }
+        return `${curr} ${amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      })
       .join(', ');
   }
 
@@ -80,7 +98,12 @@ export default function AdminStatCardsGrid({
   let disbursedDisplay = "No disbursed settlements yet";
   if (settlementCurrencies.length > 0) {
     disbursedDisplay = settlementCurrencies
-      .map(curr => `${curr} ${Number(settlementSummary.by_currency[curr].total_disbursed || 0).toLocaleString()}`)
+      .map(curr => {
+        const item = settlementSummary.by_currency[curr];
+        const raw = typeof item === 'object' && item !== null ? (item.total_disbursed ?? item.amount ?? 0) : item;
+        const amount = parseFloat(raw) || 0;
+        return `${curr} ${amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      })
       .join(', ');
   }
   const pendingHoldVendors = settlementSummary?.vendors_with_pending_settlement ?? 0;
@@ -169,7 +192,7 @@ export default function AdminStatCardsGrid({
       id: 'escrow_vault',
       label: 'Escrow Vault Balance',
       value: 'Not yet available',
-      subtext: 'No ledger escrow model in backend',
+      subtext: 'Escrow ledger coming soon',
       badge: 'Not yet available',
       isDeferred: true,
       icon: ShieldCheck
@@ -178,23 +201,23 @@ export default function AdminStatCardsGrid({
 
   return (
     <section aria-label="Business Overview Stats" className="mb-6">
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="font-['Outfit'] font-black text-sm uppercase tracking-wider text-[#FA661C]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-4 mb-3">
+        <h2 className="font-['Outfit'] font-black text-sm sm:text-base uppercase tracking-wider text-[#FA661C]">
           Real-Time Marketplace Vitals
         </h2>
         <span className="text-[11px] text-[#6B6058] font-medium">
-          Live Backend API Telemetry (`/api/reports/admin/overview/` & Admin Summaries)
+          Live platform operational metrics
         </span>
       </div>
 
       {/* STATS GRID */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5 sm:gap-3">
         {cards.map((stat) => {
           const Icon = stat.icon;
 
           const CardContent = (
             <div
-              className={`p-3.5 rounded-2xl bg-white border transition-all duration-200 flex flex-col justify-between h-full ${
+              className={`p-3 sm:p-3.5 rounded-2xl bg-white border transition-all duration-200 flex flex-col justify-between h-full min-w-0 ${
                 stat.isUrgent
                   ? 'border-[#D7263D]/40 hover:border-[#D7263D] bg-[#FDE8EA]/20 shadow-2xs'
                   : stat.isDeferred
@@ -202,8 +225,8 @@ export default function AdminStatCardsGrid({
                   : 'border-[#EAE3DC] hover:border-[#FF811A]/60 shadow-2xs'
               }`}
             >
-              <div>
-                <div className="flex items-center justify-between gap-1 mb-2">
+              <div className="min-w-0">
+                <div className="flex items-center justify-between gap-1 mb-1.5 min-w-0">
                   <span className="text-[11px] font-bold text-[#6B6058] truncate">
                     {stat.label}
                   </span>
@@ -214,23 +237,26 @@ export default function AdminStatCardsGrid({
                       ? 'bg-[#EAE3DC]/60 text-[#6B6058]'
                       : 'bg-[#FFF8F2] text-[#FA661C]'
                   }`}>
-                    <Icon className="w-3.5 h-3.5" />
+                    <Icon className="w-3.5 h-3.5 shrink-0" />
                   </div>
                 </div>
 
-                <div className={`font-['Outfit'] font-black tracking-tight ${
-                  stat.isDeferred
-                    ? 'text-xs text-[#6B6058] italic py-1'
-                    : stat.isUrgent
-                    ? 'text-lg sm:text-xl text-[#D7263D]'
-                    : 'text-lg sm:text-xl text-[#FA661C]'
-                }`}>
+                <div 
+                  className={`font-['Outfit'] font-black tracking-tight truncate ${
+                    stat.isDeferred
+                      ? 'text-xs text-[#6B6058] italic py-1'
+                      : stat.isUrgent
+                      ? 'text-base sm:text-xl text-[#D7263D]'
+                      : 'text-base sm:text-xl text-[#FA661C]'
+                  }`}
+                  title={stat.value}
+                >
                   {stat.value}
                 </div>
               </div>
 
-              <div className="mt-2 pt-2 border-t border-[#EAE3DC]/50 flex items-center justify-between text-[10px]">
-                <span className={`font-bold px-1.5 py-0.2 rounded ${
+              <div className="mt-2.5 pt-2 border-t border-[#EAE3DC]/50 flex items-center justify-between gap-1.5 text-[10px] min-w-0">
+                <span className={`font-bold px-1.5 py-0.5 rounded text-[9.5px] shrink-0 leading-none ${
                   stat.isUrgent
                     ? 'bg-[#FDE8EA] text-[#D7263D]'
                     : stat.isDeferred
@@ -239,7 +265,7 @@ export default function AdminStatCardsGrid({
                 }`}>
                   {stat.badge}
                 </span>
-                <span className="text-[#6B6058]/80 truncate max-w-[110px]">
+                <span className="text-[#6B6058]/80 truncate text-right flex-1 min-w-0 text-[10px]" title={stat.subtext}>
                   {stat.subtext}
                 </span>
               </div>
@@ -248,13 +274,13 @@ export default function AdminStatCardsGrid({
 
           if (stat.link) {
             return (
-              <Link key={stat.id} to={stat.link} className="block btn-interactive">
+              <Link key={stat.id} to={stat.link} className="block btn-interactive min-w-0">
                 {CardContent}
               </Link>
             );
           }
 
-          return <div key={stat.id}>{CardContent}</div>;
+          return <div key={stat.id} className="min-w-0">{CardContent}</div>;
         })}
       </div>
     </section>

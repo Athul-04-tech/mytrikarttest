@@ -74,8 +74,9 @@ export async function apiRequest(endpoint, options = {}, isRetry = false) {
     ...(options.headers || {}),
   };
 
-  if (inMemoryAccessToken && !options.skipAuth) {
-    headers['Authorization'] = `Bearer ${inMemoryAccessToken}`;
+  const currentAccessToken = inMemoryAccessToken || (typeof window !== 'undefined' ? localStorage.getItem('mk_access_token') : null);
+  if (currentAccessToken && !options.skipAuth) {
+    headers['Authorization'] = `Bearer ${currentAccessToken}`;
   }
 
   let response;

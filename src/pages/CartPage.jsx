@@ -47,6 +47,20 @@ export default function CartPage() {
           <div className="flex items-center space-x-3">
             <Link
               to="/"
+              className="flex items-center btn-interactive shrink-0"
+              aria-label="Return to Marketplace"
+            >
+              <img 
+                src="/mytrikart-logo.png" 
+                alt="MytriKart Logo" 
+                className="h-7 sm:h-8 w-auto object-contain" 
+              />
+            </Link>
+
+            <span className="text-[#EAE3DC] hidden sm:inline">|</span>
+
+            <Link
+              to="/"
               className="p-2 rounded-xl bg-white hover:bg-[#FFF3EC] border border-[#EAE3DC] text-[#FA661C] icon-interactive cursor-pointer"
               aria-label="Back to Marketplace"
             >

@@ -21,6 +21,7 @@ import GovernanceQueueModule from '../components/admin/modules/GovernanceQueueMo
 import CmsModule from '../components/admin/modules/CmsModule';
 import UserManagementModule from '../components/admin/modules/UserManagementModule';
 import CatalogSchemaModule from '../components/admin/modules/CatalogSchemaModule';
+import CouponManagementModule from '../components/admin/modules/CouponManagementModule';
 
 import { ADMIN_NAV_GROUPS } from '../data/adminMockData';
 import { apiRequest } from '../utils/api';
@@ -184,13 +185,14 @@ export default function AdminHomePage() {
         return <UserManagementModule defaultTab="staff" />;
       case 'users':
         return <UserManagementModule defaultTab="all" />;
+      case 'coupons':
+        return <CouponManagementModule />;
       case 'reports':
         return <ReportsModule />;
 
       case 'payments':
       case 'logistics':
       case 'inventory':
-      case 'coupons':
       case 'marketing':
       case 'reviews':
       case 'tickets':
@@ -226,11 +228,12 @@ export default function AdminHomePage() {
         {/* Top Control Bar */}
         <AdminTopBar 
           activeSectionLabel={activeSectionLabel}
+          onToggleSidebar={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
           onToggleMobileSidebar={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
         />
 
         {/* Dynamic Workspace Body */}
-        <main className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl w-full mx-auto animate-reveal">
+        <main className="p-3 sm:p-6 lg:p-8 space-y-5 sm:space-y-6 max-w-7xl w-full mx-auto animate-reveal">
           
           {/* If on Root Overview Dashboard */}
           {activeSection === 'dashboard' ? (

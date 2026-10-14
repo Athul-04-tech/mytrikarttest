@@ -47,6 +47,20 @@ export default function WishlistPage() {
           <div className="flex items-center space-x-3">
             <Link
               to="/"
+              className="flex items-center btn-interactive shrink-0"
+              aria-label="Return to Marketplace"
+            >
+              <img 
+                src="/mytrikart-logo.png" 
+                alt="MytriKart Logo" 
+                className="h-7 sm:h-8 w-auto object-contain" 
+              />
+            </Link>
+
+            <span className="text-[#EAE3DC] hidden sm:inline">|</span>
+
+            <Link
+              to="/"
               className="p-2 rounded-xl bg-white hover:bg-[#FFF3EC] border border-[#EAE3DC] text-[#FA661C] icon-interactive cursor-pointer"
               aria-label="Back to Marketplace"
             >
@@ -106,7 +120,10 @@ export default function WishlistPage() {
                   >
                     <div>
                       {/* Product Image & Badges */}
-                      <div className="relative aspect-[4/3.2] w-full bg-[#FFFFFF] overflow-hidden">
+                      <div 
+                        className="relative aspect-[4/3.2] w-full bg-[#FFFFFF] overflow-hidden cursor-pointer"
+                        onClick={() => navigate(`/product/${item.productId || item.id}`)}
+                      >
                         <img
                           src={resolveMediaUrl(item.image)}
                           alt={item.name}
@@ -114,7 +131,7 @@ export default function WishlistPage() {
                         />
 
                         {/* Top Badges */}
-                        <div className="absolute top-2 left-2 right-2 flex items-center justify-between">
+                        <div className="absolute top-2 left-2 right-2 flex items-center justify-between" onClick={(e) => e.stopPropagation()}>
                           {item.discount ? (
                             <span className="bg-[#FA661C] text-[#FF811A] text-[10px] font-black px-2 py-0.5 rounded shadow-xs">
                               {item.discount}
@@ -144,7 +161,10 @@ export default function WishlistPage() {
                           </div>
                         </div>
 
-                        <h3 className="font-bold text-xs text-[#FA661C] line-clamp-2 leading-snug group-hover:text-[#E0530B] transition-colors">
+                        <h3 
+                          onClick={() => navigate(`/product/${item.productId || item.id}`)}
+                          className="font-bold text-xs text-[#FA661C] line-clamp-2 leading-snug group-hover:text-[#E0530B] transition-colors cursor-pointer"
+                        >
                           {item.name}
                         </h3>
 

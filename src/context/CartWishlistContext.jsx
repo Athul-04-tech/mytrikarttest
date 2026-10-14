@@ -16,9 +16,14 @@ export function CartWishlistProvider({ children }) {
   const [cart, setCart] = useState([]);
   const [savedForLater, setSavedForLater] = useState([]);
   
-  // Placed Order Receipt State (for Order Confirmation)
   const [lastPlacedOrder, setLastPlacedOrder] = useState(null);
   const [cartLoading, setCartLoading] = useState(false);
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [couponError, setCouponError] = useState('');
+
+  useEffect(() => {
+    try { sessionStorage.removeItem('mytrikart_applied_coupon'); } catch (_) {}
+  }, []);
 
   // Helper to map backend CartItem serializer output to clean frontend shape
   const mapCartItem = useCallback((item) => {
@@ -206,40 +211,92 @@ export function CartWishlistProvider({ children }) {
 
   // --- REAL BACKEND CART ACTIONS ---
   const addToCart = useCallback(async (product, qty = 1) => {
-    if (!requireAuth('add items to your shopping cart')) return;
+    if (!requireAuth('add items to your shopping cart')) {
+      return { success: false, reason: 'Authentication required' };
+    }
 
     if (isProductOwnedByCurrentSeller && isProductOwnedByCurrentSeller(product)) {
       toast.error(
         "Seller Action Restricted",
         "You cannot purchase items from your own seller catalog. You can purchase items from other sellers."
       );
-      return;
+      return { success: false, reason: 'You cannot purchase items from your own seller catalog' };
     }
 
     let variantId = null;
     if (typeof product === 'object' && product !== null) {
-      variantId = product.variantId;
+      variantId = product.variantId || product.product_variant || product.variants?.[0]?.id;
+      if (!variantId && (product.productId || product.id)) {
+        const prodId = product.productId || product.id;
+        try {
+          const fetchedProd = await apiRequest(`/api/products/${prodId}/`);
+          variantId = fetchedProd?.variants?.[0]?.id || fetchedProd?.variants?.[0]?.variant_id;
+        } catch (_) {}
+      }
     } else {
       variantId = product;
     }
 
-    if (!variantId || Number.isNaN(Number(variantId))) {
-      toast.error("Unavailable", "This product is not available for purchase yet.");
-      return;
+    const itemName = product?.name || product?.title || 'Item';
+
+    // Call real backend cart API
+    if (variantId && !Number.isNaN(Number(variantId))) {
+      try {
+        await apiRequest('/api/orders/cart/', {
+          method: 'POST',
+          body: JSON.stringify({ product_variant: Number(variantId), quantity: qty })
+        });
+        await fetchCart();
+        toast.cart("Added to Bag", `${itemName} (Qty: ${qty}) added.`, product?.image);
+        return { success: true, name: itemName };
+      } catch (err) {
+        const errMsg = err?.message || err?.detail || `Failed to add "${itemName}" to cart.`;
+        toast.error("Add to Bag Failed", errMsg);
+        return { success: false, reason: errMsg, name: itemName };
+      }
     }
 
-    try {
-      await apiRequest('/api/orders/cart/', {
-        method: 'POST',
-        body: JSON.stringify({ product_variant: Number(variantId), quantity: qty })
-      });
-      await fetchCart();
-      toast.cart("Added to Bag", `${product?.name || 'Item'} (Qty: ${qty}) added.`, product?.image);
-    } catch (err) {
-      const errorMsg = err?.data?.detail || err?.message || 'Failed to add item to cart.';
-      toast.error("Cart Error", errorMsg);
-    }
+    const errNoVariant = `Unable to resolve product variant for "${itemName}".`;
+    toast.error("Add to Bag Failed", errNoVariant);
+    return { success: false, reason: errNoVariant, name: itemName };
   }, [requireAuth, isProductOwnedByCurrentSeller, toast, fetchCart]);
+
+  const applyCoupon = useCallback(async (code) => {
+    setCouponError('');
+    if (!code || !code.trim()) {
+      setCouponError('Please enter a coupon code.');
+      return false;
+    }
+    try {
+      const result = await apiRequest('/api/orders/apply-coupon/', {
+        method: 'POST',
+        body: JSON.stringify({ code: code.trim() })
+      });
+      const couponData = {
+        code: result.code,
+        desc: result.description || `${result.discount_type === 'percentage' ? `${result.discount_value}% off` : `₹${result.discount_value} off`}`,
+        discountAmount: Number(result.discount_amount),
+        type: result.discount_type
+      };
+      setAppliedCoupon(couponData);
+      toast.success('Coupon Applied!', `₹${couponData.discountAmount.toFixed(2)} discount validated.`);
+      return true;
+    } catch (err) {
+      const message = err?.data?.detail || err?.message || 'Coupon could not be applied.';
+      setCouponError(message);
+      toast.error('Coupon Error', message);
+      return false;
+    }
+  }, [toast]);
+
+  const removeCoupon = useCallback(() => {
+    setAppliedCoupon(null);
+    setCouponError('');
+    try {
+      sessionStorage.removeItem('mytrikart_applied_coupon');
+    } catch (_) {}
+    toast.info("Coupon Removed", "Promotional coupon has been removed.");
+  }, [toast]);
 
   const updateCartQuantity = useCallback(async (cartItemId, deltaOrNewQty) => {
     const existing = cart.find((item) => item.id === cartItemId || item.cartItemId === cartItemId);
@@ -310,19 +367,21 @@ export function CartWishlistProvider({ children }) {
     // 2. Shipping Fee (Standard Free)
     const shippingFee = 0.00;
 
-    // 3. Taxable Base
-    const taxableBase = cartSubtotal;
+    // Preview uses only the discount amount returned by the server. Checkout revalidates it.
+    const couponDiscount = appliedCoupon ? Number(appliedCoupon.discountAmount || 0) : 0;
 
-    // 4. GST Tax (5% Standard Marketplace Rate Estimate prior to checkout)
+    // 4. Taxable Base & GST (5%)
+    const postDiscountSubtotal = Math.max(0, cartSubtotal - couponDiscount);
+    const taxableBase = postDiscountSubtotal;
     const taxRate = 0.05;
     const taxAmount = Number((taxableBase * taxRate).toFixed(2));
 
     // 5. Payable Total Amount
-    const amountPayable = Number((cartSubtotal + shippingFee + taxAmount).toFixed(2));
+    const amountPayable = Number((postDiscountSubtotal + shippingFee + taxAmount).toFixed(2));
 
     return {
       cartSubtotal,
-      couponDiscount: 0.00,
+      couponDiscount,
       giftWrapFee: 0.00,
       shippingFee,
       taxableBase,
@@ -332,9 +391,9 @@ export function CartWishlistProvider({ children }) {
       walletDeduction: 0.00,
       rewardPointsDeduction: 0.00,
       amountPayable,
-      totalSavings: 0.00
+      totalSavings: couponDiscount
     };
-  }, [cart]);
+  }, [cart, appliedCoupon]);
 
   // --- REAL BACKEND CHECKOUT ---
   const placeOrder = useCallback(async (checkoutDetails) => {
@@ -355,11 +414,14 @@ export function CartWishlistProvider({ children }) {
     try {
       const createdOrder = await apiRequest('/api/orders/checkout/', {
         method: 'POST',
-        body: JSON.stringify({ delivery_address })
+        body: JSON.stringify({ delivery_address, coupon_code: appliedCoupon?.code || null })
       });
 
       setLastPlacedOrder(createdOrder);
       setCart([]);
+      setAppliedCoupon(null);
+      setCouponError('');
+      try { sessionStorage.removeItem('mytrikart_applied_coupon'); } catch (_) {}
       toast.success("Order Placed Successfully!", `Order ${createdOrder.order_number || createdOrder.id} confirmed.`);
       return createdOrder;
     } catch (err) {
@@ -367,7 +429,7 @@ export function CartWishlistProvider({ children }) {
       toast.error("Checkout Error", errorMsg);
       throw err;
     }
-  }, [toast]);
+  }, [toast, appliedCoupon]);
 
   const value = {
     wishlist,
@@ -379,6 +441,11 @@ export function CartWishlistProvider({ children }) {
     calculations,
     lastPlacedOrder,
     fetchCart,
+    // Coupon state & actions
+    appliedCoupon,
+    couponError,
+    applyCoupon,
+    removeCoupon,
     // Actions
     addToWishlist,
     removeFromWishlist,

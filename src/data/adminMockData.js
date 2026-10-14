@@ -56,9 +56,10 @@ export const ADMIN_NAV_GROUPS = [
   },
   {
     id: 'platform',
-    label: 'Content',
+    label: 'Promotions & Content',
     iconName: 'ShieldAlert',
     items: [
+      { id: 'coupons', label: 'Coupons & Vouchers', desc: 'Configure discount promo codes, flash vouchers, usage caps, and validity windows.', badge: 'Active' },
       { id: 'cms', label: 'CMS & Homepage Builder', desc: 'Manage static pages, layout blocks, and promotional banner assets.' }
     ]
   }

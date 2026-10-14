@@ -45,7 +45,7 @@ export default function SellerProductsWidget({ productStatusCounts, inventoryAtt
   const handleAction = () => onNavigateToProducts();
 
   return (
-    <section aria-labelledby="products-widget-heading" className="bg-white rounded-3xl border border-[#EAE3DC] p-5 sm:p-6 shadow-xs flex flex-col justify-between h-full">
+    <section aria-labelledby="products-widget-heading" className="bg-white rounded-3xl border border-[#EAE3DC] p-4 sm:p-6 shadow-xs flex flex-col justify-between h-full">
       <div>
         
         {/* Header */}
@@ -62,7 +62,7 @@ export default function SellerProductsWidget({ productStatusCounts, inventoryAtt
           <button
             type="button"
             onClick={onNavigateToProducts}
-            className="text-xs font-bold text-[#FA661C] hover:text-[#FF811A] link-interactive flex items-center space-x-0.5 cursor-pointer"
+            className="text-xs font-bold text-[#FA661C] hover:text-[#FF811A] link-interactive flex items-center space-x-0.5 cursor-pointer shrink-0"
           >
             <span>Manage All ({productStatusCounts ? totalProducts : '—'})</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -120,7 +120,7 @@ export default function SellerProductsWidget({ productStatusCounts, inventoryAtt
                   >
                     <div className="flex items-center space-x-2.5 truncate">
                       <div className="truncate">
-                        <h5 className="font-bold text-xs text-[#FA661C] truncate max-w-[210px]">
+                        <h5 className="font-bold text-xs text-[#FA661C] truncate max-w-[140px] sm:max-w-[210px]">
                           {item.name}
                         </h5>
                         <span className={`text-[10px] font-bold block ${

@@ -52,20 +52,43 @@ export default function SellerDashboardTopBar({
 
   return (
     <header className="bg-white border-b border-[#EAE3DC] sticky top-0 z-30 shadow-xs px-4 sm:px-8 py-3">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex items-center justify-between gap-2 sm:gap-4">
         
-        {/* Left: Hamburger + Store Details */}
-        <div className="flex items-center space-x-3">
+        {/* Left: Hamburger + Brand Logo + Store Details */}
+        <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
           <button
             type="button"
             onClick={onToggleSidebar}
-            className="lg:hidden p-2 rounded-xl text-[#FA661C] bg-[#FFFFFF] hover:bg-[#FFF3EC] border border-[#EAE3DC] icon-interactive cursor-pointer"
+            className="lg:hidden p-2 rounded-xl text-[#FA661C] bg-[#FFFFFF] hover:bg-[#FFF3EC] border border-[#EAE3DC] icon-interactive cursor-pointer shrink-0 min-w-[36px] min-h-[36px] flex items-center justify-center"
             aria-label="Toggle navigation"
           >
             <Menu className="w-5 h-5" />
           </button>
 
-          <Link to="/seller/dashboard" className="flex items-center space-x-2.5">
+          {/* Platform Brand Logo */}
+          <Link
+            to="/"
+            className="flex items-center btn-interactive shrink-0"
+            aria-label="Return to Marketplace"
+            title="MytriKart Marketplace"
+          >
+            <img 
+              src="/mytrikart-logo.png" 
+              alt="MytriKart Logo" 
+              className="h-7 sm:h-8 w-auto object-contain shrink-0" 
+            />
+          </Link>
+
+          {/* Mobile Badge */}
+          <span className="md:hidden text-[9px] font-black tracking-wide uppercase px-2 py-0.5 rounded-full bg-[#FFF8F2] text-[#FA661C] border border-[#FF811A]/40 shrink-0">
+            Seller Hub
+          </span>
+
+          {/* Desktop Separator */}
+          <span className="text-[#EAE3DC] hidden md:inline shrink-0">|</span>
+
+          {/* Desktop Store Details */}
+          <Link to="/seller/dashboard" className="hidden md:flex items-center space-x-2.5 min-w-0">
             {vendorProfile?.store_logo ? (
               <img
                 src={vendorProfile.store_logo}
@@ -77,16 +100,16 @@ export default function SellerDashboardTopBar({
                 {storeInitials}
               </div>
             )}
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center space-x-1.5">
-                <h1 className="font-['Outfit'] font-extrabold text-sm sm:text-base text-[#FA661C] leading-tight truncate max-w-[160px] sm:max-w-none">
+                <h1 className="font-['Outfit'] font-extrabold text-sm sm:text-base text-[#FA661C] leading-tight truncate max-w-[180px] lg:max-w-none">
                   {displayStoreName}
                 </h1>
                 <span className="text-[9px] font-black uppercase bg-[#FFF8F2] text-[#FA661C] border border-[#FF811A]/50 px-1.5 py-0.2 rounded-full hidden sm:inline-block">
                   Merchant tier: Not yet available
                 </span>
               </div>
-              <span className="text-[10px] text-[#6B6058]">
+              <span className="text-[10px] text-[#6B6058] truncate block">
                 {taxIdText} • SLA Compliance: <strong className="text-[#FA661C]">Not yet available</strong>
               </span>
             </div>
@@ -94,14 +117,14 @@ export default function SellerDashboardTopBar({
         </div>
 
         {/* Right: Notifications + Merchant Avatar + Sign Out */}
-        <div className="flex items-center space-x-2 sm:space-x-3">
+        <div className="flex items-center space-x-2 sm:space-x-3 shrink-0">
 
           {/* Notifications Bell */}
-          <div className="relative">
+          <div className="relative shrink-0">
             <button
               type="button"
               onClick={() => setIsNotifOpen(!isNotifOpen)}
-              className="p-2 rounded-xl text-[#6B6058] hover:text-[#FA661C] bg-[#FFFFFF] hover:bg-[#FFF3EC] border border-[#EAE3DC] btn-interactive relative cursor-pointer"
+              className="p-2 rounded-xl text-[#6B6058] hover:text-[#FA661C] bg-[#FFFFFF] hover:bg-[#FFF3EC] border border-[#EAE3DC] btn-interactive relative cursor-pointer shrink-0 min-w-[36px] min-h-[36px] flex items-center justify-center"
               aria-label="Open notifications"
             >
               <Bell className="w-4 h-4 icon-interactive" />
@@ -114,7 +137,7 @@ export default function SellerDashboardTopBar({
 
             {/* Notification Dropdown */}
             {isNotifOpen && (
-              <div className="absolute right-0 mt-2 w-80 bg-white border border-[#FF811A]/50 rounded-2xl shadow-xl z-50 p-4 animate-dropdown text-xs">
+              <div className="absolute right-0 mt-2 w-72 sm:w-80 max-w-[calc(100vw-2rem)] bg-white border border-[#FF811A]/50 rounded-2xl shadow-xl z-50 p-4 animate-dropdown text-xs">
                 <div className="flex items-center justify-between pb-2 border-b border-[#EAE3DC]">
                   <span className="font-bold text-[#FA661C] uppercase tracking-wider text-[10px]">
                     Store Alerts{realAlertsCount > 0 ? ` (${realAlertsCount} Urgent)` : ''}
@@ -125,7 +148,7 @@ export default function SellerDashboardTopBar({
                       toast.info("Notifications Read", "All store notifications cleared.");
                       setIsNotifOpen(false);
                     }}
-                    className="text-[10px] text-[#FF811A] hover:underline font-bold"
+                    className="text-[10px] text-[#FF811A] hover:underline font-bold cursor-pointer"
                   >
                     Clear All
                   </button>
@@ -184,8 +207,9 @@ export default function SellerDashboardTopBar({
           <button
             type="button"
             onClick={handleSellerSignOut}
-            className="px-3 py-1.5 rounded-xl border border-[#EAE3DC] bg-[#FFFFFF] hover:bg-[#FDE8EA] text-xs font-bold text-[#D7263D] hover:border-[#D7263D]/50 transition-all flex items-center space-x-1.5 btn-interactive shadow-2xs cursor-pointer"
+            className="p-2 sm:px-3 sm:py-1.5 rounded-xl border border-[#EAE3DC] bg-[#FFFFFF] hover:bg-[#FDE8EA] text-xs font-bold text-[#D7263D] hover:border-[#D7263D]/50 transition-all flex items-center justify-center space-x-1.5 btn-interactive shadow-2xs cursor-pointer shrink-0 min-w-[36px] min-h-[36px]"
             aria-label="Sign Out of Seller Hub"
+            title="Sign Out of Seller Hub"
           >
             <LogOut className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Sign Out</span>

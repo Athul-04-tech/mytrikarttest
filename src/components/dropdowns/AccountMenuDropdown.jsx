@@ -15,7 +15,9 @@ import {
   ChevronRight, 
   Sparkles, 
   X, 
-  LogOut 
+  LogOut,
+  ShieldCheck,
+  Tag
 } from 'lucide-react';
 import { LOGIN_MENU_ITEMS } from '../../data/mockData';
 import { useAuth } from '../../context/AuthContext';
@@ -31,7 +33,8 @@ const ICON_MAP = {
   Bell,
   Headphones,
   Megaphone,
-  Smartphone
+  Smartphone,
+  Tag
 };
 
 const LABEL_TO_ROUTE_MAP = {
@@ -41,9 +44,12 @@ const LABEL_TO_ROUTE_MAP = {
   'Wishlist': '/wishlist',
   'Become a Seller': '/seller/register',
   'Rewards': '/profile/rewards',
+  'Coupons & Offers': '/profile/coupons',
   'Gift Cards': '/profile/wallet',
   'Notification Preferences': '/profile/notifications',
-  '24x7 Customer Care': '/profile/support'
+  '24x7 Customer Care': '/profile/support',
+  'Advertise': '/seller/register',
+  'Download App': '/profile'
 };
 
 export default function AccountMenuDropdown({ 
@@ -63,12 +69,12 @@ export default function AccountMenuDropdown({
     onClose();
 
     if (item.label === 'Advertise') {
-      alert("Opening MytriKart Ads Console...");
+      navigate('/seller/register');
       return;
     }
 
     if (item.label === 'Download App') {
-      alert("Opening App Store / Google Play link...");
+      navigate('/profile');
       return;
     }
 
@@ -83,35 +89,34 @@ export default function AccountMenuDropdown({
   };
 
   const isSeller = (currentUser?.role === 'vendor' || currentUser?.role === 'seller');
+  const isAdmin = (currentUser?.role === 'admin' || currentUser?.role === 'administrator');
 
   return (
     <>
-      {/* Backdrop overlay - semi-transparent on mobile, transparent on desktop (both close on click) */}
+      {/* Backdrop overlay - transparent click-outside listener for mobile and desktop */}
       <div 
-        className="fixed inset-0 bg-[#FA661C]/40 backdrop-blur-xs z-40 md:bg-transparent md:backdrop-blur-none"
+        className="fixed inset-0 z-40 bg-transparent"
         onClick={onClose}
         aria-hidden="true"
       />
 
-      {/* Main Container */}
-      <div className="fixed inset-x-0 bottom-0 z-50 md:inset-x-auto md:top-16 md:right-4 md:bottom-auto md:w-80 md:mt-2 animate-bottom-sheet md:animate-dropdown">
+      {/* Main Container: Floating dropdown box on both mobile & desktop */}
+      <div className="absolute top-full mt-1.5 sm:mt-2 right-0 z-50 w-72 sm:w-80 animate-dropdown">
         
-        {/* Card Surface */}
-        <div className="bg-[#FFFFFF] border border-[#FF811A]/30 rounded-t-2xl md:rounded-2xl shadow-2xl overflow-hidden glass-panel">
+        {/* Card Surface: Rounded dropdown container */}
+        <div className="bg-[#FFFFFF] border border-[#FF811A]/30 rounded-2xl shadow-2xl overflow-hidden glass-panel">
           
           {/* Header Identity Badge */}
-          <div className="p-4 bg-gradient-to-r from-[#FA661C] to-[#16523F] text-[#FFFFFF] flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-full bg-[#FF811A] text-[#FA661C] font-black text-sm flex items-center justify-center shadow-inner avatar-interactive">
+          <div className="p-3 sm:p-4 bg-gradient-to-r from-[#FA661C] to-[#16523F] text-[#FFFFFF] flex items-center justify-between">
+            <div className="flex items-center space-x-2.5">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#FF811A] text-[#FA661C] font-black text-xs sm:text-sm flex items-center justify-center shadow-inner avatar-interactive shrink-0">
                 {(currentUser?.fullName || currentUser?.name || currentUser?.username || 'U').slice(0, 2).toUpperCase()}
               </div>
-              <div>
-                <div className="flex items-center space-x-1.5">
-                  <h4 className="font-['Outfit'] font-bold text-sm text-[#FFFFFF] leading-tight">
-                    {currentUser?.fullName || currentUser?.name || currentUser?.username || 'Account'}
-                  </h4>
-                </div>
-                <p className="text-[10px] text-[#EAE3DC] leading-none mt-0.5 truncate max-w-[170px]">
+              <div className="min-w-0">
+                <h4 className="font-['Outfit'] font-bold text-xs sm:text-sm text-[#FFFFFF] leading-tight truncate max-w-[150px] sm:max-w-[170px]">
+                  {currentUser?.fullName || currentUser?.name || currentUser?.username || 'Account'}
+                </h4>
+                <p className="text-[10px] text-[#EAE3DC] leading-none mt-0.5 truncate max-w-[150px] sm:max-w-[170px]">
                   {currentUser?.email || ''}
                 </p>
               </div>
@@ -119,19 +124,34 @@ export default function AccountMenuDropdown({
 
             {/* Mobile close button */}
             <button 
-              type="button" 
+              type="button"
               onClick={onClose}
-              className="p-1 rounded-full text-[#EAE3DC] hover:text-[#000000] md:hidden icon-interactive"
+              className="p-1 rounded-full text-white/80 hover:text-white sm:hidden icon-interactive cursor-pointer"
               aria-label="Close menu"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </button>
           </div>
 
           {/* Menu Items List */}
-          <div className="p-2 max-h-[65vh] md:max-h-96 overflow-y-auto divide-y divide-[#EAE3DC]/30">
+          <div className="p-1.5 sm:p-2 max-h-[65vh] sm:max-h-96 overflow-y-auto divide-y divide-[#EAE3DC]/30">
             <div className="py-1">
               
+              {/* Admin Operations Top Action (Admin Only) */}
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={() => { onClose(); navigate('/admin'); }}
+                  className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-black bg-[#FFF3EC] text-[#FA661C] hover:bg-[#FA661C] hover:text-[#FFFFFF] border border-[#FA661C] transition-all cursor-pointer mb-2 shadow-2xs group"
+                >
+                  <div className="flex items-center space-x-2.5">
+                    <ShieldCheck className="w-4 h-4 text-[#FA661C] group-hover:text-white transition-colors" />
+                    <span>Admin Operations Console</span>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-[#FA661C] group-hover:text-white transition-colors" />
+                </button>
+              )}
+
               {/* Back to Seller Dashboard Top Action (Seller Only) */}
               {isSeller && (
                 <button
@@ -148,7 +168,7 @@ export default function AccountMenuDropdown({
               )}
 
               {LOGIN_MENU_ITEMS
-                .filter(item => isSeller ? item.label !== 'Become a Seller' : true)
+                .filter(item => (isSeller || isAdmin) ? item.label !== 'Become a Seller' : true)
                 .map((item, idx) => {
                 const IconComponent = ICON_MAP[item.iconName] || Sparkles;
 

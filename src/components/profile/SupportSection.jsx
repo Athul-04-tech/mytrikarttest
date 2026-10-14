@@ -58,8 +58,8 @@ export default function SupportSection() {
         <div className="flex items-center space-x-2">
           <button
             type="button"
-            onClick={() => alert("Launching 24x7 Live Concierge Chatbot...")}
-            className="px-3.5 py-2 bg-[#FFF8F2] hover:bg-[#FF811A]/25 text-[#FA661C] border border-[#FF811A] rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 shadow-2xs"
+            onClick={() => toast.info("Live Concierge", "Connecting you with MytriCare 24x7 Live Support Agent...")}
+            className="px-3.5 py-2 bg-[#FFF8F2] hover:bg-[#FF811A]/25 text-[#FA661C] border border-[#FF811A] rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 shadow-2xs cursor-pointer"
           >
             <MessageSquare className="w-3.5 h-3.5 text-[#FA661C]" />
             <span>Live Chat (Instant)</span>

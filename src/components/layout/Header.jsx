@@ -4,7 +4,7 @@ import TopUtilityBar from './TopUtilityBar';
 import SearchBar from './SearchBar';
 import AccountMenuDropdown from '../dropdowns/AccountMenuDropdown';
 import MoreDropdown from '../dropdowns/MoreDropdown';
-import { User, ChevronDown, MoreVertical, ShoppingBag, Sparkles, LogIn, Heart, Store } from 'lucide-react';
+import { User, ChevronDown, MoreVertical, ShoppingBag, Sparkles, LogIn, Heart, Store, ShieldAlert } from 'lucide-react';
 import { useCart } from '../../context/CartWishlistContext';
 import { useAuth } from '../../context/AuthContext';
 
@@ -19,6 +19,7 @@ export default function Header({
   const isLoggedIn = auth ? auth.isLoggedIn : propIsLoggedIn;
   const currentUser = (auth && auth.currentUser) ? auth.currentUser : propCurrentUser;
   const isSeller = isLoggedIn && (currentUser?.role === 'vendor' || currentUser?.role === 'seller');
+  const isAdmin = isLoggedIn && (currentUser?.role === 'admin' || currentUser?.role === 'administrator');
   const onLogout = auth ? auth.logout : propOnLogout;
   const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false);
   const [isMoreDropdownOpen, setIsMoreDropdownOpen] = useState(false);
@@ -94,28 +95,42 @@ export default function Header({
       />
 
       {/* 2. Main Search + Account Navigation Row */}
-      <div className="max-w-7xl mx-auto px-4 md:px-8 py-3 flex flex-col sm:flex-row items-center gap-3 sm:gap-6">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-8 py-2.5 sm:py-3 flex flex-col sm:flex-row items-center gap-2.5 sm:gap-6">
         
         {/* Mobile Top Row: Logo + Utility Icons (Shown only on small screens) */}
-        <div className="w-full sm:w-auto flex items-center justify-between sm:hidden pb-1 border-b border-[#EAE3DC]/40">
-          <Link to="/" className="flex items-center btn-interactive" aria-label="MytriKart Homepage">
+        <div className="w-full sm:w-auto flex items-center justify-between sm:hidden pb-1 border-b border-[#EAE3DC]/40 gap-1.5 relative">
+          <Link to="/" className="flex items-center btn-interactive shrink-0" aria-label="MytriKart Homepage">
             <img 
               src="/mytrikart-logo.png" 
               alt="MytriKart Logo" 
-              className="h-8 w-auto object-contain max-w-[180px]"
+              className="h-7 w-auto object-contain max-w-[125px] min-[380px]:max-w-[155px]"
             />
           </Link>
 
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1 sm:space-x-1.5 shrink-0">
+            {/* Mobile Admin Console Button (Visible ONLY for Logged-In Admins) */}
+            {isAdmin && (
+              <Link
+                to="/admin"
+                className="px-2 py-1.5 rounded-xl text-xs font-extrabold flex items-center space-x-1 border border-[#FA661C] bg-[#FFF3EC] text-[#FA661C] shadow-2xs btn-interactive cursor-pointer shrink-0"
+                aria-label="Open Admin Console"
+                title="Admin Console"
+              >
+                <ShieldAlert className="w-3.5 h-3.5 text-[#FA661C]" />
+                <span className="hidden min-[400px]:inline">Admin</span>
+              </Link>
+            )}
+
             {/* Mobile Seller Dashboard Button (Visible ONLY for Logged-In Sellers) */}
             {isSeller && (
               <Link
                 to="/seller/dashboard"
-                className="px-2.5 py-1.5 rounded-xl text-xs font-extrabold flex items-center space-x-1 border border-[#FA661C] bg-[#FFF3EC] text-[#FA661C] shadow-2xs btn-interactive cursor-pointer"
+                className="px-2 py-1.5 rounded-xl text-xs font-extrabold flex items-center space-x-1 border border-[#FA661C] bg-[#FFF3EC] text-[#FA661C] shadow-2xs btn-interactive cursor-pointer shrink-0"
                 aria-label="Back to Seller Dashboard"
+                title="Seller Dashboard"
               >
                 <Store className="w-3.5 h-3.5 text-[#FA661C]" />
-                <span>Dashboard</span>
+                <span className="hidden min-[400px]:inline">Hub</span>
               </Link>
             )}
 
@@ -124,17 +139,18 @@ export default function Header({
               <button
                 type="button"
                 onClick={() => setIsAccountDropdownOpen(prev => !prev)}
-                className="p-1.5 rounded-xl text-xs font-bold flex items-center space-x-1.5 border border-[#FF811A] bg-[#1A1A1A] text-[#FFFFFF] shadow-xs btn-interactive"
+                className="p-1.5 rounded-xl text-xs font-bold flex items-center space-x-1 border border-[#FF811A] bg-[#1A1A1A] text-[#FFFFFF] shadow-xs btn-interactive cursor-pointer shrink-0"
+                aria-label="User Account Menu"
               >
-                <div className="w-6 h-6 rounded-full bg-[#FF811A] text-[#FA661C] font-black text-[10px] flex items-center justify-center avatar-interactive">
+                <div className="w-6 h-6 rounded-full bg-[#FF811A] text-[#FA661C] font-black text-[10px] flex items-center justify-center avatar-interactive shrink-0">
                   {currentUser?.name ? currentUser.name.slice(0, 2).toUpperCase() : 'AS'}
                 </div>
-                <span className="truncate max-w-[65px]">{currentUser?.name?.split(' ')[0] || 'User'}</span>
+                <span className="truncate max-w-[45px] min-[380px]:max-w-[65px]">{currentUser?.name?.split(' ')[0] || 'User'}</span>
               </button>
             ) : (
               <Link
                 to="/login"
-                className="group px-3 py-1.5 rounded-xl text-xs font-bold flex items-center space-x-1 border border-[#FA661C] bg-[#1A1A1A] hover:bg-[#FA661C] text-[#FFFFFF] shadow-xs btn-interactive cursor-pointer transition-colors duration-150"
+                className="group px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center space-x-1 border border-[#FA661C] bg-[#1A1A1A] hover:bg-[#FA661C] text-[#FFFFFF] shadow-xs btn-interactive cursor-pointer transition-colors duration-150 shrink-0"
               >
                 <LogIn className="w-3.5 h-3.5 text-[#FF811A] group-hover:text-[#000000] transition-colors duration-150" />
                 <span className="text-[#FFFFFF] group-hover:text-[#000000] transition-colors duration-150">Login</span>
@@ -144,7 +160,7 @@ export default function Header({
             {/* Mobile Wishlist Icon */}
             <Link
               to="/wishlist"
-              className="relative p-2 bg-white border border-[#EAE3DC] text-[#FA661C] rounded-xl shadow-xs btn-interactive cursor-pointer"
+              className="relative p-2 bg-white border border-[#EAE3DC] text-[#FA661C] rounded-xl shadow-xs btn-interactive cursor-pointer shrink-0"
               aria-label="Wishlist"
             >
               <Heart className="w-4 h-4 text-[#FF811A]" />
@@ -158,7 +174,7 @@ export default function Header({
             {/* Mobile Cart Icon */}
             <Link
               to="/cart"
-              className="relative p-2 bg-[#1A1A1A] text-[#FFFFFF] rounded-xl shadow-xs btn-interactive cursor-pointer"
+              className="relative p-2 bg-[#1A1A1A] text-[#FFFFFF] rounded-xl shadow-xs btn-interactive cursor-pointer shrink-0"
               aria-label="Shopping Cart"
             >
               <ShoppingBag className="w-4 h-4 text-[#FF811A] icon-interactive" />
@@ -168,7 +184,36 @@ export default function Header({
                 </span>
               )}
             </Link>
+
+            {/* Mobile More Options Button */}
+            <button
+              type="button"
+              onClick={toggleMore}
+              className={`p-2 rounded-xl text-xs font-bold btn-interactive border focus:outline-none cursor-pointer shrink-0 ${
+                isMoreDropdownOpen
+                  ? 'bg-[#1A1A1A] text-[#FFFFFF] border-[#FA661C] shadow-sm'
+                  : 'bg-white hover:bg-[#FFF8F2] text-[#6B6058] border-[#EAE3DC]'
+              }`}
+              aria-expanded={isMoreDropdownOpen}
+              aria-label="More options"
+            >
+              <MoreVertical className="w-4 h-4 icon-interactive" />
+            </button>
           </div>
+
+          {/* Mobile Floating Dropdown Boxes */}
+          {isLoggedIn && (
+            <AccountMenuDropdown 
+              isOpen={isAccountDropdownOpen} 
+              onClose={() => setIsAccountDropdownOpen(false)} 
+              currentUser={currentUser}
+              onLogout={onLogout}
+            />
+          )}
+          <MoreDropdown 
+            isOpen={isMoreDropdownOpen} 
+            onClose={() => setIsMoreDropdownOpen(false)} 
+          />
         </div>
 
         {/* Search Bar Container */}
@@ -177,6 +222,18 @@ export default function Header({
         {/* Right Desktop Utility Icons */}
         <div className="hidden sm:flex items-center space-x-3 md:space-x-4 relative">
           
+          {/* DESKTOP ADMIN CONSOLE BUTTON (Visible ONLY for Logged-In Admins) */}
+          {isAdmin && (
+            <Link
+              to="/admin"
+              className="flex items-center space-x-1.5 px-3.5 py-2 bg-[#FFF3EC] hover:bg-[#FA661C] text-[#FA661C] hover:text-[#FFFFFF] border border-[#FA661C] rounded-xl text-xs font-black shadow-xs btn-interactive cursor-pointer transition-colors duration-150 group"
+              title="Open Admin Operations Console"
+            >
+              <ShieldAlert className="w-4 h-4 text-[#FA661C] group-hover:text-white shrink-0 transition-colors" />
+              <span>Admin Console</span>
+            </Link>
+          )}
+
           {/* DESKTOP SELLER DASHBOARD BUTTON (Visible ONLY for Logged-In Sellers) */}
           {isSeller && (
             <Link
@@ -192,7 +249,8 @@ export default function Header({
           {/* LOGIN BUTTON (Pre-Login) vs USER AVATAR CHIP (Post-Login) */}
           <div className="relative">
             {isLoggedIn ? (
-              <button
+              <>
+                <button
                 type="button"
                 onClick={handleLoginButtonClick}
                 className={`flex items-center space-x-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-150 border focus:outline-none btn-interactive cursor-pointer ${
@@ -211,6 +269,15 @@ export default function Header({
                   isAccountDropdownOpen ? 'rotate-180 text-[#FF811A]' : ''
                 }`} />
               </button>
+
+              {/* Desktop Account Menu Dropdown */}
+              <AccountMenuDropdown 
+                isOpen={isAccountDropdownOpen} 
+                onClose={() => setIsAccountDropdownOpen(false)} 
+                currentUser={currentUser}
+                onLogout={onLogout}
+              />
+            </>
             ) : (
               <Link
                 to="/login"
@@ -238,7 +305,7 @@ export default function Header({
             )}
           </Link>
 
-          {/* MORE MENU TRIGGER + DROPDOWN */}
+          {/* MORE MENU TRIGGER */}
           <div className="relative">
             <button
               type="button"
@@ -258,6 +325,7 @@ export default function Header({
               }`} />
             </button>
 
+            {/* Desktop More Dropdown */}
             <MoreDropdown 
               isOpen={isMoreDropdownOpen} 
               onClose={() => setIsMoreDropdownOpen(false)} 
@@ -283,15 +351,7 @@ export default function Header({
 
         </div>
 
-        {/* Account Menu Dropdown - fixed positioning works for both mobile (bottom sheet) and desktop (dropdown) */}
-        {isLoggedIn && (
-          <AccountMenuDropdown 
-            isOpen={isAccountDropdownOpen} 
-            onClose={() => setIsAccountDropdownOpen(false)} 
-            currentUser={currentUser}
-            onLogout={onLogout}
-          />
-        )}
+
 
       </div>
     </header>

@@ -490,7 +490,7 @@ export default function GovernanceQueueModule({ defaultTab = 'attributes' }) {
 
           {loadingBrands && (
             <div className="bg-white rounded-2xl border border-[#EAE3DC] p-6 text-center animate-pulse text-xs text-[#6B6058]">
-              Loading pending brand authorization requests from backend API...
+              Loading pending brand authorization requests...
             </div>
           )}
 

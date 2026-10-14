@@ -4,7 +4,7 @@ import { useCart } from '../../context/CartWishlistContext';
 import { useAuth } from '../../context/AuthContext';
 
 export default function OrderSummarySidebar({ onProceedToCheckout, isCheckoutPage = false }) {
-  const { calculations, cart } = useCart();
+  const { calculations, cart, appliedCoupon } = useCart();
   const auth = useAuth();
   const isProductOwnedByCurrentSeller = auth?.isProductOwnedByCurrentSeller;
   const [highlightPulse, setHighlightPulse] = useState(false);
@@ -64,6 +64,13 @@ export default function OrderSummarySidebar({ onProceedToCheckout, isCheckoutPag
             </span>
           </span>
         </div>
+
+        {appliedCoupon && (
+          <div className="flex items-center justify-between pt-2.5 text-emerald-700">
+            <span>Coupon discount ({appliedCoupon.code})</span>
+            <span className="font-bold">- {formatINR(appliedCoupon.discountAmount)}</span>
+          </div>
+        )}
 
         {/* Estimated Tax */}
         <div className="flex items-center justify-between pt-2.5">

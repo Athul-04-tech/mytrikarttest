@@ -154,7 +154,7 @@ export default function SellerDashboardPage() {
         />
 
         {/* Dynamic Workspace Body */}
-        <main className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl w-full mx-auto animate-reveal">
+        <main className="p-3.5 sm:p-6 lg:p-8 space-y-5 sm:space-y-6 max-w-7xl w-full mx-auto animate-reveal">
           
           {/* Main Seller Dashboard Overview (Widget Groups 1 to 5) */}
           {activeSection === 'dashboard' && (
@@ -215,7 +215,7 @@ export default function SellerDashboardPage() {
                 <SellerOrdersWidget
                   orderStatusCounts={dashboardData?.order_status_counts}
                   recentOrders={dashboardData?.recent_orders}
-                  onNavigateToOrders={() => navigate('/seller/orders')}
+                  onNavigateToOrders={(ord) => ord?.id ? navigate(`/seller/orders/${ord.id}`) : navigate('/seller/orders')}
                 />
 
                 <SellerProductsWidget

@@ -155,9 +155,11 @@ export default function AdminSidebar({
           <div className="p-4 sm:p-5 border-b border-[#FFFFFF]/15 flex items-center justify-between">
             <div>
               <Link to="/admin" className="flex items-center space-x-2">
-                <span className="font-['Outfit'] font-black text-2xl tracking-tight text-[#FFFFFF]">
-                  Mytri<span className="text-[#FF811A]">Kart</span>
-                </span>
+                <img 
+                  src="/mytrikart-logo.png" 
+                  alt="MytriKart Logo" 
+                  className="h-8 w-auto object-contain bg-white rounded-lg px-2 py-0.5" 
+                />
                 <span className="text-[10px] font-black uppercase tracking-wider bg-[#FF811A] text-[#FA661C] px-1.5 py-0.5 rounded shadow-2xs">
                   OPS
                 </span>
@@ -171,7 +173,7 @@ export default function AdminSidebar({
             <button
               type="button"
               onClick={onCloseMobile}
-              className="lg:hidden p-1 text-[#FFFFFF]/80 hover:text-[#000000]"
+              className="lg:hidden p-1 text-[#FFFFFF]/80 hover:text-[#FA661C] cursor-pointer"
               aria-label="Close menu"
             >
               <X className="w-5 h-5" />
@@ -276,7 +278,7 @@ export default function AdminSidebar({
           </nav>
 
           {/* Bottom Actions: Exit & Sign Out */}
-          <div className="p-3 border-t border-[#FFFFFF]/15 bg-[#0A2A1F] space-y-1.5">
+          <div className="p-3 border-t border-[#FFFFFF]/15 bg-[#141414] space-y-1.5">
             <Link
               to="/"
               className="w-full py-1.5 px-3 rounded-xl bg-[#E0530B]/60 hover:bg-[#E0530B] text-[#FF811A] text-[11px] font-bold btn-interactive flex items-center justify-center space-x-1.5 cursor-pointer"

@@ -67,7 +67,7 @@ export default function TaxManagementModule() {
             </h2>
           </div>
           <p className="text-xs text-[#6B6058] mt-0.5">
-            Wired to backend endpoint: <code className="bg-[#FFF3EC] px-1 py-0.5 rounded text-[#FA661C]">/api/reports/admin/tax-summary/</code>
+            Aggregated tax liabilities, GST collected, and settlement deductions
           </p>
         </div>
 

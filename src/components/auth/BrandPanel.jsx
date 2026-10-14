@@ -10,10 +10,12 @@ export default function BrandPanel({ activeStep }) {
 
       {/* Brand Header */}
       <div className="relative z-10">
-        <div className="flex items-center space-x-1.5 mb-6">
-          <span className="font-['Outfit'] font-extrabold text-2xl text-[#FFFFFF] tracking-tight">
-            Mytri<span className="text-[#FF811A]">Kart</span>
-          </span>
+        <div className="flex items-center space-x-2 mb-6">
+          <img 
+            src="/mytrikart-logo.png" 
+            alt="MytriKart Logo" 
+            className="h-8 md:h-9 w-auto object-contain bg-white rounded-lg px-2 py-0.5" 
+          />
           <span className="text-[9px] uppercase font-bold tracking-widest bg-[#FF811A] text-[#FA661C] px-1.5 py-0.5 rounded shadow-2xs">
             PLUS
           </span>

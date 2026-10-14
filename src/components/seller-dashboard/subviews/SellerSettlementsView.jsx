@@ -149,19 +149,19 @@ export default function SellerSettlementsView() {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
-          <div className="flex items-center space-x-1 bg-white border border-[#EAE3DC] px-2 py-1 rounded-xl">
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto">
+          <div className="flex items-center space-x-1 bg-white border border-[#EAE3DC] px-2.5 py-1.5 rounded-xl flex-1 sm:flex-initial justify-between">
             <span className="text-[10px] font-bold text-[#6B6058]">From:</span>
             <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
               className="text-xs font-mono font-bold text-[#FA661C] bg-transparent outline-none cursor-pointer" />
           </div>
-          <div className="flex items-center space-x-1 bg-white border border-[#EAE3DC] px-2 py-1 rounded-xl">
+          <div className="flex items-center space-x-1 bg-white border border-[#EAE3DC] px-2.5 py-1.5 rounded-xl flex-1 sm:flex-initial justify-between">
             <span className="text-[10px] font-bold text-[#6B6058]">To:</span>
             <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
               className="text-xs font-mono font-bold text-[#FA661C] bg-transparent outline-none cursor-pointer" />
           </div>
           <button type="button" disabled={isExporting} onClick={handleExportLedger}
-            className="px-4 py-2 bg-white border border-[#EAE3DC] hover:bg-[#FFF3EC] text-[#FA661C] rounded-2xl font-black text-xs btn-interactive flex items-center space-x-1.5 cursor-pointer disabled:opacity-50">
+            className="px-4 py-2 bg-white border border-[#EAE3DC] hover:bg-[#FFF3EC] text-[#FA661C] rounded-2xl font-black text-xs btn-interactive flex items-center justify-center space-x-1.5 cursor-pointer disabled:opacity-50 w-full sm:w-auto shrink-0">
             <Download className={`w-4 h-4 text-[#FF811A] ${isExporting ? 'animate-bounce' : ''}`} />
             <span>{isExporting ? 'Generating Report...' : 'Export B2C Sales Ledger'}</span>
           </button>
