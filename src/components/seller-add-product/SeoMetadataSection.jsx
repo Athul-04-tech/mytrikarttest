@@ -11,7 +11,7 @@ export default function SeoMetadataSection({
   sellingPrice
 }) {
   const previewTitle = metaTitle || `${title || 'New Product Listing'} | Best Price at MytriKart`;
-  const previewDesc = metaDescription || `Buy ${title || 'this product'} online by ${brand || 'Apex Electronics'}. Explore verified reviews, fast delivery, and lowest price at ₹${sellingPrice || '4,999'}.`;
+  const previewDesc = metaDescription || `Buy ${title || 'this product'} online${brand ? ` by ${brand}` : ''}. Explore verified reviews, fast delivery, and lowest price${sellingPrice ? ` at ₹${sellingPrice}` : ''}.`;
   const slug = (title || 'new-product').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
   return (

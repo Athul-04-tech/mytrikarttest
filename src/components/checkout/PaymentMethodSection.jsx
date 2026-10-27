@@ -39,7 +39,7 @@ export default function PaymentMethodSection({
       return;
     }
     setIsUpiVerified(true);
-    toast.success("UPI Verified", `Linked to ${upiId.toUpperCase()} (Aarav Sharma)`);
+    toast.success("UPI Verified", `Linked to ${upiId.toUpperCase()} (Verified Account)`);
   };
 
   return (

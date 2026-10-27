@@ -29,7 +29,7 @@ describe('Seller Profile, Settlements, Settings & Sales Real API Suite', () => {
     vi.clearAllMocks();
   });
 
-  it('1. SellerProfileView displays real vendor profile fields and "Not yet available" for PAN/Bank', async () => {
+  it('1. SellerProfileView displays real vendor profile fields and "Not set" for unbacked/missing fields', async () => {
     api.apiRequest.mockResolvedValueOnce({
       id: 12,
       business_name: 'Acme Heritage Private Limited',
@@ -47,8 +47,8 @@ describe('Seller Profile, Settlements, Settings & Sales Real API Suite', () => {
       expect(screen.getByText('VERIFIED')).toBeTruthy();
     });
 
-    // Check PAN and Bank fields display "Not yet available"
-    const unbackedFields = screen.getAllByText('Not yet available');
+    // Check unbacked/missing fields display "Not set"
+    const unbackedFields = screen.getAllByText('Not set');
     expect(unbackedFields.length).toBeGreaterThanOrEqual(6);
   });
 

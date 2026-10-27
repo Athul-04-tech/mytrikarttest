@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Eye, EyeOff, Loader2, UserPlus, ArrowRight, ShieldCheck, Mail, Phone, Lock, User } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Eye, EyeOff, Loader2, UserPlus } from 'lucide-react';
 
 export default function RegisterStep({
   onRegister,
@@ -20,29 +20,82 @@ export default function RegisterStep({
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(true);
   const [localError, setLocalError] = useState('');
+  const [activeFieldErrors, setActiveFieldErrors] = useState({});
 
-  const usernameError = fieldErrors?.username?.[0] || null;
+  // Sync incoming fieldErrors prop into local activeFieldErrors state
+  useEffect(() => {
+    if (fieldErrors && typeof fieldErrors === 'object') {
+      const getMsg = (val) => {
+        if (!val) return null;
+        if (Array.isArray(val)) return typeof val[0] === 'string' ? val[0] : JSON.stringify(val[0]);
+        return typeof val === 'string' ? val : String(val);
+      };
+
+      const mapped = {};
+      if (fieldErrors.username) mapped.username = getMsg(fieldErrors.username);
+      if (fieldErrors.email) mapped.email = getMsg(fieldErrors.email);
+      if (fieldErrors.password) mapped.password = getMsg(fieldErrors.password);
+      if (fieldErrors.name || fieldErrors.first_name || fieldErrors.full_name) {
+        mapped.fullName = getMsg(fieldErrors.name || fieldErrors.first_name || fieldErrors.full_name);
+      }
+
+      // Phone number mapping: check phone_number, mobile, phone, or phone-related non_field_errors
+      const phoneVal = fieldErrors.phone_number || fieldErrors.mobile || fieldErrors.phone;
+      if (phoneVal) {
+        mapped.mobile = getMsg(phoneVal);
+      } else if (fieldErrors.non_field_errors) {
+        const nfMsg = getMsg(fieldErrors.non_field_errors);
+        if (nfMsg && /phone|mobile|number/i.test(nfMsg)) {
+          mapped.mobile = nfMsg;
+        }
+      }
+
+      setActiveFieldErrors(mapped);
+    } else {
+      setActiveFieldErrors({});
+    }
+  }, [fieldErrors]);
+
+  const clearFieldError = (fieldName) => {
+    setActiveFieldErrors((prev) => {
+      if (!prev[fieldName]) return prev;
+      const updated = { ...prev };
+      delete updated[fieldName];
+      return updated;
+    });
+    if (localError) setLocalError('');
+  };
+
+  const usernameError = activeFieldErrors.username || null;
+  const fullNameError = activeFieldErrors.fullName || null;
+  const emailError = activeFieldErrors.email || null;
+  const mobileError = activeFieldErrors.mobile || null;
+  const passwordError = activeFieldErrors.password || null;
+  const confirmPasswordError = activeFieldErrors.confirmPassword || null;
 
   const handleSubmit = (e) => {
     e.preventDefault();
     setLocalError('');
 
+    const newFieldErrors = {};
+
     if (!username.trim()) {
-      setLocalError('Username is required.');
-      return;
+      newFieldErrors.username = 'Username is required.';
     }
     if (!email.trim()) {
-      setLocalError('Email address is required.');
-      return;
+      newFieldErrors.email = 'Email address is required.';
     }
     if (!password) {
-      setLocalError('Password is required.');
+      newFieldErrors.password = 'Password is required.';
+    } else if (password !== confirmPassword) {
+      newFieldErrors.confirmPassword = 'Passwords do not match.';
+    }
+
+    if (Object.keys(newFieldErrors).length > 0) {
+      setActiveFieldErrors((prev) => ({ ...prev, ...newFieldErrors }));
       return;
     }
-    if (password !== confirmPassword) {
-      setLocalError('Passwords do not match.');
-      return;
-    }
+
     if (!agreeTerms) {
       setLocalError('You must agree to the Terms of Service and Privacy Policy.');
       return;
@@ -76,7 +129,7 @@ export default function RegisterStep({
         
         {/* Username & Full Name Row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-          {/* Username (Required Spec Decision #1) */}
+          {/* Username (Required) */}
           <div>
             <label 
               htmlFor="reg-username" 
@@ -88,16 +141,19 @@ export default function RegisterStep({
               id="reg-username"
               type="text"
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              onChange={(e) => {
+                setUsername(e.target.value);
+                clearFieldError('username');
+              }}
               placeholder="e.g. aarav_sharma"
               aria-invalid={usernameError ? 'true' : 'false'}
+              aria-describedby={usernameError ? 'username-error' : undefined}
               className={`w-full py-2.5 px-3.5 text-xs sm:text-sm font-medium rounded-xl transition-all duration-150 bg-white border text-[#FA661C] focus:outline-none shadow-xs ${
                 usernameError
                   ? 'border-[#D7263D] ring-2 ring-[#D7263D]/20'
                   : 'border-[#EAE3DC] focus:border-[#FA661C] focus:ring-2 focus:ring-[#FA661C]/20'
               }`}
             />
-            {/* Field-level Duplicate Username Error (DRF error shape {"username": [...]}) */}
             {usernameError && (
               <p id="username-error" className="text-[11px] font-semibold text-[#D7263D] mt-1">
                 {usernameError}
@@ -111,16 +167,30 @@ export default function RegisterStep({
               htmlFor="reg-fullname" 
               className="block text-[11px] font-bold uppercase tracking-wider text-[#FA661C] mb-1"
             >
-              Full Name <span className="text-[#D7263D]">*</span>
+              Full Name
             </label>
             <input
               id="reg-fullname"
               type="text"
               value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
+              onChange={(e) => {
+                setFullName(e.target.value);
+                clearFieldError('fullName');
+              }}
               placeholder="e.g. Aarav Sharma"
-              className="w-full py-2.5 px-3.5 text-xs sm:text-sm font-medium rounded-xl transition-all duration-150 bg-white border border-[#EAE3DC] text-[#FA661C] focus:border-[#FA661C] focus:ring-2 focus:ring-[#FA661C]/20 focus:outline-none shadow-xs"
+              aria-invalid={fullNameError ? 'true' : 'false'}
+              aria-describedby={fullNameError ? 'fullname-error' : undefined}
+              className={`w-full py-2.5 px-3.5 text-xs sm:text-sm font-medium rounded-xl transition-all duration-150 bg-white border text-[#FA661C] focus:outline-none shadow-xs ${
+                fullNameError
+                  ? 'border-[#D7263D] ring-2 ring-[#D7263D]/20'
+                  : 'border-[#EAE3DC] focus:border-[#FA661C] focus:ring-2 focus:ring-[#FA661C]/20'
+              }`}
             />
+            {fullNameError && (
+              <p id="fullname-error" className="text-[11px] font-semibold text-[#D7263D] mt-1">
+                {fullNameError}
+              </p>
+            )}
           </div>
         </div>
 
@@ -138,29 +208,57 @@ export default function RegisterStep({
               id="reg-email"
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                clearFieldError('email');
+              }}
               placeholder="name@example.com"
-              className="w-full py-2.5 px-3.5 text-xs sm:text-sm font-medium rounded-xl transition-all duration-150 bg-white border border-[#EAE3DC] text-[#FA661C] focus:border-[#FA661C] focus:ring-2 focus:ring-[#FA661C]/20 focus:outline-none shadow-xs"
+              aria-invalid={emailError ? 'true' : 'false'}
+              aria-describedby={emailError ? 'email-error' : undefined}
+              className={`w-full py-2.5 px-3.5 text-xs sm:text-sm font-medium rounded-xl transition-all duration-150 bg-white border text-[#FA661C] focus:outline-none shadow-xs ${
+                emailError
+                  ? 'border-[#D7263D] ring-2 ring-[#D7263D]/20'
+                  : 'border-[#EAE3DC] focus:border-[#FA661C] focus:ring-2 focus:ring-[#FA661C]/20'
+              }`}
             />
+            {emailError && (
+              <p id="email-error" className="text-[11px] font-semibold text-[#D7263D] mt-1">
+                {emailError}
+              </p>
+            )}
           </div>
 
-          {/* Mobile Number */}
+          {/* Mobile Number (Optional per backend RegisterSerializer: required=False, allow_blank=True) */}
           <div>
             <label 
               htmlFor="reg-mobile" 
               className="block text-[11px] font-bold uppercase tracking-wider text-[#FA661C] mb-1"
             >
-              Mobile Number
+              Mobile Number <span className="text-[10px] font-normal lowercase tracking-normal text-[#6B6058]">(optional)</span>
             </label>
             <input
               id="reg-mobile"
               type="tel"
-              maxLength={15}
+              maxLength={20}
               value={mobile}
-              onChange={(e) => setMobile(e.target.value)}
-              placeholder="e.g. +91 98765 43210"
-              className="w-full py-2.5 px-3.5 text-xs sm:text-sm font-medium rounded-xl transition-all duration-150 bg-white border border-[#EAE3DC] text-[#FA661C] focus:border-[#FA661C] focus:ring-2 focus:ring-[#FA661C]/20 focus:outline-none shadow-xs"
+              onChange={(e) => {
+                setMobile(e.target.value);
+                clearFieldError('mobile');
+              }}
+              placeholder="e.g. 9876543210"
+              aria-invalid={mobileError ? 'true' : 'false'}
+              aria-describedby={mobileError ? 'mobile-error' : undefined}
+              className={`w-full py-2.5 px-3.5 text-xs sm:text-sm font-medium rounded-xl transition-all duration-150 bg-white border text-[#FA661C] focus:outline-none shadow-xs ${
+                mobileError
+                  ? 'border-[#D7263D] ring-2 ring-[#D7263D]/20'
+                  : 'border-[#EAE3DC] focus:border-[#FA661C] focus:ring-2 focus:ring-[#FA661C]/20'
+              }`}
             />
+            {mobileError && (
+              <p id="mobile-error" className="text-[11px] font-semibold text-[#D7263D] mt-1">
+                {mobileError}
+              </p>
+            )}
           </div>
         </div>
 
@@ -179,19 +277,36 @@ export default function RegisterStep({
                 id="reg-password"
                 type={showPassword ? "text" : "password"}
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  clearFieldError('password');
+                  if (confirmPasswordError === 'Passwords do not match.') {
+                    clearFieldError('confirmPassword');
+                  }
+                }}
                 placeholder="Min. 8 chars"
-                className="w-full py-2.5 pl-3.5 pr-9 text-xs sm:text-sm font-medium rounded-xl transition-all duration-150 bg-white border border-[#EAE3DC] text-[#FA661C] focus:border-[#FA661C] focus:ring-2 focus:ring-[#FA661C]/20 focus:outline-none shadow-xs"
+                aria-invalid={passwordError ? 'true' : 'false'}
+                aria-describedby={passwordError ? 'password-error' : undefined}
+                className={`w-full py-2.5 pl-3.5 pr-9 text-xs sm:text-sm font-medium rounded-xl transition-all duration-150 bg-white border text-[#FA661C] focus:outline-none shadow-xs ${
+                  passwordError
+                    ? 'border-[#D7263D] ring-2 ring-[#D7263D]/20'
+                    : 'border-[#EAE3DC] focus:border-[#FA661C] focus:ring-2 focus:ring-[#FA661C]/20'
+                }`}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#6B6058] hover:text-[#FA661C] p-1"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#6B6058] hover:text-[#FA661C] p-1 cursor-pointer"
                 aria-label={showPassword ? "Hide password" : "Show password"}
               >
                 {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
               </button>
             </div>
+            {passwordError && (
+              <p id="password-error" className="text-[11px] font-semibold text-[#D7263D] mt-1">
+                {passwordError}
+              </p>
+            )}
           </div>
 
           {/* Confirm Password */}
@@ -207,19 +322,33 @@ export default function RegisterStep({
                 id="reg-confirm-password"
                 type={showConfirmPassword ? "text" : "password"}
                 value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
+                onChange={(e) => {
+                  setConfirmPassword(e.target.value);
+                  clearFieldError('confirmPassword');
+                }}
                 placeholder="Re-enter password"
-                className="w-full py-2.5 pl-3.5 pr-9 text-xs sm:text-sm font-medium rounded-xl transition-all duration-150 bg-white border border-[#EAE3DC] text-[#FA661C] focus:border-[#FA661C] focus:ring-2 focus:ring-[#FA661C]/20 focus:outline-none shadow-xs"
+                aria-invalid={confirmPasswordError ? 'true' : 'false'}
+                aria-describedby={confirmPasswordError ? 'confirm-password-error' : undefined}
+                className={`w-full py-2.5 pl-3.5 pr-9 text-xs sm:text-sm font-medium rounded-xl transition-all duration-150 bg-white border text-[#FA661C] focus:outline-none shadow-xs ${
+                  confirmPasswordError
+                    ? 'border-[#D7263D] ring-2 ring-[#D7263D]/20'
+                    : 'border-[#EAE3DC] focus:border-[#FA661C] focus:ring-2 focus:ring-[#FA661C]/20'
+                }`}
               />
               <button
                 type="button"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#6B6058] hover:text-[#FA661C] p-1"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#6B6058] hover:text-[#FA661C] p-1 cursor-pointer"
                 aria-label={showConfirmPassword ? "Hide password" : "Show password"}
               >
                 {showConfirmPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
               </button>
             </div>
+            {confirmPasswordError && (
+              <p id="confirm-password-error" className="text-[11px] font-semibold text-[#D7263D] mt-1">
+                {confirmPasswordError}
+              </p>
+            )}
           </div>
         </div>
 
@@ -241,7 +370,10 @@ export default function RegisterStep({
           <input
             type="checkbox"
             checked={agreeTerms}
-            onChange={(e) => setAgreeTerms(e.target.checked)}
+            onChange={(e) => {
+              setAgreeTerms(e.target.checked);
+              if (localError) setLocalError('');
+            }}
             className="rounded border-[#EAE3DC] text-[#FA661C] focus:ring-[#FA661C] mt-0.5"
           />
           <span>
@@ -249,10 +381,10 @@ export default function RegisterStep({
           </span>
         </label>
 
-        {/* Error Validation Banner */}
-        {(hasError || localError) && (
-          <div aria-live="polite" className="text-xs font-semibold text-[#D7263D] bg-[#FDE8EA] p-2.5 rounded-lg border border-[#D7263D]/30">
-            {localError || errorMessage || "Please complete all required fields correctly."}
+        {/* Error Validation Banner (Only for general errors: non_field_errors, detail, or form-level errors) */}
+        {(localError || (hasError && errorMessage)) && (
+          <div id="register-general-error" aria-live="polite" className="text-xs font-semibold text-[#D7263D] bg-[#FDE8EA] p-2.5 rounded-lg border border-[#D7263D]/30">
+            {localError || errorMessage}
           </div>
         )}
 
@@ -260,7 +392,7 @@ export default function RegisterStep({
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full py-3 px-4 bg-[#FA661C] hover:bg-[#E0530B] active:bg-[#0A2A1F] text-[#000000] font-black text-sm rounded-xl transition-all duration-150 shadow-md flex items-center justify-center space-x-2 focus:outline-none focus:ring-2 focus:ring-[#FF811A] min-h-[46px]"
+          className="w-full py-3 px-4 bg-[#FA661C] hover:bg-[#E0530B] active:bg-[#0A2A1F] text-[#000000] font-black text-sm rounded-xl transition-all duration-150 shadow-md flex items-center justify-center space-x-2 focus:outline-none focus:ring-2 focus:ring-[#FF811A] min-h-[46px] cursor-pointer"
         >
           {isLoading ? (
             <>

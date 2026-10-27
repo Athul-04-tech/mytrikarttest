@@ -137,7 +137,11 @@ function parseBackendRegistrationErrors(data) {
           if (!stepList.includes(mapping.step)) stepList.push(mapping.step);
         } else {
           fieldErrors[key] = msg;
-          summaryParts.push(`${key.replace(/_/g, ' ')}: ${msg}`);
+          if (key === 'non_field_errors' || key === 'detail') {
+            summaryParts.push(msg);
+          } else {
+            summaryParts.push(`${key.replace(/_/g, ' ')}: ${msg}`);
+          }
         }
       } else if (typeof val === 'object') {
         traverse(val);

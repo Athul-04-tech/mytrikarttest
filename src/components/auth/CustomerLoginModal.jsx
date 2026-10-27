@@ -19,6 +19,7 @@ export default function CustomerLoginModal({ isOpen, onClose, initialStep = 'ide
   const [identifier, setIdentifier] = useState('');
   const [otpValues, setOtpValues] = useState(['', '', '', '', '', '']);
   const [errorMessage, setErrorMessage] = useState('');
+  const [fieldErrors, setFieldErrors] = useState(null);
   const [hasError, setHasError] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [successUser, setSuccessUser] = useState(null);
@@ -31,6 +32,7 @@ export default function CustomerLoginModal({ isOpen, onClose, initialStep = 'ide
       setActiveTab(initialStep === 'register' ? 'register' : 'login');
       setHasError(false);
       setErrorMessage('');
+      setFieldErrors(null);
       setShowSuccessToast(false);
     }
   }, [isOpen, initialStep]);
@@ -53,6 +55,7 @@ export default function CustomerLoginModal({ isOpen, onClose, initialStep = 'ide
     setActiveTab(tab);
     setHasError(false);
     setErrorMessage('');
+    setFieldErrors(null);
     if (tab === 'login') {
       setCurrentStep('identifier');
     } else {
@@ -142,6 +145,7 @@ export default function CustomerLoginModal({ isOpen, onClose, initialStep = 'ide
   const handleRegister = async (formData) => {
     setHasError(false);
     setErrorMessage('');
+    setFieldErrors(null);
     try {
       const user = await register({
         username: formData.username,
@@ -158,7 +162,24 @@ export default function CustomerLoginModal({ isOpen, onClose, initialStep = 'ide
       }, 1000);
     } catch (err) {
       setHasError(true);
-      setErrorMessage(err.data?.detail || err.message || 'Registration failed.');
+      if (err instanceof ApiError && err.data) {
+        setFieldErrors(err.data);
+        if (err.data.detail) {
+          setErrorMessage(typeof err.data.detail === 'string' ? err.data.detail : String(err.data.detail));
+        } else if (err.data.non_field_errors) {
+          const nf = err.data.non_field_errors;
+          const msg = Array.isArray(nf) ? nf[0] : String(nf);
+          if (/phone|mobile/i.test(msg)) {
+            setErrorMessage('');
+          } else {
+            setErrorMessage(msg);
+          }
+        } else {
+          setErrorMessage('');
+        }
+      } else {
+        setErrorMessage(err.message || 'Registration failed. Please check your details.');
+      }
     }
   };
 
@@ -287,6 +308,7 @@ export default function CustomerLoginModal({ isOpen, onClose, initialStep = 'ide
                     isLoading={authLoading}
                     hasError={hasError}
                     errorMessage={errorMessage}
+                    fieldErrors={fieldErrors}
                   />
                 )}
 

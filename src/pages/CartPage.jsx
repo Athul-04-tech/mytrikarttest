@@ -14,6 +14,8 @@ import OrderSummarySidebar from '../components/cart/OrderSummarySidebar';
 
 export default function CartPage() {
   const auth = useAuth();
+  const isLoggedIn = auth?.isLoggedIn;
+  const isResolving = auth?.isResolving;
   const isProductOwnedByCurrentSeller = auth?.isProductOwnedByCurrentSeller;
   const {
     cart,
@@ -32,6 +34,13 @@ export default function CartPage() {
   }, [cart, isProductOwnedByCurrentSeller]);
 
   const navigate = useNavigate();
+
+  // Redirect to login if opened while logged out
+  useEffect(() => {
+    if (!isResolving && !isLoggedIn) {
+      navigate('/login', { state: { from: '/cart' }, replace: true });
+    }
+  }, [isResolving, isLoggedIn, navigate]);
 
   // Dynamic SEO Metadata
   useEffect(() => {

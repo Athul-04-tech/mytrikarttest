@@ -1,6 +1,6 @@
 import React from 'react';
-import { TrendingUp } from 'lucide-react';
-import { formatCurrencyValue } from '../../data/sellerDashboardData';
+import { TrendingUp, AlertCircle } from 'lucide-react';
+import { formatCurrencyValue } from '../../utils/currency';
 import { useCountUp } from '../../hooks/useCountUp';
 
 function AnimatedStatValue({ target, currency }) {
@@ -16,7 +16,14 @@ const PERIOD_CONFIG = [
   { id: 'lifetime', apiKey: 'lifetime', label: 'Lifetime Sales', trend: 'All Time' }
 ];
 
-export default function SellerSalesWidget({ salesByCurrency, selectedCurrency = 'INR', availableCurrencies = ['INR'], onSelectCurrency }) {
+export default function SellerSalesWidget({
+  salesByCurrency,
+  selectedCurrency = 'INR',
+  availableCurrencies = ['INR'],
+  onSelectCurrency,
+  apiError = null,
+  isLoading = false
+}) {
   // Extract period values in selected currency from API response if present
   const getPeriodAmount = (apiKey) => {
     if (!salesByCurrency) return 0;
@@ -42,59 +49,85 @@ export default function SellerSalesWidget({ salesByCurrency, selectedCurrency = 
         </div>
 
         {/* Currency Switcher Tabs (Supported for Multi-currency Vendors) */}
-        <div className="flex items-center space-x-1.5">
-          <span className="text-[11px] text-[#6B6058]">Currency:</span>
-          {availableCurrencies.map((curr) => (
-            <button
-              key={curr}
-              type="button"
-              onClick={() => onSelectCurrency && onSelectCurrency(curr)}
-              className={`px-2 py-0.5 rounded text-[11px] font-extrabold transition-all cursor-pointer ${
-                selectedCurrency === curr
-                  ? 'bg-[#FA661C] text-[#FF811A] shadow-2xs'
-                  : 'bg-white text-[#6B6058] hover:text-[#FA661C] border border-[#EAE3DC]'
-              }`}
-            >
-              {curr}
-            </button>
+        {!apiError && (
+          <div className="flex items-center space-x-1.5">
+            <span className="text-[11px] text-[#6B6058]">Currency:</span>
+            {availableCurrencies.map((curr) => (
+              <button
+                key={curr}
+                type="button"
+                onClick={() => onSelectCurrency && onSelectCurrency(curr)}
+                className={`px-2 py-0.5 rounded text-[11px] font-extrabold transition-all cursor-pointer ${
+                  selectedCurrency === curr
+                    ? 'bg-[#FA661C] text-[#FF811A] shadow-2xs'
+                    : 'bg-white text-[#6B6058] hover:text-[#FA661C] border border-[#EAE3DC]'
+                }`}
+              >
+                {curr}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Honest Error State if API fails */}
+      {apiError ? (
+        <div className="p-4 bg-[#FDE8EA] border border-[#D7263D]/40 rounded-2xl flex items-start space-x-3 text-xs text-[#D7263D]">
+          <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+          <div>
+            <span className="font-bold block text-sm">Sales Reporting Error</span>
+            <p className="mt-0.5">{apiError}</p>
+          </div>
+        </div>
+      ) : isLoading ? (
+        /* Loading Skeleton */
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          {PERIOD_CONFIG.map((p) => (
+            <div key={p.id} className="p-3.5 bg-white rounded-2xl border border-[#EAE3DC] animate-pulse space-y-3">
+              <div className="flex justify-between">
+                <div className="h-3 w-16 bg-gray-200 rounded" />
+                <div className="h-3 w-8 bg-gray-100 rounded" />
+              </div>
+              <div className="h-6 w-24 bg-gray-200 rounded" />
+              <div className="h-2 w-12 bg-gray-100 rounded" />
+            </div>
           ))}
         </div>
-      </div>
+      ) : (
+        /* 5 Period Stat Cards in a Single Row (Scrollable on Mobile) */
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 overflow-x-auto pb-1">
+          {PERIOD_CONFIG.map((p) => {
+            const targetAmount = getPeriodAmount(p.apiKey);
 
-      {/* 5 Period Stat Cards in a Single Row (Scrollable on Mobile) */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 overflow-x-auto pb-1">
-        {PERIOD_CONFIG.map((p) => {
-          const targetAmount = getPeriodAmount(p.apiKey);
+            return (
+              <div
+                key={p.id}
+                className="p-3.5 bg-white rounded-2xl border border-[#EAE3DC] hover:border-[#FF811A]/60 shadow-2xs card-interactive flex flex-col justify-between last:col-span-2 sm:last:col-span-1"
+              >
+                <div>
+                  <div className="flex items-center justify-between gap-1 mb-2">
+                    <span className="text-[11px] font-bold text-[#6B6058] truncate">
+                      {p.label}
+                    </span>
+                    <span className="text-[10px] font-extrabold bg-[#FFF3EC] text-[#FA661C] px-1.5 py-0.2 rounded">
+                      {p.trend}
+                    </span>
+                  </div>
 
-          return (
-            <div
-              key={p.id}
-              className="p-3.5 bg-white rounded-2xl border border-[#EAE3DC] hover:border-[#FF811A]/60 shadow-2xs card-interactive flex flex-col justify-between last:col-span-2 sm:last:col-span-1"
-            >
-              <div>
-                <div className="flex items-center justify-between gap-1 mb-2">
-                  <span className="text-[11px] font-bold text-[#6B6058] truncate">
-                    {p.label}
-                  </span>
-                  <span className="text-[10px] font-extrabold bg-[#FFF3EC] text-[#FA661C] px-1.5 py-0.2 rounded">
-                    {p.trend}
-                  </span>
+                  <div className="font-['Outfit'] font-black text-lg sm:text-xl text-[#FA661C] tracking-tight">
+                    <AnimatedStatValue target={targetAmount} currency={selectedCurrency} />
+                  </div>
                 </div>
 
-                <div className="font-['Outfit'] font-black text-lg sm:text-xl text-[#FA661C] tracking-tight">
-                  <AnimatedStatValue target={targetAmount} currency={selectedCurrency} />
+                <div className="mt-2.5 pt-2 border-t border-[#EAE3DC]/50 flex items-center justify-between">
+                  <span className="text-[10px] text-[#6B6058]">Real API Period</span>
+                  <span className="text-[9px] font-bold text-[#FA661C]">Live</span>
                 </div>
               </div>
-
-              <div className="mt-2.5 pt-2 border-t border-[#EAE3DC]/50 flex items-center justify-between">
-                <span className="text-[10px] text-[#6B6058]">Real API Period</span>
-                <span className="text-[9px] font-bold text-[#FA661C]">Verified</span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </section>
   );
 }
-

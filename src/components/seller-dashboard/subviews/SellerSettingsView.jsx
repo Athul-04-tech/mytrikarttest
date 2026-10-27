@@ -1,58 +1,76 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Store, Bell, ShieldCheck, Save, Info, Sparkles } from 'lucide-react';
+import { Settings, Store, Bell, ShieldCheck, Save, Info, Sparkles, AlertCircle, Loader2 } from 'lucide-react';
 import { useToast } from '../../../context/ToastContext';
-import { apiRequest } from '../../../utils/api';
+import { useVendorProfile } from '../../../context/VendorProfileContext';
 
 export default function SellerSettingsView() {
+  const { vendorProfile, isLoading, error, updateProfile } = useVendorProfile();
   const [storeName, setStoreName] = useState('');
   const [storeDescription, setStoreDescription] = useState('');
   const [isWomenOwned, setIsWomenOwned] = useState(false);
   const [dispatchTime, setDispatchTime] = useState('24');
   const [autoAcceptOrders, setAutoAcceptOrders] = useState(true);
   const [holidayMode, setHolidayMode] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({});
   const toast = useToast();
 
   useEffect(() => {
-    let isMounted = true;
-    async function loadSettings() {
-      try {
-        const profile = await apiRequest('/api/vendors/me/');
-        if (isMounted) {
-          setStoreName(profile.store_name || '');
-          setStoreDescription(profile.store_description || '');
-          setIsWomenOwned(Boolean(profile.is_women_owned));
-        }
-      } catch (err) {
-        console.warn("Failed to load vendor settings:", err);
-      } finally {
-        if (isMounted) setIsLoading(false);
-      }
+    if (vendorProfile) {
+      setStoreName(vendorProfile.store_name || '');
+      setStoreDescription(vendorProfile.store_description || vendorProfile.bio || '');
+      setIsWomenOwned(Boolean(vendorProfile.is_women_owned));
+      setFieldErrors({});
     }
-    loadSettings();
-    return () => { isMounted = false; };
-  }, []);
+  }, [vendorProfile]);
 
   const handleSave = async (e) => {
     e.preventDefault();
     setIsSaving(true);
-    try {
-      await apiRequest('/api/vendors/me/', {
-        method: 'PATCH',
-        body: JSON.stringify({
-          store_name: storeName,
-          store_description: storeDescription,
-          is_women_owned: isWomenOwned
-        })
-      });
+    setFieldErrors({});
+
+    const res = await updateProfile({
+      store_name: storeName.trim(),
+      store_description: storeDescription.trim(),
+      is_women_owned: isWomenOwned
+    });
+
+    if (res.success) {
       toast.success("Settings Saved", "Store preferences saved successfully.");
-    } catch (err) {
-      toast.error("Save Failed", err.message || "Failed to update store settings.");
-    } finally {
-      setIsSaving(false);
+      setFieldErrors({});
+    } else {
+      if (res.fieldErrors && Object.keys(res.fieldErrors).length > 0) {
+        const normalized = {};
+        Object.entries(res.fieldErrors).forEach(([k, v]) => {
+          normalized[k] = Array.isArray(v) ? v.join(' ') : String(v);
+        });
+        setFieldErrors(normalized);
+      }
+      toast.error("Save Failed", res.error || "Failed to update store settings.");
     }
+    setIsSaving(false);
   };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6 text-xs animate-pulse">
+        <div className="h-6 w-48 bg-gray-200 rounded" />
+        <div className="h-80 bg-gray-100 rounded-3xl" />
+      </div>
+    );
+  }
+
+  if (error && !vendorProfile) {
+    return (
+      <div className="p-6 bg-[#FDE8EA] border border-[#D7263D]/40 rounded-3xl space-y-2 text-xs text-[#D7263D]">
+        <div className="flex items-center space-x-2 font-bold text-sm">
+          <AlertCircle className="w-5 h-5 shrink-0" />
+          <span>Settings Unavailable</span>
+        </div>
+        <p>{error}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 text-xs animate-reveal">
@@ -74,20 +92,36 @@ export default function SellerSettingsView() {
               type="text"
               required
               value={storeName}
-              onChange={(e) => setStoreName(e.target.value)}
-              className="w-full p-2.5 bg-[#FFFFFF] rounded-xl border border-[#EAE3DC] text-xs font-bold text-[#FA661C]"
+              onChange={(e) => {
+                setStoreName(e.target.value);
+                if (fieldErrors.store_name) setFieldErrors(prev => ({ ...prev, store_name: undefined }));
+              }}
+              className={`w-full p-2.5 bg-[#FFFFFF] rounded-xl border text-xs font-bold ${
+                fieldErrors.store_name ? 'border-[#D7263D] text-[#D7263D]' : 'border-[#EAE3DC] text-[#FA661C]'
+              }`}
             />
+            {fieldErrors.store_name && (
+              <p className="text-[11px] text-[#D7263D] font-bold mt-1">{fieldErrors.store_name}</p>
+            )}
           </div>
 
           <div>
-            <label className="font-bold text-[#FA661C] block mb-1">Store Description</label>
+            <label className="font-bold text-[#FA661C] block mb-1">Store Description (min 10 characters)</label>
             <input
               type="text"
               value={storeDescription}
-              onChange={(e) => setStoreDescription(e.target.value)}
+              onChange={(e) => {
+                setStoreDescription(e.target.value);
+                if (fieldErrors.store_description) setFieldErrors(prev => ({ ...prev, store_description: undefined }));
+              }}
               placeholder="Short bio or tagline for buyer storefront"
-              className="w-full p-2.5 bg-[#FFFFFF] rounded-xl border border-[#EAE3DC] text-xs font-medium text-[#1A2420]"
+              className={`w-full p-2.5 bg-[#FFFFFF] rounded-xl border text-xs font-medium ${
+                fieldErrors.store_description ? 'border-[#D7263D] text-[#D7263D]' : 'border-[#EAE3DC] text-[#1A2420]'
+              }`}
             />
+            {fieldErrors.store_description && (
+              <p className="text-[11px] text-[#D7263D] font-bold mt-1">{fieldErrors.store_description}</p>
+            )}
           </div>
         </div>
 
@@ -148,7 +182,7 @@ export default function SellerSettingsView() {
           <label className="flex items-center justify-between p-3 bg-[#F9F7F5] rounded-xl border border-[#EAE3DC] cursor-not-allowed">
             <div>
               <span className="font-bold text-[#6B6058] block">Store Holiday / Maintenance Mode (Feature Unavailable)</span>
-              <span className="text-[10px] text-[#6B6058]">Pause listings temporarily without losing search ranking</span>
+              <span className="text-[10px] text-[#6B6058]">Temporarily pause storefront visibility for catalog products</span>
             </div>
             <input
               disabled
@@ -160,14 +194,14 @@ export default function SellerSettingsView() {
           </label>
         </div>
 
-        <div className="pt-2">
+        <div className="pt-2 flex justify-end">
           <button
             type="submit"
             disabled={isSaving}
-            className="px-5 py-2.5 bg-[#FA661C] hover:bg-[#E0530B] text-[#FFFFFF] font-bold text-xs rounded-xl btn-interactive shadow-xs cursor-pointer flex items-center justify-center space-x-1.5 disabled:opacity-50 w-full sm:w-auto"
+            className="px-6 py-2.5 bg-[#FA661C] hover:bg-[#E0530B] active:bg-[#0A2A1F] text-white rounded-xl font-bold flex items-center space-x-2 shadow-xs cursor-pointer disabled:opacity-50"
           >
-            <Save className="w-3.5 h-3.5 text-[#FF811A]" />
-            <span>{isSaving ? 'Saving Changes...' : 'Save Store Preferences'}</span>
+            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            <span>{isSaving ? "Saving..." : "Save Store Preferences"}</span>
           </button>
         </div>
 

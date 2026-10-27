@@ -253,4 +253,123 @@ describe('Cart & Wishlist Guest Login Gating & Return Location Behavior', () => 
     });
     expect(screen.getByTestId('location-path').textContent).toBe('/category/electronics');
   });
+
+  it('5. blocks seller or admin role from adding to cart or wishlist and displays customer account required error', async () => {
+    vi.spyOn(api, 'getTokens').mockReturnValue({ access: 'seller-token', refresh: 'seller-refresh' });
+    const apiPostSpy = vi.fn();
+    vi.spyOn(api, 'apiRequest').mockImplementation(async (url, options) => {
+      if (url.includes('/api/accounts/me/')) {
+        return {
+          id: 99,
+          username: 'seller_user',
+          role: 'vendor',
+          is_staff: false
+        };
+      }
+      if (options?.method === 'POST') {
+        apiPostSpy(url, options);
+      }
+      return [];
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <ToastProvider>
+          <AuthProvider>
+            <CartWishlistProvider>
+              <Routes>
+                <Route path="/" element={<CartGatingHarness />} />
+              </Routes>
+            </CartWishlistProvider>
+          </AuthProvider>
+        </ToastProvider>
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('auth-status').textContent).toBe('LOGGED_IN');
+    });
+
+    // Try adding to cart as seller
+    fireEvent.click(screen.getByText('Add Test Product To Cart'));
+
+    // Verify API POST was never invoked
+    expect(apiPostSpy).not.toHaveBeenCalled();
+
+    // Try adding to wishlist as seller
+    fireEvent.click(screen.getByText('Add Test Product To Wishlist'));
+    expect(apiPostSpy).not.toHaveBeenCalled();
+  });
+
+  it('6. automatically purges legacy cart and wishlist localStorage keys on mount', () => {
+    localStorage.setItem('cart', JSON.stringify([{ id: 99, name: 'Fake Stale Item' }]));
+    localStorage.setItem('wishlist', JSON.stringify([{ id: 88, name: 'Fake Wishlist' }]));
+    localStorage.setItem('mytrikart_cart', JSON.stringify([{ id: 77 }]));
+    localStorage.setItem('mytrikart_guest_cart', JSON.stringify([{ id: 66 }]));
+
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <ToastProvider>
+          <AuthProvider>
+            <CartWishlistProvider>
+              <Routes>
+                <Route path="/" element={<CartGatingHarness />} />
+              </Routes>
+            </CartWishlistProvider>
+          </AuthProvider>
+        </ToastProvider>
+      </MemoryRouter>
+    );
+
+    expect(localStorage.getItem('cart')).toBeNull();
+    expect(localStorage.getItem('wishlist')).toBeNull();
+    expect(localStorage.getItem('mytrikart_cart')).toBeNull();
+    expect(localStorage.getItem('mytrikart_guest_cart')).toBeNull();
+  });
+
+  it('7. leaves cart unchanged and does not fake local items on server error (e.g. out of stock)', async () => {
+    vi.spyOn(api, 'getTokens').mockReturnValue({ access: 'cust-token', refresh: 'cust-refresh' });
+    vi.spyOn(api, 'apiRequest').mockImplementation(async (url, options) => {
+      if (url.includes('/api/accounts/me/')) {
+        return { id: 1, username: 'customer1', role: 'customer' };
+      }
+      if (url.includes('/api/orders/cart/')) {
+        if (options?.method === 'POST') {
+          const err = new Error('Requested quantity exceeds available stock.');
+          err.status = 400;
+          err.data = { detail: 'Requested quantity exceeds available stock.' };
+          throw err;
+        }
+        return [];
+      }
+      return [];
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <ToastProvider>
+          <AuthProvider>
+            <CartWishlistProvider>
+              <Routes>
+                <Route path="/" element={<CartGatingHarness />} />
+              </Routes>
+            </CartWishlistProvider>
+          </AuthProvider>
+        </ToastProvider>
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('auth-status').textContent).toBe('LOGGED_IN');
+      expect(screen.getByTestId('cart-count').textContent).toBe('0');
+    });
+
+    // Attempt to add out-of-stock item
+    fireEvent.click(screen.getByText('Add Test Product To Cart'));
+
+    // Cart count must remain 0 - no fake local items!
+    await waitFor(() => {
+      expect(screen.getByTestId('cart-count').textContent).toBe('0');
+    });
+  });
 });

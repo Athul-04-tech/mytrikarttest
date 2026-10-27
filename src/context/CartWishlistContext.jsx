@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useMemo, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useToast } from './ToastContext';
 import { useAuth } from './AuthContext';
@@ -9,7 +9,7 @@ const CartWishlistContext = createContext(null);
 export function CartWishlistProvider({ children }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, currentUser, isProductOwnedByCurrentSeller } = useAuth();
   const toast = useToast();
 
   const [wishlist, setWishlist] = useState([]);
@@ -21,8 +21,23 @@ export function CartWishlistProvider({ children }) {
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [couponError, setCouponError] = useState('');
 
+  // In-memory queue for pending actions (gating resume after login)
+  const pendingActionRef = useRef(null);
+
+  // Discard any old localStorage cart or wishlist keys left over from earlier guest behavior
   useEffect(() => {
-    try { sessionStorage.removeItem('mytrikart_applied_coupon'); } catch (_) {}
+    try {
+      const keysToPurge = [
+        'cart',
+        'wishlist',
+        'mytrikart_cart',
+        'mytrikart_wishlist',
+        'mytrikart_guest_cart',
+        'mytrikart_guest_wishlist'
+      ];
+      keysToPurge.forEach((key) => localStorage.removeItem(key));
+      sessionStorage.removeItem('mytrikart_applied_coupon');
+    } catch (_) {}
   }, []);
 
   // Helper to map backend CartItem serializer output to clean frontend shape
@@ -50,16 +65,19 @@ export function CartWishlistProvider({ children }) {
       originalPrice: null,
       quantity: item.quantity,
       image: details.primary_image_url || '/products/spatial_headphones_1786529304124.png',
-      stockQuantity: details.stock_quantity ?? 999,
+      stockQuantity: details.stock_quantity ?? 0, // Server is source of truth: 0 fallback, no fake 999
       skuCode: details.sku_code,
       currency: details.currency || 'INR',
       addedAt: item.added_at
     };
   }, []);
 
-  // Auth requirement guard for guest users
-  const requireAuth = useCallback((actionDescription = 'add items to your shopping cart') => {
+  // Shared gate for shopping actions
+  const checkCustomerAuth = useCallback((actionType, payload, actionDescription = 'continue') => {
     if (!isLoggedIn) {
+      if (actionType) {
+        pendingActionRef.current = { type: actionType, payload, actionDescription };
+      }
       toast.info(
         "Login Required",
         `Please sign in to ${actionDescription}.`
@@ -68,12 +86,21 @@ export function CartWishlistProvider({ children }) {
       navigate('/login', { state: { from: currentPath } });
       return false;
     }
-    return true;
-  }, [isLoggedIn, toast, navigate, location.pathname, location.search]);
 
-  // Load real cart from GET /api/orders/cart/ when logged in
+    if (currentUser?.role && currentUser.role !== 'customer') {
+      toast.error(
+        "Account Restricted",
+        "Please use a customer account to shop."
+      );
+      return false;
+    }
+
+    return true;
+  }, [isLoggedIn, currentUser, toast, navigate, location.pathname, location.search]);
+
+  // Load real cart from GET /api/orders/cart/ when logged in as customer
   const fetchCart = useCallback(async () => {
-    if (!isLoggedIn) {
+    if (!isLoggedIn || (currentUser?.role && currentUser.role !== 'customer')) {
       setCart([]);
       return;
     }
@@ -85,136 +112,108 @@ export function CartWishlistProvider({ children }) {
       } else {
         setCart([]);
       }
-    } catch (err) {
-      // Keep cart [] on unauthenticated or error
+    } catch (_) {
       setCart([]);
     } finally {
       setCartLoading(false);
     }
-  }, [isLoggedIn, mapCartItem]);
+  }, [isLoggedIn, currentUser?.role, mapCartItem]);
 
-  useEffect(() => {
-    fetchCart();
-  }, [fetchCart]);
-
-  // Load real wishlist from GET /api/customers/wishlist/ when logged in
-  useEffect(() => {
-    if (isLoggedIn) {
-      apiRequest('/api/customers/wishlist/')
-        .then((items) => {
-          if (Array.isArray(items)) {
-            setWishlist(items.map((item) => ({
-              id: item.product,
-              productId: item.product,
-              variantId: item.variant,
-              wishlistId: item.id,
-              addedAt: item.added_at
-            })));
-          }
-        })
-        .catch(() => {
-          // Keep local wishlist state on error
-        });
-    } else {
+  // Load real wishlist from GET /api/customers/wishlist/ when logged in as customer
+  const fetchWishlist = useCallback(async () => {
+    if (!isLoggedIn || (currentUser?.role && currentUser.role !== 'customer')) {
       setWishlist([]);
-    }
-  }, [isLoggedIn]);
-
-  // --- WISHLIST ACTIONS ---
-  const addToWishlist = useCallback(async (product) => {
-    if (!requireAuth('save items to your wishlist')) return;
-
-    const targetProduct = typeof product === 'object' ? product : { id: product };
-    const productId = targetProduct.id;
-
-    try {
-      const res = await apiRequest('/api/customers/wishlist/', {
-        method: 'POST',
-        body: JSON.stringify({ product: productId, variant: targetProduct.variantId || null })
-      });
-      const newItem = {
-        ...targetProduct,
-        id: productId,
-        productId,
-        wishlistId: res?.id
-      };
-      setWishlist((prev) => {
-        if (prev.some((item) => item.id === productId || item.productId === productId)) return prev;
-        return [newItem, ...prev];
-      });
-      toast.success("Added to Wishlist", `${targetProduct.name || 'Item'} saved to your favorites.`);
-    } catch (err) {
-      if (err?.status === 409) {
-        toast.info("Wishlist", "Item is already in your wishlist.");
-      } else {
-        setWishlist((prev) => {
-          if (prev.some((item) => item.id === productId)) return prev;
-          return [targetProduct, ...prev];
-        });
-        toast.success("Added to Wishlist", `${targetProduct.name || 'Item'} saved to your favorites.`);
-      }
-    }
-  }, [requireAuth, toast]);
-
-  const removeFromWishlist = useCallback(async (productId) => {
-    const target = wishlist.find((item) => item.id === productId || item.productId === productId || item.wishlistId === productId);
-    const wishlistItemId = target?.wishlistId;
-
-    setWishlist((prev) => prev.filter((item) => item.id !== productId && item.productId !== productId && item.wishlistId !== productId));
-    toast.info("Removed from Wishlist", "Item removed from your favorites.");
-
-    if (isLoggedIn && wishlistItemId) {
-      try {
-        await apiRequest(`/api/customers/wishlist/${wishlistItemId}/`, { method: 'DELETE' });
-      } catch (err) {
-        // Silently handle error
-      }
-    }
-  }, [wishlist, isLoggedIn, toast]);
-
-  const { isProductOwnedByCurrentSeller } = useAuth();
-
-  const moveToCartFromWishlist = useCallback(async (product) => {
-    if (!requireAuth('add items to your shopping cart')) return;
-
-    if (isProductOwnedByCurrentSeller && isProductOwnedByCurrentSeller(product)) {
-      toast.error(
-        "Seller Action Restricted",
-        "You cannot purchase items from your own seller catalog. You can purchase items from other sellers."
-      );
       return;
     }
+    try {
+      const items = await apiRequest('/api/customers/wishlist/');
+      if (Array.isArray(items)) {
+        const enriched = await Promise.all(
+          items.map(async (item) => {
+            try {
+              const prod = await apiRequest(`/api/products/published/${item.product}/`);
+              const primaryVar = (prod.variants || []).find(v => v.id === item.variant) || prod.variants?.[0] || {};
+              const rawPrice = parseFloat(primaryVar.price || 0);
+              const rawMrp = primaryVar.mrp ? parseFloat(primaryVar.mrp) : null;
+              const primaryImg = (prod.images || []).find(img => img.is_primary)?.image || prod.images?.[0]?.image || '/products/spatial_headphones_1786529304124.png';
 
-    // 1. Remove from wishlist
-    setWishlist((prev) => prev.filter((item) => item.id !== product.id));
+              return {
+                id: item.product,
+                productId: item.product,
+                variantId: item.variant || primaryVar.id,
+                wishlistId: item.id,
+                addedAt: item.added_at,
+                name: prod.name,
+                category: prod.category_name || 'General',
+                vendorName: prod.vendor_display_name || 'Verified Merchant',
+                price: rawPrice,
+                originalPrice: rawMrp && rawMrp > rawPrice ? rawMrp : null,
+                discount: primaryVar.discount_percentage ? `${Math.round(primaryVar.discount_percentage)}% Off` : null,
+                image: primaryImg,
+                rating: prod.average_rating || '4.8',
+              };
+            } catch (_) {
+              return {
+                id: item.product,
+                productId: item.product,
+                variantId: item.variant,
+                wishlistId: item.id,
+                addedAt: item.added_at,
+                name: `Product #${item.product}`,
+                price: 0,
+                image: '/products/spatial_headphones_1786529304124.png'
+              };
+            }
+          })
+        );
+        setWishlist(enriched);
+      } else {
+        setWishlist([]);
+      }
+    } catch (_) {
+      setWishlist([]);
+    }
+  }, [isLoggedIn, currentUser?.role]);
 
-    // 2. Add to cart via API
+  // Synchronize cart & wishlist when auth status changes
+  useEffect(() => {
+    if (isLoggedIn && currentUser?.role === 'customer') {
+      fetchCart();
+      fetchWishlist();
+    } else {
+      setCart([]);
+      setWishlist([]);
+      setSavedForLater([]);
+      setAppliedCoupon(null);
+      setCouponError('');
+    }
+  }, [isLoggedIn, currentUser?.role, fetchCart, fetchWishlist]);
+
+  // Helper to resolve variant ID
+  const resolveVariantId = async (product) => {
     let variantId = null;
     if (typeof product === 'object' && product !== null) {
-      variantId = product.variantId || product.product_variant || product.variants?.[0]?.id || product.id;
+      variantId = product.variantId || product.product_variant || product.variants?.[0]?.id;
+      if (!variantId && (product.productId || product.id)) {
+        const prodId = product.productId || product.id;
+        try {
+          const pubProd = await apiRequest(`/api/products/published/${prodId}/`);
+          variantId = pubProd?.variants?.[0]?.id;
+        } catch (_) {
+          try {
+            const fetchedProd = await apiRequest(`/api/products/${prodId}/`);
+            variantId = fetchedProd?.variants?.[0]?.id || fetchedProd?.variants?.[0]?.variant_id;
+          } catch (_) {}
+        }
+      }
     } else {
       variantId = product;
     }
+    return variantId;
+  };
 
-    try {
-      await apiRequest('/api/orders/cart/', {
-        method: 'POST',
-        body: JSON.stringify({ product_variant: Number(variantId), quantity: 1 })
-      });
-      await fetchCart();
-      toast.cart("Moved to Bag", `${product.name || 'Item'} is now in your shopping bag.`, product.image);
-    } catch (err) {
-      const errorMsg = err?.data?.detail || err?.message || 'Failed to move item to cart.';
-      toast.error("Cart Error", errorMsg);
-    }
-  }, [requireAuth, isProductOwnedByCurrentSeller, toast, fetchCart]);
-
-  // --- REAL BACKEND CART ACTIONS ---
-  const addToCart = useCallback(async (product, qty = 1) => {
-    if (!requireAuth('add items to your shopping cart')) {
-      return { success: false, reason: 'Authentication required' };
-    }
-
+  // Execution functions (called when authorized)
+  const executeAddToCart = useCallback(async (product, qty = 1) => {
     if (isProductOwnedByCurrentSeller && isProductOwnedByCurrentSeller(product)) {
       toast.error(
         "Seller Action Restricted",
@@ -223,23 +222,9 @@ export function CartWishlistProvider({ children }) {
       return { success: false, reason: 'You cannot purchase items from your own seller catalog' };
     }
 
-    let variantId = null;
-    if (typeof product === 'object' && product !== null) {
-      variantId = product.variantId || product.product_variant || product.variants?.[0]?.id;
-      if (!variantId && (product.productId || product.id)) {
-        const prodId = product.productId || product.id;
-        try {
-          const fetchedProd = await apiRequest(`/api/products/${prodId}/`);
-          variantId = fetchedProd?.variants?.[0]?.id || fetchedProd?.variants?.[0]?.variant_id;
-        } catch (_) {}
-      }
-    } else {
-      variantId = product;
-    }
-
     const itemName = product?.name || product?.title || 'Item';
+    const variantId = await resolveVariantId(product);
 
-    // Call real backend cart API
     if (variantId && !Number.isNaN(Number(variantId))) {
       try {
         await apiRequest('/api/orders/cart/', {
@@ -250,7 +235,7 @@ export function CartWishlistProvider({ children }) {
         toast.cart("Added to Bag", `${itemName} (Qty: ${qty}) added.`, product?.image);
         return { success: true, name: itemName };
       } catch (err) {
-        const errMsg = err?.message || err?.detail || `Failed to add "${itemName}" to cart.`;
+        const errMsg = err?.data?.detail || err?.data?.quantity?.[0] || err?.data?.product_variant?.[0] || err?.message || `Failed to add "${itemName}" to cart.`;
         toast.error("Add to Bag Failed", errMsg);
         return { success: false, reason: errMsg, name: itemName };
       }
@@ -259,9 +244,144 @@ export function CartWishlistProvider({ children }) {
     const errNoVariant = `Unable to resolve product variant for "${itemName}".`;
     toast.error("Add to Bag Failed", errNoVariant);
     return { success: false, reason: errNoVariant, name: itemName };
-  }, [requireAuth, isProductOwnedByCurrentSeller, toast, fetchCart]);
+  }, [isProductOwnedByCurrentSeller, toast, fetchCart]);
+
+  const executeAddToWishlist = useCallback(async (product) => {
+    const targetProduct = typeof product === 'object' ? product : { id: product };
+    const productId = targetProduct.productId || targetProduct.id;
+
+    try {
+      await apiRequest('/api/customers/wishlist/', {
+        method: 'POST',
+        body: JSON.stringify({ product: productId, variant: targetProduct.variantId || null })
+      });
+      await fetchWishlist();
+      toast.success("Added to Wishlist", `${targetProduct.name || 'Item'} saved to your favorites.`);
+      return { success: true };
+    } catch (err) {
+      if (err?.status === 409) {
+        toast.info("Wishlist", "Item is already in your wishlist.");
+      } else {
+        const errorMsg = err?.data?.detail || err?.data?.product?.[0] || err?.message || 'Failed to save item to wishlist.';
+        toast.error("Wishlist Error", errorMsg);
+      }
+      return { success: false, error: err };
+    }
+  }, [fetchWishlist, toast]);
+
+  const executeMoveToCartFromWishlist = useCallback(async (product) => {
+    if (isProductOwnedByCurrentSeller && isProductOwnedByCurrentSeller(product)) {
+      toast.error(
+        "Seller Action Restricted",
+        "You cannot purchase items from your own seller catalog. You can purchase items from other sellers."
+      );
+      return;
+    }
+
+    let variantId = null;
+    if (typeof product === 'object' && product !== null) {
+      variantId = product.variantId || product.product_variant || product.variants?.[0]?.id || product.id;
+    } else {
+      variantId = product;
+    }
+
+    try {
+      // 1. Add to cart via real API
+      await apiRequest('/api/orders/cart/', {
+        method: 'POST',
+        body: JSON.stringify({ product_variant: Number(variantId), quantity: 1 })
+      });
+
+      // 2. Only after cart call succeeds, remove from wishlist on server
+      const wishlistItemId = product.wishlistId || wishlist.find(w => w.id === product.id || w.productId === product.id)?.wishlistId;
+      if (wishlistItemId) {
+        try {
+          await apiRequest(`/api/customers/wishlist/${wishlistItemId}/`, { method: 'DELETE' });
+        } catch (_) {}
+      }
+
+      await Promise.all([fetchCart(), fetchWishlist()]);
+      toast.cart("Moved to Bag", `${product.name || 'Item'} is now in your shopping bag.`, product.image);
+    } catch (err) {
+      const errorMsg = err?.data?.detail || err?.data?.product_variant?.[0] || err?.message || 'Failed to move item to cart.';
+      toast.error("Cart Error", errorMsg);
+    }
+  }, [isProductOwnedByCurrentSeller, wishlist, fetchCart, fetchWishlist, toast]);
+
+  const wasLoggedInRef = useRef(isLoggedIn);
+
+  // Resume pending action after login
+  useEffect(() => {
+    if (isLoggedIn && currentUser) {
+      wasLoggedInRef.current = true;
+      if (currentUser.role === 'customer') {
+        const pending = pendingActionRef.current;
+        if (pending) {
+          pendingActionRef.current = null;
+          if (pending.type === 'ADD_TO_CART') {
+            executeAddToCart(pending.payload.product, pending.payload.qty);
+          } else if (pending.type === 'ADD_TO_WISHLIST') {
+            executeAddToWishlist(pending.payload.product);
+          } else if (pending.type === 'MOVE_TO_CART_FROM_WISHLIST') {
+            executeMoveToCartFromWishlist(pending.payload.product);
+          }
+        }
+      } else {
+        // Discard pending action if non-customer (seller or admin) logged in
+        pendingActionRef.current = null;
+      }
+    } else if (!isLoggedIn) {
+      if (wasLoggedInRef.current) {
+        pendingActionRef.current = null;
+        wasLoggedInRef.current = false;
+      }
+    }
+  }, [isLoggedIn, currentUser, executeAddToCart, executeAddToWishlist, executeMoveToCartFromWishlist]);
+
+  // --- PUBLIC WISHLIST ACTIONS ---
+  const addToWishlist = useCallback(async (product) => {
+    if (!checkCustomerAuth('ADD_TO_WISHLIST', { product }, 'save items to your wishlist')) {
+      return { success: false, reason: 'Authentication required' };
+    }
+    return await executeAddToWishlist(product);
+  }, [checkCustomerAuth, executeAddToWishlist]);
+
+  const removeFromWishlist = useCallback(async (productId) => {
+    if (!checkCustomerAuth(null, null, 'manage your wishlist')) return;
+
+    const target = wishlist.find((item) => item.id === productId || item.productId === productId || item.wishlistId === productId);
+    const wishlistItemId = target?.wishlistId;
+
+    if (wishlistItemId) {
+      try {
+        await apiRequest(`/api/customers/wishlist/${wishlistItemId}/`, { method: 'DELETE' });
+        await fetchWishlist();
+        toast.info("Removed from Wishlist", "Item removed from your favorites.");
+      } catch (err) {
+        const errorMsg = err?.data?.detail || err?.message || 'Failed to remove item from wishlist.';
+        toast.error("Wishlist Error", errorMsg);
+      }
+    }
+  }, [checkCustomerAuth, wishlist, fetchWishlist, toast]);
+
+  const moveToCartFromWishlist = useCallback(async (product) => {
+    if (!checkCustomerAuth('MOVE_TO_CART_FROM_WISHLIST', { product }, 'add items to your shopping cart')) {
+      return;
+    }
+    await executeMoveToCartFromWishlist(product);
+  }, [checkCustomerAuth, executeMoveToCartFromWishlist]);
+
+  // --- PUBLIC CART ACTIONS ---
+  const addToCart = useCallback(async (product, qty = 1) => {
+    if (!checkCustomerAuth('ADD_TO_CART', { product, qty }, 'add items to your shopping cart')) {
+      return { success: false, reason: 'Authentication required' };
+    }
+    return await executeAddToCart(product, qty);
+  }, [checkCustomerAuth, executeAddToCart]);
 
   const applyCoupon = useCallback(async (code) => {
+    if (!checkCustomerAuth(null, null, 'apply coupons')) return false;
+
     setCouponError('');
     if (!code || !code.trim()) {
       setCouponError('Please enter a coupon code.');
@@ -287,7 +407,7 @@ export function CartWishlistProvider({ children }) {
       toast.error('Coupon Error', message);
       return false;
     }
-  }, [toast]);
+  }, [checkCustomerAuth, toast]);
 
   const removeCoupon = useCallback(() => {
     setAppliedCoupon(null);
@@ -299,6 +419,8 @@ export function CartWishlistProvider({ children }) {
   }, [toast]);
 
   const updateCartQuantity = useCallback(async (cartItemId, deltaOrNewQty) => {
+    if (!checkCustomerAuth(null, null, 'modify your cart')) return;
+
     const existing = cart.find((item) => item.id === cartItemId || item.cartItemId === cartItemId);
     if (!existing) return;
 
@@ -320,12 +442,14 @@ export function CartWishlistProvider({ children }) {
       });
       await fetchCart();
     } catch (err) {
-      const errorMsg = err?.data?.detail || err?.message || 'Failed to update item quantity.';
+      const errorMsg = err?.data?.detail || err?.data?.quantity?.[0] || err?.message || 'Failed to update item quantity.';
       toast.error("Cart Error", errorMsg);
     }
-  }, [cart, fetchCart, toast]);
+  }, [checkCustomerAuth, cart, fetchCart, toast]);
 
   const removeFromCart = useCallback(async (cartItemId) => {
+    if (!checkCustomerAuth(null, null, 'modify your cart')) return;
+
     const existing = cart.find((item) => item.id === cartItemId || item.cartItemId === cartItemId);
     const targetId = existing ? existing.id : cartItemId;
 
@@ -339,7 +463,7 @@ export function CartWishlistProvider({ children }) {
       const errorMsg = err?.data?.detail || err?.message || 'Failed to remove item.';
       toast.error("Cart Error", errorMsg);
     }
-  }, [cart, fetchCart, toast]);
+  }, [checkCustomerAuth, cart, fetchCart, toast]);
 
   const saveForLaterItem = useCallback((product) => {
     removeFromCart(product.id);
@@ -348,11 +472,13 @@ export function CartWishlistProvider({ children }) {
   }, [removeFromCart, toast]);
 
   const moveToCartFromSaved = useCallback(async (product) => {
-    if (!requireAuth('add items to your shopping cart')) return;
+    if (!checkCustomerAuth('ADD_TO_CART', { product, qty: product.quantity || 1 }, 'add items to your shopping cart')) {
+      return;
+    }
 
     setSavedForLater((prev) => prev.filter((item) => item.id !== product.id));
     await addToCart(product, product.quantity || 1);
-  }, [requireAuth, addToCart]);
+  }, [checkCustomerAuth, addToCart]);
 
   const removeSavedForLater = useCallback((productId) => {
     setSavedForLater((prev) => prev.filter((item) => item.id !== productId));
@@ -441,6 +567,7 @@ export function CartWishlistProvider({ children }) {
     calculations,
     lastPlacedOrder,
     fetchCart,
+    fetchWishlist,
     // Coupon state & actions
     appliedCoupon,
     couponError,
@@ -473,4 +600,3 @@ export function useCart() {
   }
   return ctx;
 }
-

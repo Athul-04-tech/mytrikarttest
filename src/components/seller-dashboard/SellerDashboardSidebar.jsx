@@ -12,7 +12,9 @@ import {
   X 
 } from 'lucide-react';
 import AuthContext from '../../context/AuthContext';
+import VendorProfileContext from '../../context/VendorProfileContext';
 import { useToast } from '../../context/ToastContext';
+import { resolveMediaUrl } from '../../config/env';
 
 const SELLER_NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', route: '/seller/dashboard', icon: LayoutDashboard },
@@ -28,14 +30,30 @@ export default function SellerDashboardSidebar({
   onCloseMobile,
   productStatusCounts,
   orderStatusCounts,
-  vendorProfile
+  vendorProfile: propProfile
 }) {
   const navigate = useNavigate();
   const location = useLocation();
   const toast = useToast();
   const auth = React.useContext(AuthContext);
+  const profileContext = React.useContext(VendorProfileContext);
   const logout = auth?.logout;
-  const currentUser = auth?.currentUser;
+
+  // Single shared source of truth from GET /api/vendors/me/
+  const profile = propProfile || profileContext?.vendorProfile;
+  const isLoading = !propProfile && (profileContext?.isLoading ?? false);
+  const error = !propProfile && profileContext?.error;
+
+  const rawStoreName = profile?.store_name?.trim();
+  const displayStoreName = rawStoreName || (isLoading ? '' : 'Not set');
+  const storeLogo = profile?.store_logo || null;
+
+  const storeInitials = (() => {
+    if (!rawStoreName) return 'NS';
+    const parts = rawStoreName.split(/\s+/).filter(Boolean);
+    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+    return rawStoreName.slice(0, 2).toUpperCase();
+  })();
 
   // Compute live badge counts from real API data
   const totalProducts = productStatusCounts && typeof productStatusCounts === 'object'
@@ -68,9 +86,6 @@ export default function SellerDashboardSidebar({
     toast.info("Seller Sign Out", "You have signed out of Seller Hub.");
   };
 
-  const displayStoreName = vendorProfile?.store_name || (currentUser?.first_name ? `${currentUser.first_name}'s Store` : 'Merchant Store');
-  const storeInitials = displayStoreName.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase() || 'SH';
-
   return (
     <>
       {/* Mobile Backdrop Overlay */}
@@ -93,21 +108,51 @@ export default function SellerDashboardSidebar({
           
           {/* Top Brand Header */}
           <div className="p-4 sm:p-5 border-b border-[#FFFFFF]/15 flex items-center justify-between">
-            <Link to="/seller/dashboard" className="flex items-center space-x-2.5 truncate">
-              <div className="w-9 h-9 rounded-xl bg-[#FF811A] text-[#FA661C] font-['Outfit'] font-black text-sm flex items-center justify-center shadow-md border border-[#FFFFFF] shrink-0 avatar-interactive">
-                {storeInitials}
+            {isLoading ? (
+              /* Loading Skeleton */
+              <div className="flex items-center space-x-2.5 animate-pulse min-w-0 flex-1">
+                <div className="w-9 h-9 rounded-xl bg-white/20 shrink-0" />
+                <div className="space-y-1.5 flex-1 min-w-0">
+                  <div className="h-3.5 bg-white/20 rounded w-24" />
+                  <div className="h-2 bg-[#FF811A]/40 rounded w-16" />
+                </div>
               </div>
-              <div className="truncate">
-                <div className="flex items-center space-x-1.5">
-                  <span className="font-['Outfit'] font-extrabold text-sm text-[#FFFFFF] truncate">
-                    {displayStoreName}
+            ) : error ? (
+              /* Honest Error Message */
+              <div className="flex items-center space-x-2 text-xs text-[#D7263D] truncate" title={error}>
+                <div className="w-9 h-9 rounded-xl bg-[#D7263D]/20 text-[#D7263D] font-black text-sm flex items-center justify-center shrink-0">
+                  !
+                </div>
+                <div className="truncate">
+                  <span className="font-bold block text-[11px] text-white">Profile Error</span>
+                  <span className="text-[9px] text-[#FF811A] truncate block">{error}</span>
+                </div>
+              </div>
+            ) : (
+              <Link to="/seller/dashboard" className="flex items-center space-x-2.5 truncate">
+                {storeLogo ? (
+                  <img
+                    src={resolveMediaUrl(storeLogo)}
+                    alt={displayStoreName}
+                    className="w-9 h-9 rounded-xl object-cover border border-[#FFFFFF] shrink-0"
+                  />
+                ) : (
+                  <div className="w-9 h-9 rounded-xl bg-[#FF811A] text-[#FA661C] font-['Outfit'] font-black text-sm flex items-center justify-center shadow-md border border-[#FFFFFF] shrink-0 avatar-interactive">
+                    {storeInitials}
+                  </div>
+                )}
+                <div className="truncate">
+                  <div className="flex items-center space-x-1.5">
+                    <span className="font-['Outfit'] font-extrabold text-sm text-[#FFFFFF] truncate">
+                      {displayStoreName}
+                    </span>
+                  </div>
+                  <span className="text-[9px] font-bold text-[#FF811A] tracking-wider uppercase block">
+                    SELLER HUB
                   </span>
                 </div>
-                <span className="text-[9px] font-bold text-[#FF811A] tracking-wider uppercase block">
-                  SELLER HUB
-                </span>
-              </div>
-            </Link>
+              </Link>
+            )}
 
             {/* Mobile Close Button */}
             <button

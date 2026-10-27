@@ -1,5 +1,5 @@
 /**
- * Currency Formatting Utilities for Seller Dashboard (Module 4)
+ * Currency Formatting Utilities for Seller Dashboard and Platform
  */
 
 export const formatCurrencyValue = (val, currencyCode = 'INR') => {

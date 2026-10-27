@@ -4,7 +4,7 @@ import {
   Receipt, Package, CreditCard, Calendar, Clock, Truck, CheckCircle2, PackageCheck
 } from 'lucide-react';
 import { apiRequest } from '../../../utils/api';
-import { formatSellerINR } from '../../../data/sellerDashboardData';
+import { formatSellerINR } from '../../../utils/currency';
 import { useToast } from '../../../context/ToastContext';
 import { downloadSellerInvoice } from '../../../utils/sellerInvoice';
 

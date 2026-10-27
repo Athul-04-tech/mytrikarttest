@@ -15,17 +15,14 @@ import SellerOrderDetailView from '../components/seller-dashboard/subviews/Selle
 import SellerSettlementsView from '../components/seller-dashboard/subviews/SellerSettlementsView';
 import SellerSettingsView from '../components/seller-dashboard/subviews/SellerSettingsView';
 import SellerProfileView from '../components/seller-dashboard/subviews/SellerProfileView';
-import { useAuth } from '../context/AuthContext';
+import { VendorProfileProvider, useVendorProfile } from '../context/VendorProfileContext';
 import { apiRequest } from '../utils/api';
 
-export default function SellerDashboardPage() {
+function SellerDashboardContent() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { currentUser } = useAuth();
+  const { vendorProfile } = useVendorProfile();
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
-
-  // Vendor Profile State
-  const [vendorProfile, setVendorProfile] = useState(null);
 
   // Live Dashboard State
   const [dashboardData, setDashboardData] = useState(null);
@@ -34,21 +31,6 @@ export default function SellerDashboardPage() {
   const [asOfDate, setAsOfDate] = useState('');
   const [selectedCurrency, setSelectedCurrency] = useState('INR');
   const [availableCurrencies, setAvailableCurrencies] = useState(['INR']);
-
-  // Fetch Vendor Profile from GET /api/vendors/me/
-  useEffect(() => {
-    let isMounted = true;
-    async function loadVendorProfile() {
-      try {
-        const profile = await apiRequest('/api/vendors/me/');
-        if (isMounted) setVendorProfile(profile);
-      } catch (err) {
-        console.warn("Failed to load vendor profile:", err);
-      }
-    }
-    loadVendorProfile();
-    return () => { isMounted = false; };
-  }, []);
 
   // Derive active section from route
   const getActiveSection = () => {
@@ -129,8 +111,6 @@ export default function SellerDashboardPage() {
     return () => { isMounted = false; };
   }, [activeSection, asOfDate]);
 
-  const computedStoreName = vendorProfile?.store_name || (currentUser?.first_name ? `${currentUser.first_name}'s Store` : 'Merchant Store');
-
   return (
     <div className="min-h-screen bg-[#FFFFFF] flex text-[#1A2420] font-sans selection:bg-[#FF811A]/30 selection:text-[#FA661C]">
       
@@ -161,7 +141,7 @@ export default function SellerDashboardPage() {
             <>
               {/* Top Welcome Header & Prominent Add Product CTA */}
               <SellerWelcomeHeader
-                storeName={computedStoreName}
+                storeName={vendorProfile?.store_name}
                 asOfDate={asOfDate}
                 onAsOfDateChange={setAsOfDate}
               />
@@ -199,6 +179,8 @@ export default function SellerDashboardPage() {
                 selectedCurrency={selectedCurrency}
                 availableCurrencies={availableCurrencies}
                 onSelectCurrency={setSelectedCurrency}
+                apiError={apiError}
+                isLoading={isLoading}
               />
 
               {/* Widget Group 2: Earnings & Settlements Widget */}
@@ -272,3 +254,10 @@ export default function SellerDashboardPage() {
   );
 }
 
+export default function SellerDashboardPage() {
+  return (
+    <VendorProfileProvider>
+      <SellerDashboardContent />
+    </VendorProfileProvider>
+  );
+}

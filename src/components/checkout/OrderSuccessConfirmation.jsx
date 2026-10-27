@@ -64,8 +64,8 @@ export default function OrderSuccessConfirmation({ order, onBackToHome }) {
             <span>Delivering To</span>
           </div>
           <p className="text-[11px] text-[#6B6058]">
-            <strong className="text-[#FA661C]">{order.shippingAddress?.name || 'Aarav Sharma'}</strong><br />
-            {order.shippingAddress?.addressLine || 'Flat 402, Royal Palms Residency'}, {order.shippingAddress?.city || 'Mumbai'} — {order.shippingAddress?.pincode || '400063'}
+            <strong className="text-[#FA661C]">{order.shippingAddress?.name || 'Customer'}</strong><br />
+            {order.shippingAddress?.addressLine || 'Address on file'}, {order.shippingAddress?.city || ''} — {order.shippingAddress?.pincode || ''}
           </p>
         </div>
       </div>

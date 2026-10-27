@@ -1,6 +1,6 @@
 import React from 'react';
 import { Landmark, FileText, Info, AlertCircle, HelpCircle } from 'lucide-react';
-import { formatCurrencyValue } from '../../data/sellerDashboardData';
+import { formatCurrencyValue } from '../../utils/currency';
 import { useCountUp } from '../../hooks/useCountUp';
 import { useToast } from '../../context/ToastContext';
 

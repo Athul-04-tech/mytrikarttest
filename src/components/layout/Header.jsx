@@ -262,9 +262,9 @@ export default function Header({
                 aria-label="User Account Menu"
               >
                 <div className="w-6 h-6 rounded-full bg-[#FF811A] text-[#FA661C] font-black text-[10px] flex items-center justify-center shadow-xs avatar-interactive">
-                  {currentUser?.name ? currentUser.name.slice(0, 2).toUpperCase() : 'AS'}
+                  {(currentUser?.name || currentUser?.first_name || currentUser?.email || 'U').slice(0, 2).toUpperCase()}
                 </div>
-                <span className="text-xs font-bold text-[#FA661C]">{currentUser?.name || 'Aarav Sharma'}</span>
+                <span className="text-xs font-bold text-[#FA661C]">{currentUser?.name || currentUser?.first_name || currentUser?.email || 'Account'}</span>
                 <ChevronDown className={`w-3.5 h-3.5 text-[#6B6058] transition-transform duration-150 ${
                   isAccountDropdownOpen ? 'rotate-180 text-[#FF811A]' : ''
                 }`} />

@@ -10,12 +10,23 @@ import {
   Store 
 } from 'lucide-react';
 import { useCart } from '../context/CartWishlistContext';
+import { useAuth } from '../context/AuthContext';
 import { resolveMediaUrl } from '../config/env';
 
 export default function WishlistPage() {
+  const auth = useAuth();
+  const isLoggedIn = auth?.isLoggedIn;
+  const isResolving = auth?.isResolving;
   const { wishlist, removeFromWishlist, moveToCartFromWishlist, cartCount } = useCart();
   const [animatingOutId, setAnimatingOutId] = useState(null);
   const navigate = useNavigate();
+
+  // Redirect to login if opened while logged out
+  useEffect(() => {
+    if (!isResolving && !isLoggedIn) {
+      navigate('/login', { state: { from: '/wishlist' }, replace: true });
+    }
+  }, [isResolving, isLoggedIn, navigate]);
 
   // Dynamic SEO Metadata
   useEffect(() => {

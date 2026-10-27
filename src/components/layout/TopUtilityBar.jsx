@@ -7,9 +7,10 @@ export default function TopUtilityBar({ onOpenLocationModal, deliveryLocation })
   const auth = useAuth();
   const isSeller = auth?.isLoggedIn && (auth?.currentUser?.role === 'vendor' || auth?.currentUser?.role === 'seller');
   const isAdmin = auth?.isLoggedIn && (auth?.currentUser?.role === 'admin' || auth?.currentUser?.role === 'administrator');
+  const hasMobileContent = Boolean(isSeller || isAdmin || onOpenLocationModal);
 
   return (
-    <div className="bg-[#FFFFFF] border-b border-[#EAE3DC]/60 text-xs text-[#6B6058] py-1.5 md:py-2 px-3 md:px-8 flex items-center justify-between gap-2 transition-colors overflow-hidden">
+    <div className={`${hasMobileContent ? 'flex' : 'hidden sm:flex'} bg-[#FFFFFF] border-b border-[#EAE3DC]/60 text-xs text-[#6B6058] py-1.5 md:py-2 px-3 md:px-8 items-center justify-between gap-2 transition-colors overflow-hidden`}>
       {/* Left side: Platform Logo & Role Badges */}
       <div className="flex items-center min-w-0 space-x-2 sm:space-x-3 md:space-x-4">
         {/* Platform Brand Logo (Routes to Home) — hidden on mobile; main header already shows it */}
@@ -51,24 +52,26 @@ export default function TopUtilityBar({ onOpenLocationModal, deliveryLocation })
       </div>
 
       {/* Right side: Delivery Location Link */}
-      <button
-        onClick={onOpenLocationModal}
-        className="ml-auto min-w-0 shrink flex items-center space-x-1.5 text-[#6B6058] hover:text-[#FA661C] font-medium transition-colors group focus:outline-none focus:ring-1 focus:ring-[#FA661C] rounded-md px-2 py-1 cursor-pointer"
-        aria-label="Select delivery location"
-      >
-        <MapPin className="w-4 h-4 text-[#FF811A] group-hover:bounce transition-transform shrink-0" />
-        <span className="hidden sm:inline text-xs truncate max-w-[200px] md:max-w-none">
-          {deliveryLocation ? (
-            <>Deliver to: <strong className="text-[#FA661C]">{deliveryLocation}</strong></>
-          ) : (
-            <>Location not set — <span className="underline decoration-[#FF811A] underline-offset-2">Select delivery location</span></>
-          )}
-        </span>
-        <span className="sm:hidden text-xs underline decoration-[#FF811A] truncate max-w-[50vw]">
-          {deliveryLocation || 'Set Location'}
-        </span>
-        <ChevronRight className="w-3 h-3 text-[#6B6058] group-hover:translate-x-0.5 transition-transform shrink-0" />
-      </button>
+      {onOpenLocationModal && (
+        <button
+          onClick={onOpenLocationModal}
+          className="ml-auto min-w-0 shrink flex items-center space-x-1.5 text-[#6B6058] hover:text-[#FA661C] font-medium transition-colors group focus:outline-none focus:ring-1 focus:ring-[#FA661C] rounded-md px-2 py-1 cursor-pointer"
+          aria-label="Select delivery location"
+        >
+          <MapPin className="w-4 h-4 text-[#FF811A] group-hover:bounce transition-transform shrink-0" />
+          <span className="hidden sm:inline text-xs truncate max-w-[200px] md:max-w-none">
+            {deliveryLocation ? (
+              <>Deliver to: <strong className="text-[#FA661C]">{deliveryLocation}</strong></>
+            ) : (
+              <>Location not set — <span className="underline decoration-[#FF811A] underline-offset-2">Select delivery location</span></>
+            )}
+          </span>
+          <span className="sm:hidden text-xs underline decoration-[#FF811A] truncate max-w-[50vw]">
+            {deliveryLocation || 'Set Location'}
+          </span>
+          <ChevronRight className="w-3 h-3 text-[#6B6058] group-hover:translate-x-0.5 transition-transform shrink-0" />
+        </button>
+      )}
     </div>
   );
 }

@@ -177,12 +177,9 @@ export default function Step3StoreInfo({ formData, updateFormData, onNext, onBac
           <div>
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-[#FA661C] block">Store Logo (1:1 Square)</span>
-              <span className="text-[9px] font-bold uppercase tracking-wider bg-[#FFF3EC] text-[#FA661C] border border-[#FF811A]/40 px-2 py-0.5 rounded-full">
-                File Upload In Development
-              </span>
             </div>
             <p className="text-[11px] text-[#6B6058] mt-0.5">
-              Direct binary upload API coming soon. Enter hosted image URL string below:
+              Enter hosted image URL or upload directly from Seller Profile settings after registration:
             </p>
             
             <div className="mt-3 space-y-2">
@@ -214,12 +211,9 @@ export default function Step3StoreInfo({ formData, updateFormData, onNext, onBac
           <div>
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-[#FA661C] block">Store Banner (16:9 Landscape)</span>
-              <span className="text-[9px] font-bold uppercase tracking-wider bg-[#FFF3EC] text-[#FA661C] border border-[#FF811A]/40 px-2 py-0.5 rounded-full">
-                File Upload In Development
-              </span>
             </div>
             <p className="text-[11px] text-[#6B6058] mt-0.5">
-              Direct binary upload API coming soon. Enter hosted image URL string below:
+              Enter hosted image URL or upload directly from Seller Profile settings after registration:
             </p>
             
             <div className="mt-3 space-y-2">

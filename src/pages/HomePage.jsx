@@ -4,7 +4,6 @@ import Header from '../components/layout/Header';
 import CategoryNav from '../components/navigation/CategoryNav';
 import HeroCarousel from '../components/hero/HeroCarousel';
 import PopularPicks from '../components/products/PopularPicks';
-import DeliveryModal from '../components/modals/DeliveryModal';
 import ProfileCompletionBanner from '../components/layout/ProfileCompletionBanner';
 import Footer from '../components/layout/Footer';
 import { Zap, ShieldCheck, Tag, Gift, Sparkles, ChevronRight } from 'lucide-react';
@@ -16,8 +15,6 @@ export default function HomePage({ isLoggedIn, currentUser, onLogout }) {
   const validCategory = categorySlug || 'for-you';
 
   const [activeCategory, setActiveCategory] = useState(validCategory);
-  const [deliveryLocation, setDeliveryLocation] = useState(null);
-  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
 
   // Sync with URL parameter instantly without delay
   useEffect(() => {
@@ -49,8 +46,6 @@ export default function HomePage({ isLoggedIn, currentUser, onLogout }) {
 
       {/* Header */}
       <Header 
-        onOpenLocationModal={() => setIsLocationModalOpen(true)}
-        deliveryLocation={deliveryLocation}
         isLoggedIn={isLoggedIn}
         currentUser={currentUser}
         onLogout={onLogout}
@@ -179,15 +174,6 @@ export default function HomePage({ isLoggedIn, currentUser, onLogout }) {
 
       {/* Footer Component */}
       <Footer />
-
-      {/* Delivery Location Modal */}
-      <DeliveryModal
-        isOpen={isLocationModalOpen}
-        onClose={() => setIsLocationModalOpen(false)}
-        onSelectLocation={(loc) => setDeliveryLocation(loc)}
-        currentLocation={deliveryLocation}
-      />
-
     </div>
   );
 }

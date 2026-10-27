@@ -229,15 +229,20 @@ export default function LoginPage({ onLoginSuccess }) {
       if (err instanceof ApiError && err.data) {
         setFieldErrors(err.data);
         if (err.data.detail) {
-          setErrorMessage(err.data.detail);
-        } else if (err.data.username) {
-          setErrorMessage(err.data.username[0] || 'A user with that username already exists.');
-        } else if (typeof err.data === 'object') {
-          const firstKey = Object.keys(err.data)[0];
-          const val = err.data[firstKey];
-          setErrorMessage(Array.isArray(val) ? `${firstKey}: ${val[0]}` : String(val));
+          setErrorMessage(typeof err.data.detail === 'string' ? err.data.detail : String(err.data.detail));
+        } else if (err.data.non_field_errors) {
+          const nf = err.data.non_field_errors;
+          const msg = Array.isArray(nf) ? nf[0] : String(nf);
+          // If non_field_errors mentions phone number, RegisterStep will render it next to the Mobile input
+          if (/phone|mobile/i.test(msg)) {
+            setErrorMessage('');
+          } else {
+            setErrorMessage(msg);
+          }
         } else {
-          setErrorMessage(err.message);
+          // All errors are field-specific (username, email, phone_number, password)
+          // and are rendered directly next to their matching inputs in RegisterStep.
+          setErrorMessage('');
         }
       } else {
         setErrorMessage(err.message || 'Registration failed. Please check your details.');

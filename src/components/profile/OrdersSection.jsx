@@ -237,7 +237,7 @@ export default function OrdersSection({ orders = [], isLoading = false, error = 
       if (Array.isArray(rawDetail)) {
         rawDetail = rawDetail.join(' ');
       } else if (typeof rawDetail === 'object' && rawDetail !== null) {
-        rawDetail = Object.entries(rawDetail).map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`).join('; ');
+        rawDetail = Object.entries(rawDetail).map(([k, v]) => `${k === 'non_field_errors' ? '' : `${k}: `}${Array.isArray(v) ? v.join(', ') : v}`).join('; ');
       }
       const detail = String(rawDetail || 'Unable to cancel this order.');
 

@@ -1,9 +1,15 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Sparkles, Calendar } from 'lucide-react';
+import VendorProfileContext from '../../context/VendorProfileContext';
 
-export default function SellerWelcomeHeader({ storeName, asOfDate, onAsOfDateChange }) {
-  const displayName = storeName || 'Merchant Store';
+export default function SellerWelcomeHeader({ storeName: propStoreName, asOfDate, onAsOfDateChange }) {
+  const profileContext = React.useContext(VendorProfileContext);
+  const isLoading = !propStoreName && (profileContext?.isLoading ?? false);
+  const rawStoreName = propStoreName || profileContext?.vendorProfile?.store_name?.trim();
+  const displayName = rawStoreName || (isLoading ? '' : 'Not set');
+  const trustLevel = profileContext?.vendorProfile?.trust_level;
+  const trustLevelText = trustLevel ? `Tier: ${trustLevel.toUpperCase()}` : (isLoading ? 'Tier: ...' : 'Tier: Not set');
 
   return (
     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2">
@@ -14,13 +20,17 @@ export default function SellerWelcomeHeader({ storeName, asOfDate, onAsOfDateCha
             SELLER OPERATIONS CONSOLE
           </span>
           <span className="text-[10px] bg-[#FFF8F2] text-[#FA661C] border border-[#FF811A]/50 font-bold px-2 py-0.2 rounded-full">
-            Merchant tier: Not yet available
+            {trustLevelText}
           </span>
         </div>
 
-        <h1 className="font-['Outfit'] text-2xl sm:text-3xl font-extrabold text-[#FA661C] tracking-tight">
-          Welcome back, {displayName}
-        </h1>
+        {isLoading ? (
+          <div className="h-8 w-64 bg-gray-200 rounded animate-pulse my-1" />
+        ) : (
+          <h1 className="font-['Outfit'] text-2xl sm:text-3xl font-extrabold text-[#FA661C] tracking-tight">
+            Welcome back, {displayName}
+          </h1>
+        )}
         <p className="text-xs text-[#6B6058] mt-1">
           Here is your store performance, orders needing fulfillment, and earnings settlement breakdown.
         </p>
@@ -63,4 +73,3 @@ export default function SellerWelcomeHeader({ storeName, asOfDate, onAsOfDateCha
     </div>
   );
 }
-

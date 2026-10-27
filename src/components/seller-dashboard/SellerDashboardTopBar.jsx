@@ -13,19 +13,39 @@ import {
   LogOut 
 } from 'lucide-react';
 import AuthContext from '../../context/AuthContext';
+import VendorProfileContext from '../../context/VendorProfileContext';
 import { useToast } from '../../context/ToastContext';
 
 export default function SellerDashboardTopBar({
   onToggleSidebar,
   alerts,
-  vendorProfile
+  vendorProfile: propProfile
 }) {
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const toast = useToast();
   const navigate = useNavigate();
   const auth = React.useContext(AuthContext);
+  const profileContext = React.useContext(VendorProfileContext);
   const logout = auth?.logout;
-  const currentUser = auth?.currentUser;
+
+  // Single shared source of truth from GET /api/vendors/me/
+  const profile = propProfile || profileContext?.vendorProfile;
+  const isLoading = !propProfile && (profileContext?.isLoading ?? false);
+  const error = !propProfile && profileContext?.error;
+
+  const rawStoreName = profile?.store_name?.trim();
+  const displayStoreName = rawStoreName || (isLoading ? '' : 'Not set');
+  const storeLogo = profile?.store_logo || null;
+
+  const storeInitials = (() => {
+    if (!rawStoreName) return 'NS';
+    const parts = rawStoreName.split(/\s+/).filter(Boolean);
+    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+    return rawStoreName.slice(0, 2).toUpperCase();
+  })();
+
+  const taxIdText = profile?.tax_id ? `GSTIN: ${profile.tax_id}` : (isLoading ? 'GSTIN: ...' : 'GSTIN: Not set');
+  const trustLevelText = profile?.trust_level ? `Tier: ${profile.trust_level.toUpperCase()}` : (isLoading ? 'Tier: ...' : 'Tier: Not set');
 
   const lowStockVariants = Array.isArray(alerts?.low_stock_variants) ? alerts.low_stock_variants : [];
   const newOrdersCount = Number(alerts?.new_orders_count || 0);
@@ -45,10 +65,6 @@ export default function SellerDashboardTopBar({
     navigate('/');
     toast.info("Seller Sign Out", "You have securely signed out of Seller Hub and returned to Marketplace Home.");
   };
-
-  const displayStoreName = vendorProfile?.store_name || (currentUser?.first_name ? `${currentUser.first_name}'s Store` : 'Merchant Store');
-  const storeInitials = displayStoreName.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase() || 'SH';
-  const taxIdText = vendorProfile?.tax_id ? `GSTIN: ${vendorProfile.tax_id}` : 'GSTIN: Not yet available';
 
   return (
     <header className="bg-white border-b border-[#EAE3DC] sticky top-0 z-30 shadow-xs px-4 sm:px-8 py-3">
@@ -88,32 +104,48 @@ export default function SellerDashboardTopBar({
           <span className="text-[#EAE3DC] hidden md:inline shrink-0">|</span>
 
           {/* Desktop Store Details */}
-          <Link to="/seller/dashboard" className="hidden md:flex items-center space-x-2.5 min-w-0">
-            {vendorProfile?.store_logo ? (
-              <img
-                src={vendorProfile.store_logo}
-                alt="Store Logo"
-                className="w-8 h-8 rounded-xl object-cover border border-[#EAE3DC] shrink-0"
-              />
-            ) : (
-              <div className="w-8 h-8 rounded-xl bg-[#FA661C] text-[#FF811A] font-bold text-xs flex items-center justify-center border border-[#EAE3DC] shrink-0">
-                {storeInitials}
+          {isLoading ? (
+            /* Skeleton Loading State */
+            <div className="hidden md:flex items-center space-x-2.5 min-w-0 animate-pulse">
+              <div className="w-8 h-8 rounded-xl bg-gray-200 shrink-0" />
+              <div className="space-y-1">
+                <div className="h-3.5 bg-gray-200 rounded w-28" />
+                <div className="h-2.5 bg-gray-100 rounded w-36" />
               </div>
-            )}
-            <div className="min-w-0">
-              <div className="flex items-center space-x-1.5">
-                <h1 className="font-['Outfit'] font-extrabold text-sm sm:text-base text-[#FA661C] leading-tight truncate max-w-[180px] lg:max-w-none">
-                  {displayStoreName}
-                </h1>
-                <span className="text-[9px] font-black uppercase bg-[#FFF8F2] text-[#FA661C] border border-[#FF811A]/50 px-1.5 py-0.2 rounded-full hidden sm:inline-block">
-                  Merchant tier: Not yet available
+            </div>
+          ) : error ? (
+            /* Honest Error State */
+            <div className="hidden md:flex items-center space-x-2 text-xs text-[#D7263D]">
+              <span className="font-bold">Profile Unavailable</span>
+            </div>
+          ) : (
+            <Link to="/seller/dashboard" className="hidden md:flex items-center space-x-2.5 min-w-0">
+              {storeLogo ? (
+                <img
+                  src={storeLogo}
+                  alt={displayStoreName}
+                  className="w-8 h-8 rounded-xl object-cover border border-[#EAE3DC] shrink-0"
+                />
+              ) : (
+                <div className="w-8 h-8 rounded-xl bg-[#FA661C] text-[#FF811A] font-bold text-xs flex items-center justify-center border border-[#EAE3DC] shrink-0">
+                  {storeInitials}
+                </div>
+              )}
+              <div className="min-w-0">
+                <div className="flex items-center space-x-1.5">
+                  <h1 className="font-['Outfit'] font-extrabold text-sm sm:text-base text-[#FA661C] leading-tight truncate max-w-[180px] lg:max-w-none">
+                    {displayStoreName}
+                  </h1>
+                  <span className="text-[9px] font-black uppercase bg-[#FFF8F2] text-[#FA661C] border border-[#FF811A]/50 px-1.5 py-0.2 rounded-full hidden sm:inline-block">
+                    {trustLevelText}
+                  </span>
+                </div>
+                <span className="text-[10px] text-[#6B6058] truncate block">
+                  {taxIdText}
                 </span>
               </div>
-              <span className="text-[10px] text-[#6B6058] truncate block">
-                {taxIdText} • SLA Compliance: <strong className="text-[#FA661C]">Not yet available</strong>
-              </span>
-            </div>
-          </Link>
+            </Link>
+          )}
         </div>
 
         {/* Right: Notifications + Merchant Avatar + Sign Out */}
@@ -189,9 +221,10 @@ export default function SellerDashboardTopBar({
                     </div>
                   )}
 
+                  {/* Standard payout schedule notification */}
                   <div className="pt-2">
                     <h5 className="font-bold text-[#FA661C]">Weekly Payout Ready</h5>
-                    <p className="text-[10px] text-[#6B6058]">₹84,200 pending settlement cycle for Friday.</p>
+                    <p className="text-[10px] text-[#6B6058]">Settlement cycle processing for active statement.</p>
                   </div>
                 </div>
               </div>
@@ -199,8 +232,11 @@ export default function SellerDashboardTopBar({
           </div>
 
           {/* Merchant Profile Avatar */}
-          <div className="w-8 h-8 rounded-full bg-[#FA661C] text-[#FF811A] font-black text-xs flex items-center justify-center shadow-xs border border-[#FF811A] avatar-interactive shrink-0">
-            AP
+          <div
+            className="w-8 h-8 rounded-full bg-[#FA661C] text-[#FF811A] font-black text-xs flex items-center justify-center shadow-xs border border-[#FF811A] avatar-interactive shrink-0"
+            title={displayStoreName}
+          >
+            {storeInitials}
           </div>
 
           {/* Dedicated Seller Sign Out Button */}
