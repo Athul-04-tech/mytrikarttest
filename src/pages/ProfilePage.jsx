@@ -74,9 +74,10 @@ export default function ProfilePage({ onLogout }) {
         setUserProfile(prev => ({
           ...prev,
           ...data,
-          dateOfBirth: data.date_of_birth || prev.dateOfBirth || '',
-          gender: data.gender || prev.gender || '',
-          preferredLanguage: data.preferred_language || prev.preferredLanguage || 'English (India)',
+          date_of_birth: data.date_of_birth || '',
+          gender: data.gender || '',
+          preferred_language: data.preferred_language || '',
+          preferred_language_display: data.preferred_language_display || '',
           profilePhoto: data.profile_photo || prev.profilePhoto || '',
           walletBalance: data.wallet_balance_display !== undefined ? Number(data.wallet_balance_display) : prev.walletBalance,
           rewardPoints: data.reward_points_display !== undefined ? Number(data.reward_points_display) : prev.rewardPoints
@@ -401,22 +402,24 @@ export default function ProfilePage({ onLogout }) {
                   profileData={userProfile} 
                   userProfile={userProfile}
                   onUpdateProfile={async (updated) => {
-                    setUserProfile(prev => ({ ...prev, ...updated }));
-                    try {
-                      await apiRequest('/api/customers/me/', {
-                        method: 'PATCH',
-                        body: JSON.stringify({
-                          date_of_birth: updated.dateOfBirth || updated.date_of_birth || null,
-                          gender: updated.gender || 'prefer_not_to_say',
-                          preferred_language: updated.preferredLanguage || updated.preferred_language || 'en',
-                          profile_photo: updated.profilePhoto || updated.profile_photo || ''
-                        })
-                      });
-                      toast.success("Profile Saved", "Your profile details have been saved to the backend database.");
-                    } catch (err) {
-                      console.error("Backend profile update error:", err);
-                      toast.error("Save Warning", err.message || "Could not persist to backend server.");
-                    }
+                    const res = await apiRequest('/api/customers/me/', {
+                      method: 'PATCH',
+                      body: JSON.stringify({
+                        date_of_birth: updated.date_of_birth ? updated.date_of_birth : null,
+                        gender: updated.gender || '',
+                        preferred_language: updated.preferred_language || ''
+                      })
+                    });
+                    setUserProfile(prev => ({
+                      ...prev,
+                      ...res,
+                      date_of_birth: res.date_of_birth || '',
+                      gender: res.gender || '',
+                      preferred_language: res.preferred_language || '',
+                      preferred_language_display: res.preferred_language_display || ''
+                    }));
+                    toast.success("Profile Saved", "Your profile details have been saved to the backend database.");
+                    return res;
                   }}
                 />
               )}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   User, 
   Camera, 
@@ -11,26 +11,153 @@ import {
   Globe, 
   Coins, 
   BellRing,
-  ShieldCheck 
+  ShieldCheck,
+  AlertCircle
 } from 'lucide-react';
+
+export const GENDER_OPTIONS = [
+  { value: '', label: 'Select gender' },
+  { value: 'male', label: 'Male' },
+  { value: 'female', label: 'Female' },
+  { value: 'other', label: 'Other' },
+  { value: 'prefer_not_to_say', label: 'Prefer not to say' },
+];
+
+export const LANGUAGE_OPTIONS = [
+  { code: '', label: 'Select language' },
+  { code: 'en', label: 'English' },
+  { code: 'hi', label: 'Hindi (हिन्दी)' },
+  { code: 'ml', label: 'Malayalam (മലയാളം)' },
+  { code: 'ta', label: 'Tamil (தமிழ்)' },
+  { code: 'te', label: 'Telugu (తెలుగు)' },
+  { code: 'kn', label: 'Kannada (ಕನ್ನಡ)' },
+  { code: 'ar', label: 'Arabic (العربية)' },
+];
+
+function formatDob(dateStr) {
+  if (!dateStr) return 'Not set';
+  const parts = String(dateStr).split('-');
+  if (parts.length === 3) {
+    const [year, month, day] = parts;
+    const d = new Date(Number(year), Number(month) - 1, Number(day));
+    if (!isNaN(d.getTime())) {
+      return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+  }
+  return dateStr;
+}
+
+function getGenderDisplay(value) {
+  if (!value) return 'Not set';
+  const match = GENDER_OPTIONS.find(opt => opt.value === value && opt.value !== '');
+  return match ? match.label : value;
+}
+
+function getLanguageDisplay(code, serverDisplay) {
+  if (serverDisplay) return serverDisplay;
+  if (!code) return 'Not set';
+  const match = LANGUAGE_OPTIONS.find(opt => opt.code === code && opt.code !== '');
+  return match ? match.label : code;
+}
 
 export default function PersonalDetailsSection({ profileData, userProfile, onUpdateProfile }) {
   const initialData = profileData || userProfile || {};
   const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState(initialData);
+  const [formData, setFormData] = useState({
+    ...initialData,
+    date_of_birth: initialData.date_of_birth || '',
+    gender: initialData.gender || '',
+    preferred_language: initialData.preferred_language || '',
+    preferred_language_display: initialData.preferred_language_display || '',
+  });
   const [isBusinessOpen, setIsBusinessOpen] = useState(true);
   const [saveToast, setSaveToast] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [generalError, setGeneralError] = useState('');
 
-  const handleSave = (e) => {
+  // Sync state when props change
+  useEffect(() => {
+    if (!isEditing) {
+      const current = profileData || userProfile || {};
+      setFormData({
+        ...current,
+        date_of_birth: current.date_of_birth || '',
+        gender: current.gender || '',
+        preferred_language: current.preferred_language || '',
+        preferred_language_display: current.preferred_language_display || '',
+      });
+      setFieldErrors({});
+      setGeneralError('');
+    }
+  }, [profileData, userProfile, isEditing]);
+
+  const handleSave = async (e) => {
     e.preventDefault();
-    setIsEditing(false);
-    if (onUpdateProfile) onUpdateProfile(formData);
-    setSaveToast(true);
-    setTimeout(() => setSaveToast(false), 3000);
+    setIsSubmitting(true);
+    setFieldErrors({});
+    setGeneralError('');
+
+    try {
+      if (onUpdateProfile) {
+        const saved = await onUpdateProfile({
+          date_of_birth: formData.date_of_birth || '',
+          gender: formData.gender || '',
+          preferred_language: formData.preferred_language || '',
+        });
+        if (saved) {
+          setFormData(prev => ({
+            ...prev,
+            ...saved,
+            date_of_birth: saved.date_of_birth || '',
+            gender: saved.gender || '',
+            preferred_language: saved.preferred_language || '',
+            preferred_language_display: saved.preferred_language_display || '',
+          }));
+        }
+      }
+      setIsEditing(false);
+      setSaveToast(true);
+      setTimeout(() => setSaveToast(false), 3000);
+    } catch (err) {
+      const extractedFieldErrors = {};
+      let genericMsg = '';
+
+      if (err?.data && typeof err.data === 'object' && !Array.isArray(err.data)) {
+        for (const [key, val] of Object.entries(err.data)) {
+          const errorText = Array.isArray(val) ? val.join(' ') : String(val);
+          if (['date_of_birth', 'gender', 'preferred_language'].includes(key)) {
+            extractedFieldErrors[key] = errorText;
+          } else if (key === 'detail' || key === 'message' || key === 'non_field_errors') {
+            genericMsg = errorText;
+          } else {
+            genericMsg = genericMsg ? `${genericMsg} | ${errorText}` : errorText;
+          }
+        }
+      }
+
+      if (!genericMsg && Object.keys(extractedFieldErrors).length === 0) {
+        genericMsg = err?.message || 'Could not save profile details. Please try again.';
+      }
+
+      setFieldErrors(extractedFieldErrors);
+      setGeneralError(genericMsg);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleCancel = () => {
-    setFormData(initialData);
+    const current = profileData || userProfile || {};
+    setFormData({
+      ...current,
+      date_of_birth: current.date_of_birth || '',
+      gender: current.gender || '',
+      preferred_language: current.preferred_language || '',
+      preferred_language_display: current.preferred_language_display || '',
+    });
+    setFieldErrors({});
+    setGeneralError('');
     setIsEditing(false);
   };
 
@@ -55,6 +182,7 @@ export default function PersonalDetailsSection({ profileData, userProfile, onUpd
               <button
                 type="button"
                 onClick={handleCancel}
+                disabled={isSubmitting}
                 className="px-3.5 py-2 rounded-xl text-xs font-bold text-[#6B6058] bg-[#FFFFFF] hover:bg-[#FFF3EC] border border-[#EAE3DC] btn-interactive flex items-center space-x-1.5 cursor-pointer"
               >
                 <X className="w-3.5 h-3.5" />
@@ -63,10 +191,11 @@ export default function PersonalDetailsSection({ profileData, userProfile, onUpd
               <button
                 type="button"
                 onClick={handleSave}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-[#FFFFFF] bg-[#FA661C] hover:bg-[#E0530B] btn-interactive flex items-center space-x-1.5 shadow-xs cursor-pointer"
+                disabled={isSubmitting}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-[#FFFFFF] bg-[#FA661C] hover:bg-[#E0530B] disabled:opacity-50 btn-interactive flex items-center space-x-1.5 shadow-xs cursor-pointer"
               >
                 <Save className="w-3.5 h-3.5 text-[#FF811A]" />
-                <span>Save Changes</span>
+                <span>{isSubmitting ? 'Saving...' : 'Save Changes'}</span>
               </button>
             </>
           ) : (
@@ -81,6 +210,14 @@ export default function PersonalDetailsSection({ profileData, userProfile, onUpd
           )}
         </div>
       </div>
+
+      {/* General Error Banner */}
+      {generalError && (
+        <div className="mt-4 p-3 bg-red-50 text-red-700 text-xs font-semibold rounded-xl border border-red-200 flex items-center space-x-2 animate-dropdown" role="alert">
+          <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+          <span>{generalError}</span>
+        </div>
+      )}
 
       {/* Save Toast */}
       {saveToast && (
@@ -221,65 +358,135 @@ export default function PersonalDetailsSection({ profileData, userProfile, onUpd
 
             {/* Date of Birth */}
             <div>
-              <label className="block text-xs font-bold text-[#6B6058] mb-1.5">
+              <label htmlFor="date_of_birth" className="block text-xs font-bold text-[#6B6058] mb-1.5">
                 Date of Birth
               </label>
               {isEditing ? (
-                <input
-                  type="date"
-                  value={formData?.dob || ''}
-                  onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
-                  className="w-full py-2.5 px-3.5 text-xs sm:text-sm font-medium rounded-xl bg-white border border-[#EAE3DC] text-[#FA661C] input-interactive"
-                />
+                <>
+                  <input
+                    type="date"
+                    id="date_of_birth"
+                    name="date_of_birth"
+                    min="1900-01-01"
+                    max={new Date().toISOString().split('T')[0]}
+                    value={formData?.date_of_birth || ''}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setFormData(prev => ({ ...prev, date_of_birth: val }));
+                      if (fieldErrors.date_of_birth) {
+                        setFieldErrors(prev => {
+                          const u = { ...prev };
+                          delete u.date_of_birth;
+                          return u;
+                        });
+                      }
+                      if (generalError) setGeneralError('');
+                    }}
+                    className={`w-full py-2.5 px-3.5 text-xs sm:text-sm font-medium rounded-xl bg-white border ${
+                      fieldErrors.date_of_birth ? 'border-red-500 focus:border-red-500' : 'border-[#EAE3DC]'
+                    } text-[#FA661C] input-interactive`}
+                  />
+                  {fieldErrors.date_of_birth && (
+                    <p className="mt-1.5 text-xs text-red-600 font-medium" role="alert">
+                      {fieldErrors.date_of_birth}
+                    </p>
+                  )}
+                </>
               ) : (
                 <div className="py-2.5 px-3.5 text-xs sm:text-sm font-bold text-[#FA661C] bg-[#FFFFFF] rounded-xl border border-[#EAE3DC]/60">
-                  {formData?.dob || 'Not set'}
+                  {formatDob(formData?.date_of_birth)}
                 </div>
               )}
             </div>
 
             {/* Gender */}
             <div>
-              <label className="block text-xs font-bold text-[#6B6058] mb-1.5">
+              <label htmlFor="gender" className="block text-xs font-bold text-[#6B6058] mb-1.5">
                 Gender
               </label>
               {isEditing ? (
-                <select
-                  value={formData?.gender || 'Prefer not to say'}
-                  onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                  className="w-full py-2.5 px-3.5 text-xs sm:text-sm font-medium rounded-xl bg-white border border-[#EAE3DC] text-[#FA661C] input-interactive"
-                >
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Non-binary">Non-binary</option>
-                  <option value="Prefer not to say">Prefer not to say</option>
-                </select>
+                <>
+                  <select
+                    id="gender"
+                    name="gender"
+                    value={formData?.gender || ''}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setFormData(prev => ({ ...prev, gender: val }));
+                      if (fieldErrors.gender) {
+                        setFieldErrors(prev => {
+                          const u = { ...prev };
+                          delete u.gender;
+                          return u;
+                        });
+                      }
+                      if (generalError) setGeneralError('');
+                    }}
+                    className={`w-full py-2.5 px-3.5 text-xs sm:text-sm font-medium rounded-xl bg-white border ${
+                      fieldErrors.gender ? 'border-red-500 focus:border-red-500' : 'border-[#EAE3DC]'
+                    } text-[#FA661C] input-interactive`}
+                  >
+                    {GENDER_OPTIONS.map(opt => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                  {fieldErrors.gender && (
+                    <p className="mt-1.5 text-xs text-red-600 font-medium" role="alert">
+                      {fieldErrors.gender}
+                    </p>
+                  )}
+                </>
               ) : (
                 <div className="py-2.5 px-3.5 text-xs sm:text-sm font-bold text-[#FA661C] bg-[#FFFFFF] rounded-xl border border-[#EAE3DC]/60">
-                  {formData?.gender || 'Not set'}
+                  {getGenderDisplay(formData?.gender)}
                 </div>
               )}
             </div>
 
             {/* Preferred Language */}
             <div>
-              <label className="block text-xs font-bold text-[#6B6058] mb-1.5">
+              <label htmlFor="preferred_language" className="block text-xs font-bold text-[#6B6058] mb-1.5">
                 Preferred Language
               </label>
               {isEditing ? (
-                <select
-                  value={formData?.preferredLanguage || 'English (UK)'}
-                  onChange={(e) => setFormData({ ...formData, preferredLanguage: e.target.value })}
-                  className="w-full py-2.5 px-3.5 text-xs sm:text-sm font-medium rounded-xl bg-white border border-[#EAE3DC] text-[#FA661C] input-interactive"
-                >
-                  <option value="English (UK)">English (UK)</option>
-                  <option value="Hindi (हिन्दी)">Hindi (हिन्दी)</option>
-                  <option value="Arabic (العربية)">Arabic (العربية)</option>
-                  <option value="Irish (Gaeilge)">Irish (Gaeilge)</option>
-                </select>
+                <>
+                  <select
+                    id="preferred_language"
+                    name="preferred_language"
+                    value={formData?.preferred_language || ''}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setFormData(prev => ({ ...prev, preferred_language: val }));
+                      if (fieldErrors.preferred_language) {
+                        setFieldErrors(prev => {
+                          const u = { ...prev };
+                          delete u.preferred_language;
+                          return u;
+                        });
+                      }
+                      if (generalError) setGeneralError('');
+                    }}
+                    className={`w-full py-2.5 px-3.5 text-xs sm:text-sm font-medium rounded-xl bg-white border ${
+                      fieldErrors.preferred_language ? 'border-red-500 focus:border-red-500' : 'border-[#EAE3DC]'
+                    } text-[#FA661C] input-interactive`}
+                  >
+                    {LANGUAGE_OPTIONS.map(opt => (
+                      <option key={opt.code} value={opt.code}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                  {fieldErrors.preferred_language && (
+                    <p className="mt-1.5 text-xs text-red-600 font-medium" role="alert">
+                      {fieldErrors.preferred_language}
+                    </p>
+                  )}
+                </>
               ) : (
                 <div className="py-2.5 px-3.5 text-xs sm:text-sm font-bold text-[#FA661C] bg-[#FFFFFF] rounded-xl border border-[#EAE3DC]/60">
-                  {formData?.preferredLanguage || 'Not set'}
+                  {getLanguageDisplay(formData?.preferred_language, formData?.preferred_language_display)}
                 </div>
               )}
             </div>
