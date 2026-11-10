@@ -52,7 +52,8 @@ describe('GovernanceQueueModule — Real Backend API Wiring & Governance Flow', 
 
     expect(await screen.findByText('"Titanium Silver"')).toBeInTheDocument();
     expect(screen.getByText('Acme Demo Store')).toBeInTheDocument();
-    expect(screen.getByText('Electronics › Color')).toBeInTheDocument();
+    expect(screen.getByText('Electronics')).toBeInTheDocument();
+    expect(screen.getByText('Color')).toBeInTheDocument();
   });
 
   it('2. approves an attribute-value request via POST endpoint and removes it from queue', async () => {

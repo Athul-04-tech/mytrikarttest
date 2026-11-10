@@ -62,7 +62,22 @@ describe('UserManagementModule — Hardened Accounts API Integration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     apiRequest.mockImplementation(async (url) => {
-      if (url.startsWith('/api/accounts/users/')) return paginatedResponse;
+      if (url.startsWith('/api/accounts/users/')) {
+        const urlObj = new URL(url, 'http://localhost');
+        const scope = urlObj.searchParams.get('scope');
+        let filtered = mockUsers;
+        if (scope === 'customers') {
+          filtered = mockUsers.filter(u => u.role === 'customer');
+        } else if (scope === 'staff') {
+          filtered = mockUsers.filter(u => u.role === 'admin' || Boolean(u.is_staff));
+        }
+        return {
+          count: filtered.length,
+          next: null,
+          previous: null,
+          results: filtered
+        };
+      }
       return {};
     });
   });
@@ -76,9 +91,9 @@ describe('UserManagementModule — Hardened Accounts API Integration', () => {
 
     expect(await screen.findByText('John Doe')).toBeInTheDocument();
     expect(screen.queryByText('Staff User')).not.toBeInTheDocument();
-    expect(screen.getByText((content, element) => element.textContent === 'Showing 1 to 2 of 2 Accounts')).toBeInTheDocument();
+    expect(screen.getByText((content, element) => element.textContent === 'Showing 1 to 1 of 1 Accounts')).toBeInTheDocument();
 
-    expect(apiRequest).toHaveBeenCalledWith('/api/accounts/users/?page=1&page_size=25');
+    expect(apiRequest).toHaveBeenCalledWith('/api/accounts/users/?page=1&page_size=25&scope=customers');
   });
 
   it('2. uses is_staff for staff tab filtering and executes PATCH /api/accounts/users/<id>/ on save', async () => {
@@ -89,6 +104,8 @@ describe('UserManagementModule — Hardened Accounts API Integration', () => {
     );
 
     expect(await screen.findByText('Staff User')).toBeInTheDocument();
+    expect(screen.queryByText('John Doe')).not.toBeInTheDocument();
+    expect(apiRequest).toHaveBeenCalledWith('/api/accounts/users/?page=1&page_size=25&scope=staff');
 
     const editBtns = screen.getAllByTitle('Edit User');
     fireEvent.click(editBtns[0]);

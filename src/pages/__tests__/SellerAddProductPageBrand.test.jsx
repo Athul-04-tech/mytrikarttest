@@ -160,6 +160,13 @@ describe('SellerAddProductPage — Official Brand Authorization & Governance Flo
       expect(screen.getByLabelText(/Official Brand Selection/i)).toBeTruthy();
     });
 
+    // Fill required title and description so client validation passes
+    const titleInput = screen.getByLabelText(/Product Listing Title/i);
+    fireEvent.change(titleInput, { target: { value: 'Nike Air Max 2026' } });
+
+    const descInput = screen.getByLabelText(/Comprehensive Product Description/i);
+    fireEvent.change(descInput, { target: { value: 'High performance athletic shoes with full air cushioning.' } });
+
     // Select Nike official brand
     const brandSelect = screen.getByLabelText(/Official Brand Selection/i);
     fireEvent.change(brandSelect, { target: { value: '10' } });
@@ -176,6 +183,10 @@ describe('SellerAddProductPage — Official Brand Authorization & Governance Flo
     fireEvent.click(submitListingBtn);
 
     await waitFor(() => {
+      expect(apiModule.apiRequest).toHaveBeenCalledWith(
+        '/api/products/vendor/products/50/submit/',
+        expect.objectContaining({ method: 'POST' })
+      );
       expect(mockToast.error).toHaveBeenCalledWith(
         "Submission Validation Error",
         "Brand Authorization Error: An authorization document is required for an official brand."

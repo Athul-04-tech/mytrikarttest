@@ -121,12 +121,10 @@ describe('ProductListingPage Dedicated Product Listing', () => {
   it('renders all published products on /products with pagination', async () => {
     renderComponent('/products');
 
-    await waitFor(() => {
-      expect(screen.getAllByText(/All Marketplace Products/i)[0]).toBeDefined();
-    });
+    expect(await screen.findByText('Product 1 Laptop')).toBeInTheDocument();
+    expect(screen.getAllByText(/All Marketplace Products/i)[0]).toBeDefined();
 
     // Should show page 1 items (12 per page)
-    expect(screen.getByText('Product 1 Laptop')).toBeDefined();
     expect(screen.getByText('Product 12 Gadget')).toBeDefined();
     expect(screen.queryByText('Product 13 Gadget')).toBeNull();
 
@@ -136,21 +134,17 @@ describe('ProductListingPage Dedicated Product Listing', () => {
     fireEvent.click(nextBtn);
 
     // Page 2 items should load
-    await waitFor(() => {
-      expect(screen.getByText('Product 13 Gadget')).toBeDefined();
-    });
+    expect(await screen.findByText('Product 13 Gadget')).toBeInTheDocument();
     expect(screen.queryByText('Product 1 Laptop')).toBeNull();
   });
 
   it('includes subcategory descendant products when filtering by top-level category', async () => {
     renderComponent('/category/electronics');
 
-    await waitFor(() => {
-      expect(screen.getAllByText(/Electronics/i)[0]).toBeDefined();
-    });
-
     // Laptop product (category 3, sub-descendant of Electronics category 1) should be included!
-    expect(screen.getByText('Product 1 Laptop')).toBeDefined();
+    expect(await screen.findByText('Product 1 Laptop')).toBeInTheDocument();
+    expect(screen.getAllByText(/Electronics/i)[0]).toBeDefined();
+
     // Fashion item (category 4) should NOT be included
     expect(screen.queryByText('Product 14 Shirt')).toBeNull();
   });
@@ -158,9 +152,7 @@ describe('ProductListingPage Dedicated Product Listing', () => {
   it('filters by subcategory query param ?sub=laptops', async () => {
     renderComponent('/category/electronics?sub=laptops');
 
-    await waitFor(() => {
-      expect(screen.getByText('Product 1 Laptop')).toBeDefined();
-    });
+    expect(await screen.findByText('Product 1 Laptop')).toBeInTheDocument();
 
     // Gadget items (category 1, but not under laptops category 3) should be filtered out
     expect(screen.queryByText('Product 6 Gadget')).toBeNull();
