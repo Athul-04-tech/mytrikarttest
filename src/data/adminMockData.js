@@ -60,7 +60,8 @@ export const ADMIN_NAV_GROUPS = [
     iconName: 'ShieldAlert',
     items: [
       { id: 'coupons', label: 'Coupons & Vouchers', desc: 'Configure discount promo codes, flash vouchers, usage caps, and validity windows.', badge: 'Active' },
-      { id: 'cms', label: 'CMS & Homepage Builder', desc: 'Manage static pages, layout blocks, and promotional banner assets.' }
+      { id: 'cms', label: 'CMS & Homepage Builder', desc: 'Manage static pages, layout blocks, and promotional banner assets.' },
+      { id: 'announcements', label: 'Vendor Announcements', desc: 'Create, schedule, publish, and archive plain-text in-app notices for vendors.' }
     ]
   }
 ];

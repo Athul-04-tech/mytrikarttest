@@ -48,7 +48,8 @@ export default function CheckoutPage() {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
       const detailMsg = err?.data?.detail || err?.message || 'Checkout failed. Please verify your address and cart stock.';
-      setCheckoutError(detailMsg);
+      const code = err?.data?.code;
+      setCheckoutError(code ? `${detailMsg} (${code})` : detailMsg);
     } finally {
       setIsProcessing(false);
     }

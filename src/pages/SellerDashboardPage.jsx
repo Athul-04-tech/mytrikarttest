@@ -15,6 +15,8 @@ import SellerOrderDetailView from '../components/seller-dashboard/subviews/Selle
 import SellerSettlementsView from '../components/seller-dashboard/subviews/SellerSettlementsView';
 import SellerSettingsView from '../components/seller-dashboard/subviews/SellerSettingsView';
 import SellerProfileView from '../components/seller-dashboard/subviews/SellerProfileView';
+import SellerAnnouncementsView from '../components/seller-dashboard/subviews/SellerAnnouncementsView';
+import SellerRestrictionBanner, { SellerControlHistoryPanel } from '../components/seller-dashboard/SellerRestrictionBanner';
 import { VendorProfileProvider, useVendorProfile } from '../context/VendorProfileContext';
 import { apiRequest } from '../utils/api';
 
@@ -31,10 +33,12 @@ function SellerDashboardContent() {
   const [asOfDate, setAsOfDate] = useState('');
   const [selectedCurrency, setSelectedCurrency] = useState('INR');
   const [availableCurrencies, setAvailableCurrencies] = useState(['INR']);
+  const [unreadAnnouncementsCount, setUnreadAnnouncementsCount] = useState(0);
 
   // Derive active section from route
   const getActiveSection = () => {
     const path = location.pathname;
+    if (path.includes('/seller/announcements')) return 'announcements';
     if (path.includes('/seller/products')) return 'products';
     if (path.includes('/seller/orders')) return 'orders';
     if (path.includes('/seller/settlements')) return 'settlements';
@@ -45,10 +49,28 @@ function SellerDashboardContent() {
 
   const activeSection = getActiveSection();
 
+  // Fetch unread announcements count from GET /api/announcements/unread-count/
+  useEffect(() => {
+    let isMounted = true;
+    async function loadUnreadCount() {
+      try {
+        const res = await apiRequest('/api/announcements/unread-count/');
+        if (isMounted && typeof res?.unread_count === 'number') {
+          setUnreadAnnouncementsCount(res.unread_count);
+        }
+      } catch {
+        // Unapproved vendor (403) or network error — keep unread badge at 0
+      }
+    }
+    loadUnreadCount();
+    return () => { isMounted = false; };
+  }, [activeSection]);
+
   // SEO Standard
   useEffect(() => {
     const titles = {
       dashboard: 'Seller Dashboard — MytriKart Hub',
+      announcements: 'Vendor Announcements — MytriKart Hub',
       products: 'Products & Inventory Catalog — MytriKart Hub',
       orders: 'Orders Fulfillment — MytriKart Hub',
       settlements: 'Settlements & Payouts — MytriKart Hub',
@@ -120,6 +142,7 @@ function SellerDashboardContent() {
         onCloseMobile={() => setIsMobileSidebarOpen(false)}
         productStatusCounts={dashboardData?.product_status_counts}
         orderStatusCounts={dashboardData?.order_status_counts}
+        unreadAnnouncementsCount={unreadAnnouncementsCount}
         vendorProfile={vendorProfile}
       />
 
@@ -130,12 +153,16 @@ function SellerDashboardContent() {
         <SellerDashboardTopBar
           onToggleSidebar={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
           alerts={dashboardData?.alerts}
+          unreadAnnouncementsCount={unreadAnnouncementsCount}
           vendorProfile={vendorProfile}
         />
 
         {/* Dynamic Workspace Body */}
         <main className="p-3.5 sm:p-6 lg:p-8 space-y-5 sm:space-y-6 max-w-7xl w-full mx-auto animate-reveal">
           
+          {/* Seller Operational Restriction Banner (only renders when may_sell === false or can_withdraw === false) */}
+          <SellerRestrictionBanner vendorProfile={vendorProfile} />
+
           {/* Main Seller Dashboard Overview (Widget Groups 1 to 5) */}
           {activeSection === 'dashboard' && (
             <>
@@ -145,6 +172,11 @@ function SellerDashboardContent() {
                 asOfDate={asOfDate}
                 onAsOfDateChange={setAsOfDate}
               />
+
+              {/* When unrestricted, still provide access to Seller-Safe Account Control History */}
+              {vendorProfile && vendorProfile.may_sell !== false && vendorProfile.can_withdraw !== false && (
+                <SellerControlHistoryPanel defaultOpen={false} />
+              )}
 
               {/* API Error Alert (Graciously surface HTTP 403 or date format errors) */}
               {apiError && (
@@ -210,6 +242,14 @@ function SellerDashboardContent() {
               {/* Widget Group 5: Customer Care & Buyer Engagement Widget */}
               <SellerCustomerWidget />
             </>
+          )}
+
+          {/* Sub-view: Vendor Announcements Feed */}
+          {activeSection === 'announcements' && (
+            <SellerAnnouncementsView
+              unreadCount={unreadAnnouncementsCount}
+              onUnreadCountUpdate={setUnreadAnnouncementsCount}
+            />
           )}
 
           {/* Sub-view: Products Catalog */}

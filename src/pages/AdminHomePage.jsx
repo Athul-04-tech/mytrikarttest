@@ -22,6 +22,7 @@ import CmsModule from '../components/admin/modules/CmsModule';
 import UserManagementModule from '../components/admin/modules/UserManagementModule';
 import CatalogSchemaModule from '../components/admin/modules/CatalogSchemaModule';
 import CouponManagementModule from '../components/admin/modules/CouponManagementModule';
+import AnnouncementsModule from '../components/admin/modules/AnnouncementsModule';
 
 import { ADMIN_NAV_GROUPS } from '../data/adminMockData';
 import { apiRequest } from '../utils/api';
@@ -187,6 +188,9 @@ export default function AdminHomePage() {
         return <UserManagementModule defaultTab="all" />;
       case 'coupons':
         return <CouponManagementModule />;
+      case 'announcements':
+      case 'notifications':
+        return <AnnouncementsModule />;
       case 'reports':
         return <ReportsModule />;
 
@@ -196,7 +200,6 @@ export default function AdminHomePage() {
       case 'marketing':
       case 'reviews':
       case 'tickets':
-      case 'notifications':
       case 'ai':
       case 'audit':
       case 'system':

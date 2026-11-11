@@ -10,6 +10,7 @@ import {
   ShieldCheck, 
   ChevronDown, 
   Package,
+  Megaphone,
   LogOut 
 } from 'lucide-react';
 import AuthContext from '../../context/AuthContext';
@@ -19,6 +20,7 @@ import { useToast } from '../../context/ToastContext';
 export default function SellerDashboardTopBar({
   onToggleSidebar,
   alerts,
+  unreadAnnouncementsCount,
   vendorProfile: propProfile
 }) {
   const [isNotifOpen, setIsNotifOpen] = useState(false);
@@ -148,8 +150,33 @@ export default function SellerDashboardTopBar({
           )}
         </div>
 
-        {/* Right: Notifications + Merchant Avatar + Sign Out */}
+        {/* Right: Announcements + Notifications + Merchant Avatar + Sign Out */}
         <div className="flex items-center space-x-2 sm:space-x-3 shrink-0">
+
+          {/* Vendor Announcements Unread Shortcut */}
+          <button
+            type="button"
+            onClick={() => navigate('/seller/announcements')}
+            data-testid="topbar-announcements-btn"
+            aria-label="Vendor announcements"
+            title="Vendor Announcements"
+            className="px-2.5 py-1.5 rounded-xl text-[#6B6058] hover:text-[#FA661C] bg-[#FFFFFF] hover:bg-[#FFF3EC] border border-[#EAE3DC] btn-interactive relative cursor-pointer shrink-0 min-h-[36px] flex items-center space-x-1.5 text-xs font-bold"
+          >
+            <Megaphone className="w-4 h-4 text-[#FA661C]" />
+            <span className="hidden sm:inline">Announcements</span>
+            {typeof unreadAnnouncementsCount === 'number' && (
+              <span
+                data-testid="topbar-announcements-unread-badge"
+                className={`text-[10px] font-black px-1.5 py-0.2 rounded-full ${
+                  unreadAnnouncementsCount > 0
+                    ? 'bg-[#D7263D] text-white'
+                    : 'bg-[#FFF3EC] text-[#6B6058]'
+                }`}
+              >
+                {unreadAnnouncementsCount}
+              </span>
+            )}
+          </button>
 
           {/* Notifications Bell */}
           <div className="relative shrink-0">

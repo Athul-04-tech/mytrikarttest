@@ -245,6 +245,16 @@ function MarketplaceRouter() {
           } 
         />
         <Route 
+          path="/seller/announcements" 
+          element={
+            <ProtectedRoute allowedRoles={getAllowedRolesForRoute('/seller/dashboard')}>
+              <PageTransitionWrapper>
+                <SellerDashboardPage />
+              </PageTransitionWrapper>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
           path="/seller/products" 
           element={
             <ProtectedRoute allowedRoles={getAllowedRolesForRoute('/seller/dashboard')}>

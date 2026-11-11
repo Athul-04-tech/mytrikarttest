@@ -1,17 +1,153 @@
-import React, { useState, useEffect } from 'react';
-import { Store, ShieldAlert, CheckCircle2, AlertCircle, RefreshCw, X, FileText, Check, Ban, AlertTriangle, Eye, Download, Building2, Globe, Mail, Phone } from 'lucide-react';
+import React, { useState, useEffect, useContext, useCallback, useMemo } from 'react';
+import {
+  Store,
+  ShieldAlert,
+  ShieldCheck,
+  CheckCircle2,
+  AlertCircle,
+  RefreshCw,
+  X,
+  FileText,
+  Check,
+  Ban,
+  AlertTriangle,
+  Eye,
+  Download,
+  Lock,
+  Unlock,
+  History,
+  Filter,
+  Wallet,
+  Info
+} from 'lucide-react';
 import { apiRequest, fetchProtectedFile } from '../../../utils/api';
 import { useToast } from '../../../context/ToastContext';
+import AuthContext from '../../../context/AuthContext';
+
+const APPROVED_ONBOARDING_STATUSES = new Set([
+  'approved',
+  'verified',
+  'wizard_in_progress',
+  'store_published',
+]);
+
+const CONTROL_ACTION_META = {
+  suspend: {
+    label: 'Suspend Selling',
+    endpointSuffix: 'suspend',
+    badgeCls: 'bg-[#FDE8EA] text-[#D7263D] border-[#D7263D]/30',
+    btnCls: 'border-[#D7263D] bg-[#FDE8EA] text-[#D7263D]',
+  },
+  reactivate: {
+    label: 'Reactivate Selling',
+    endpointSuffix: 'reactivate',
+    badgeCls: 'bg-[#EAF5ED] text-[#40916C] border-[#52B788]/40',
+    btnCls: 'border-[#52B788] bg-[#EAF5ED] text-[#40916C]',
+  },
+  block_withdrawals: {
+    label: 'Block Withdrawals',
+    endpointSuffix: 'withdrawals/block',
+    badgeCls: 'bg-amber-100 text-amber-900 border-amber-300',
+    btnCls: 'border-amber-600 bg-amber-50 text-amber-900',
+  },
+  release_withdrawals: {
+    label: 'Release Withdrawals',
+    endpointSuffix: 'withdrawals/release',
+    badgeCls: 'bg-[#EAF5ED] text-[#40916C] border-[#52B788]/40',
+    btnCls: 'border-[#52B788] bg-[#EAF5ED] text-[#40916C]',
+  },
+};
+
+export function parseControlErrors(err) {
+  const fieldErrors = {};
+  let generalError = null;
+  const data = err?.data;
+
+  const toCleanText = (val) => {
+    if (Array.isArray(val)) {
+      return val.map((item) => (typeof item === 'string' ? item : String(item))).join(' ');
+    }
+    if (typeof val === 'string') return val;
+    if (val && typeof val === 'object') {
+      return Object.values(val).flat().map(String).join(' ');
+    }
+    return String(val ?? '');
+  };
+
+  if (!data) {
+    generalError = err?.message || 'Control action failed.';
+    return { fieldErrors, generalError };
+  }
+
+  if (typeof data === 'string') {
+    generalError = data;
+    return { fieldErrors, generalError };
+  }
+
+  if (Array.isArray(data)) {
+    generalError = toCleanText(data);
+    return { fieldErrors, generalError };
+  }
+
+  if (typeof data === 'object') {
+    for (const [key, val] of Object.entries(data)) {
+      const msg = toCleanText(val);
+      if (!msg) continue;
+      if (key === 'reason' || key === 'seller_visible' || key === 'private_note') {
+        fieldErrors[key] = msg;
+      } else if (key === 'detail' || key === 'non_field_errors' || key === '__all__') {
+        generalError = generalError ? `${generalError} ${msg}` : msg;
+      } else {
+        generalError = generalError ? `${generalError} ${msg}` : msg;
+      }
+    }
+  }
+
+  if (!generalError && Object.keys(fieldErrors).length === 0) {
+    generalError = err?.message || 'Control action failed.';
+  }
+
+  return { fieldErrors, generalError };
+}
+
+function formatControlSnapshot(values) {
+  if (!values || typeof values !== 'object') return '—';
+  const parts = [];
+  if (values.operational_state) parts.push(`state: ${values.operational_state}`);
+  if (typeof values.can_sell === 'boolean') parts.push(`can_sell: ${values.can_sell ? 'true' : 'false'}`);
+  if (typeof values.can_withdraw === 'boolean') parts.push(`can_withdraw: ${values.can_withdraw ? 'true' : 'false'}`);
+  return parts.join(', ') || '—';
+}
 
 export default function VendorHubModule() {
+  const auth = useContext(AuthContext);
+  const [meFallback, setMeFallback] = useState(null);
+
+  useEffect(() => {
+    if (!auth?.currentUser) {
+      apiRequest('/api/accounts/me/')
+        .then((u) => {
+          if (u && typeof u.id !== 'undefined') setMeFallback(u);
+        })
+        .catch(() => {});
+    }
+  }, [auth?.currentUser]);
+
+  const effectiveUser = auth?.currentUser || meFallback;
+  const isSuperuser = Boolean(effectiveUser?.is_superuser);
+
   const [vendors, setVendors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
-  // Selected vendor for inspection/review modal
+  const [stateFilter, setStateFilter] = useState('all');
+
+  // Latest control-history event per vendor ID for the table's "Last Change" column
+  const [latestControlByVendor, setLatestControlByVendor] = useState({});
+
+  // Selected vendor for inspection/review & controls modal
   const [selectedVendor, setSelectedVendor] = useState(null);
-  
-  // Decision Form State inside modal
+
+  // Onboarding Decision Form State inside modal
   const [action, setAction] = useState('approve');
   const [reason, setReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -22,21 +158,96 @@ export default function VendorHubModule() {
   const [docRejectReason, setDocRejectReason] = useState({});
   const [rejectingDocId, setRejectingDocId] = useState(null);
 
+  // Operational Controls Form State inside modal
+  const [controlAction, setControlAction] = useState('suspend');
+  const [controlReason, setControlReason] = useState('');
+  const [controlSellerVisible, setControlSellerVisible] = useState(false);
+  const [controlPrivateNote, setControlPrivateNote] = useState('');
+  const [controlSubmitting, setControlSubmitting] = useState(false);
+  const [controlFieldErrors, setControlFieldErrors] = useState({});
+  const [controlGeneralError, setControlGeneralError] = useState(null);
+  const [controlSuccessMsg, setControlSuccessMsg] = useState(null);
+
+  // Paged Control History for selectedVendor
+  const [controlHistory, setControlHistory] = useState({
+    count: 0,
+    next: null,
+    previous: null,
+    results: [],
+  });
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState(null);
+
   const toast = useToast();
 
-  const fetchVendors = async () => {
+  const loadLatestControlEvents = useCallback(async (vendorList) => {
+    if (!Array.isArray(vendorList) || vendorList.length === 0) return;
+    const entries = await Promise.allSettled(
+      vendorList.map(async (v) => {
+        const data = await apiRequest(`/api/vendors/${v.id}/control-history/?page=1`);
+        const results = Array.isArray(data) ? data : data?.results;
+        return { vendorId: v.id, latest: Array.isArray(results) && results.length > 0 ? results[0] : null };
+      })
+    );
+    const nextMap = {};
+    entries.forEach((res) => {
+      if (res.status === 'fulfilled' && res.value) {
+        nextMap[res.value.vendorId] = res.value.latest;
+      }
+    });
+    setLatestControlByVendor((prev) => ({ ...prev, ...nextMap }));
+  }, []);
+
+  const fetchVendors = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const data = await apiRequest('/api/vendors/admin/');
-      setVendors(Array.isArray(data) ? data : (data.results || []));
+      const list = Array.isArray(data) ? data : (data?.results || []);
+      setVendors(list);
+      setSelectedVendor((prev) => {
+        if (!prev) return null;
+        return list.find((item) => item.id === prev.id) || prev;
+      });
+      loadLatestControlEvents(list);
+      return list;
     } catch (err) {
       console.error("Failed to fetch admin vendors list:", err);
       setError(err.data?.detail || err.message || "Failed to load merchant directory.");
+      return [];
     } finally {
       setLoading(false);
     }
-  };
+  }, [loadLatestControlEvents]);
+
+  const fetchVendorControlHistory = useCallback(async (vendorId, page = 1) => {
+    if (!vendorId) return;
+    setHistoryLoading(true);
+    setHistoryError(null);
+    try {
+      const data = await apiRequest(`/api/vendors/${vendorId}/control-history/?page=${page}`);
+      const results = Array.isArray(data) ? data : (Array.isArray(data?.results) ? data.results : []);
+      const count = Array.isArray(data) ? data.length : (data?.count ?? results.length);
+      setControlHistory({
+        count,
+        next: data?.next ?? null,
+        previous: data?.previous ?? null,
+        results,
+      });
+      setHistoryPage(page);
+      if (page === 1) {
+        setLatestControlByVendor((prev) => ({
+          ...prev,
+          [vendorId]: results.length > 0 ? results[0] : null,
+        }));
+      }
+    } catch (err) {
+      setHistoryError(err?.data?.detail || err?.message || 'Failed to load vendor control history.');
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, []);
 
   const handleViewDocument = async (doc, tab) => {
     try {
@@ -61,7 +272,7 @@ export default function VendorHubModule() {
 
   useEffect(() => {
     fetchVendors();
-  }, []);
+  }, [fetchVendors]);
 
   const openReviewModal = (vendor) => {
     setSelectedVendor(vendor);
@@ -69,6 +280,24 @@ export default function VendorHubModule() {
     setReason(vendor.onboarding_review_reason || '');
     setFormError(null);
     setRejectingDocId(null);
+
+    // Initialize vendor controls form state
+    const isApproved = APPROVED_ONBOARDING_STATUSES.has(vendor.onboarding_status);
+    if (!isApproved) {
+      setControlAction('reactivate');
+    } else if (vendor.operational_state === 'suspended') {
+      setControlAction('reactivate');
+    } else {
+      setControlAction('suspend');
+    }
+    setControlReason('');
+    setControlSellerVisible(false);
+    setControlPrivateNote('');
+    setControlFieldErrors({});
+    setControlGeneralError(null);
+    setControlSuccessMsg(null);
+
+    fetchVendorControlHistory(vendor.id, 1);
   };
 
   const closeReviewModal = () => {
@@ -76,6 +305,70 @@ export default function VendorHubModule() {
     setFormError(null);
     setReason('');
     setRejectingDocId(null);
+    setControlFieldErrors({});
+    setControlGeneralError(null);
+    setControlSuccessMsg(null);
+  };
+
+  const selectControlAction = (nextAction) => {
+    setControlAction(nextAction);
+    setControlFieldErrors({});
+    setControlGeneralError(null);
+    setControlSuccessMsg(null);
+  };
+
+  // Submit Operational Control Action (suspend, reactivate, block_withdrawals, release_withdrawals)
+  const handleControlSubmit = async (e) => {
+    e.preventDefault();
+    if (!selectedVendor || !controlAction) return;
+
+    const meta = CONTROL_ACTION_META[controlAction];
+    if (!meta) return;
+
+    setControlSubmitting(true);
+    setControlFieldErrors({});
+    setControlGeneralError(null);
+    setControlSuccessMsg(null);
+
+    try {
+      const payload = {
+        reason: controlReason,
+        seller_visible: Boolean(controlSellerVisible),
+        private_note: controlPrivateNote,
+      };
+
+      const res = await apiRequest(`/api/vendors/${selectedVendor.id}/${meta.endpointSuffix}/`, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+
+      const updatedVendor = res?.vendor || res;
+      if (updatedVendor && updatedVendor.id) {
+        setSelectedVendor(updatedVendor);
+        setVendors((prev) => prev.map((v) => (v.id === updatedVendor.id ? updatedVendor : v)));
+      }
+
+      setControlReason('');
+      setControlSellerVisible(false);
+      setControlPrivateNote('');
+      const confirmedMsg = `${meta.label} confirmed by server for ${
+        selectedVendor.business_name || selectedVendor.store_name
+      }.`;
+      setControlSuccessMsg(confirmedMsg);
+      toast.success('Vendor Control Updated', confirmedMsg);
+
+      // Refetch vendor list and control history from server
+      await Promise.all([
+        fetchVendors(),
+        fetchVendorControlHistory(selectedVendor.id, 1),
+      ]);
+    } catch (err) {
+      const { fieldErrors, generalError } = parseControlErrors(err);
+      setControlFieldErrors(fieldErrors);
+      setControlGeneralError(generalError);
+    } finally {
+      setControlSubmitting(false);
+    }
   };
 
   // 1. Submit Document Review (verify/reject individual document)
@@ -155,26 +448,75 @@ export default function VendorHubModule() {
 
   const pendingApprovalsCount = vendors.filter(v => ['registered', 'under_review', 'resubmit_required'].includes(v.onboarding_status)).length;
 
+  const filteredVendors = useMemo(() => {
+    return vendors.filter((v) => {
+      const opState = v.operational_state || 'active';
+      const canSell = v.can_sell !== false;
+      const canWithdraw = v.can_withdraw !== false;
+      const maySell = v.may_sell !== undefined ? v.may_sell : (opState === 'active' && canSell);
+
+      if (stateFilter === 'active') return opState === 'active';
+      if (stateFilter === 'suspended') return opState === 'suspended';
+      if (stateFilter === 'withdrawals_blocked') return !canWithdraw;
+      if (stateFilter === 'selling_restricted') return !canSell || !maySell;
+      return true;
+    });
+  }, [vendors, stateFilter]);
+
+  const isSelectedApproved = selectedVendor
+    ? APPROVED_ONBOARDING_STATUSES.has(selectedVendor.onboarding_status)
+    : false;
+
   return (
     <div className="space-y-6">
       
       {/* 1. Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#EAE3DC]">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-4 border-b border-[#EAE3DC]">
         <div>
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="p-1 rounded-lg bg-[#FFF3EC] text-[#FA661C]">
               <Store className="w-4 h-4" />
             </span>
             <h2 className="font-['Outfit'] font-black text-xl text-[#FA661C]">
-              Vendor & Seller Governance Hub
+              Vendor &amp; Seller Governance Hub
             </h2>
+            <span
+              data-testid="admin-role-indicator"
+              className={`text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full border ${
+                isSuperuser
+                  ? 'bg-[#EAF5ED] text-[#40916C] border-[#52B788]/40'
+                  : 'bg-[#FFF8F2] text-[#FA661C] border-[#FF811A]/40'
+              }`}
+            >
+              {isSuperuser
+                ? `Superuser (${effectiveUser?.username || 'superuser'}) — Full Selling & Withdrawal Controls`
+                : `Staff (${effectiveUser?.username || 'staff'}) — Selling Controls • Withdrawals Read-Only`}
+            </span>
           </div>
           <p className="text-xs text-[#6B6058] mt-0.5">
-            Merchant Governance: Registration Approvals, GSTIN/Tax ID Verification, KYC Document Verification & Onboarding Decisions.
+            Merchant Governance: Operational State, Selling &amp; Withdrawal Switches, Control Audit History, KYC Verification &amp; Onboarding Decisions.
           </p>
         </div>
 
-        <div className="flex items-center space-x-3 self-start sm:self-auto">
+        <div className="flex flex-wrap items-center gap-2.5 self-start lg:self-auto">
+          {/* Operational State Filter */}
+          <div className="flex items-center space-x-1.5 bg-white border border-[#EAE3DC] rounded-xl px-2.5 py-1.5">
+            <Filter className="w-3.5 h-3.5 text-[#FA661C]" />
+            <select
+              aria-label="Filter by operational state"
+              data-testid="vendor-state-filter"
+              value={stateFilter}
+              onChange={(e) => setStateFilter(e.target.value)}
+              className="text-xs font-bold text-[#1A2420] bg-transparent focus:outline-none cursor-pointer"
+            >
+              <option value="all">All States ({vendors.length})</option>
+              <option value="active">Active Only</option>
+              <option value="suspended">Suspended Only</option>
+              <option value="withdrawals_blocked">Withdrawals Blocked</option>
+              <option value="selling_restricted">Selling Restricted</option>
+            </select>
+          </div>
+
           <span className="text-xs font-bold text-[#FA661C] bg-[#FFF8F2] border border-[#FF811A]/50 px-3 py-1.5 rounded-xl flex items-center space-x-1.5">
             <AlertCircle className="w-4 h-4" />
             <span>{pendingApprovalsCount} Pending Governance Reviews</span>
@@ -182,6 +524,7 @@ export default function VendorHubModule() {
 
           <button
             type="button"
+            data-testid="refresh-vendors-btn"
             onClick={fetchVendors}
             disabled={loading}
             className="p-2 rounded-xl bg-white hover:bg-[#FFF3EC] border border-[#EAE3DC] text-[#FA661C] btn-interactive cursor-pointer disabled:opacity-50"
@@ -194,7 +537,11 @@ export default function VendorHubModule() {
 
       {/* 2. Error Banner */}
       {error && (
-        <div className="p-4 bg-[#FDE8EA] border border-[#D7263D]/30 rounded-2xl flex items-start space-x-3 text-xs text-[#D7263D]">
+        <div
+          role="alert"
+          data-testid="vendor-list-error"
+          className="p-4 bg-[#FDE8EA] border border-[#D7263D]/30 rounded-2xl flex items-start space-x-3 text-xs text-[#D7263D]"
+        >
           <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
           <div className="flex-1">
             <div className="font-bold">Error Loading Vendor Directory</div>
@@ -211,40 +558,51 @@ export default function VendorHubModule() {
       )}
 
       {/* 4. Empty Directory State */}
-      {!loading && !error && vendors.length === 0 && (
+      {!loading && !error && filteredVendors.length === 0 && (
         <div className="bg-white rounded-3xl border border-dashed border-[#EAE3DC] p-10 text-center space-y-3">
           <div className="w-12 h-12 rounded-2xl bg-[#FFF3EC] text-[#FA661C] mx-auto flex items-center justify-center">
             <CheckCircle2 className="w-6 h-6 text-[#52B788]" />
           </div>
           <h3 className="font-['Outfit'] font-bold text-base text-[#FA661C]">
-            No Merchant Profiles Registered
+            {vendors.length === 0 ? 'No Merchant Profiles Registered' : 'No Merchants Match Filter'}
           </h3>
           <p className="text-xs text-[#6B6058] max-w-md mx-auto">
-            No seller accounts have registered on the marketplace yet. Newly onboarded merchants will appear here for review.
+            {vendors.length === 0
+              ? 'No seller accounts have registered on the marketplace yet. Newly onboarded merchants will appear here for review.'
+              : 'Try changing the operational state filter above to view all registered merchants.'}
           </p>
         </div>
       )}
 
       {/* 5. Real Vendor Table */}
-      {!loading && !error && vendors.length > 0 && (
+      {!loading && !error && filteredVendors.length > 0 && (
         <div className="bg-white rounded-2xl border border-[#EAE3DC] overflow-hidden shadow-xs">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="bg-[#FFF3EC] text-[#FA661C] border-b border-[#EAE3DC] font-extrabold uppercase text-[10px] tracking-wider">
-                  <th className="p-3">Merchant & Store Name</th>
-                  <th className="p-3">Jurisdiction & Tax ID</th>
-                  <th className="p-3">Business Type</th>
+                  <th className="p-3">Merchant &amp; Store Name</th>
+                  <th className="p-3">Jurisdiction &amp; Tax ID</th>
                   <th className="p-3 text-center">KYC Documents</th>
                   <th className="p-3 text-center">Onboarding Status</th>
+                  <th className="p-3 text-center">Operational State &amp; Switches</th>
+                  <th className="p-3">Last Control Change</th>
                   <th className="p-3 text-center">Governance Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#EAE3DC]/60 font-medium">
-                {vendors.map((vendor) => {
+                {filteredVendors.map((vendor) => {
                   const docs = vendor.documents || [];
                   const verifiedDocs = docs.filter(d => d.status === 'verified').length;
                   const totalDocs = docs.length;
+
+                  const opState = vendor.operational_state || 'active';
+                  const canSell = vendor.can_sell !== false;
+                  const canWithdraw = vendor.can_withdraw !== false;
+                  const maySell = vendor.may_sell !== undefined
+                    ? vendor.may_sell
+                    : (opState === 'active' && canSell && APPROVED_ONBOARDING_STATUSES.has(vendor.onboarding_status));
+                  const latestEvent = latestControlByVendor[vendor.id];
 
                   let statusBadgeStyle = 'bg-[#FFF3EC] text-[#FA661C] border-[#FA661C]/30';
                   if (['registered', 'under_review'].includes(vendor.onboarding_status)) {
@@ -256,10 +614,15 @@ export default function VendorHubModule() {
                   }
 
                   return (
-                    <tr key={vendor.id} className="hover:bg-[#FFF8F2]/40 transition-colors">
+                    <tr
+                      key={vendor.id}
+                      data-testid={`vendor-row-${vendor.id}`}
+                      className="hover:bg-[#FFF8F2]/40 transition-colors"
+                    >
                       <td className="p-3">
                         <div className="font-bold text-[#FA661C] text-xs flex items-center space-x-1.5">
                           <span>{vendor.business_name || vendor.store_name}</span>
+                          <span className="text-[10px] font-mono text-[#6B6058]">#{vendor.id}</span>
                           {vendor.is_women_owned && (
                             <span className="text-[9px] font-black uppercase bg-[#FFF3EC] text-[#FA661C] border border-[#FA661C]/40 px-1.5 py-0.5 rounded-full">
                               Women Owned
@@ -270,14 +633,12 @@ export default function VendorHubModule() {
                           Store: <span className="font-medium text-[#FA661C]">{vendor.store_name}</span> ({vendor.store_slug})
                         </div>
                       </td>
+
                       <td className="p-3">
-                        <span className="font-bold text-[#FA661C] block">{vendor.country}</span>
+                        <span className="font-bold text-[#FA661C] block">{vendor.country} • <span className="capitalize">{vendor.business_type || 'company'}</span></span>
                         <span className="font-mono text-[10px] text-[#6B6058]">Tax ID: {vendor.tax_id || 'Not set'}</span>
                       </td>
-                      <td className="p-3 text-[#6B6058]">
-                        <span className="capitalize block text-[#FA661C] font-semibold">{vendor.business_type || 'company'}</span>
-                        <span className="text-[10px]">{vendor.support_phone || vendor.support_email || 'No contact details'}</span>
-                      </td>
+
                       <td className="p-3 text-center">
                         <span className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-bold ${
                           totalDocs === 0
@@ -289,14 +650,69 @@ export default function VendorHubModule() {
                           {totalDocs === 0 ? 'No Documents Uploaded' : `${verifiedDocs} / ${totalDocs} Verified`}
                         </span>
                       </td>
+
                       <td className="p-3 text-center">
                         <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase border ${statusBadgeStyle}`}>
                           {vendor.onboarding_status}
                         </span>
                       </td>
+
+                      <td className="p-3 text-center">
+                        <div className="flex flex-col items-center gap-1">
+                          <span
+                            data-testid={`vendor-state-${vendor.id}`}
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase border ${
+                              opState === 'suspended'
+                                ? 'bg-[#FDE8EA] text-[#D7263D] border-[#D7263D]/40'
+                                : 'bg-[#EAF5ED] text-[#40916C] border-[#52B788]/40'
+                            }`}
+                          >
+                            State: {opState}
+                          </span>
+                          <div className="flex flex-wrap items-center justify-center gap-1">
+                            <span
+                              data-testid={`vendor-sell-switch-${vendor.id}`}
+                              className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${
+                                canSell && maySell
+                                  ? 'bg-[#EAF5ED] text-[#40916C] border-[#52B788]/30'
+                                  : 'bg-[#FDE8EA] text-[#D7263D] border-[#D7263D]/30'
+                              }`}
+                            >
+                              Selling: {canSell ? (maySell ? 'On' : 'Pending KYC') : 'Off'}
+                            </span>
+                            <span
+                              data-testid={`vendor-withdraw-switch-${vendor.id}`}
+                              className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${
+                                canWithdraw
+                                  ? 'bg-[#EAF5ED] text-[#40916C] border-[#52B788]/30'
+                                  : 'bg-amber-100 text-amber-900 border-amber-300'
+                              }`}
+                            >
+                              Withdrawals: {canWithdraw ? 'On' : 'Blocked'}
+                            </span>
+                          </div>
+                        </div>
+                      </td>
+
+                      <td className="p-3" data-testid={`vendor-last-change-${vendor.id}`}>
+                        {latestEvent ? (
+                          <div className="text-[10px] space-y-0.5">
+                            <span className="font-bold text-[#1A2420] block">
+                              {CONTROL_ACTION_META[latestEvent.action]?.label || latestEvent.action}
+                            </span>
+                            <span className="text-[#6B6058] block font-mono">
+                              Actor #{latestEvent.actor} • {latestEvent.occurred_at ? new Date(latestEvent.occurred_at).toLocaleString() : '—'}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-[10px] text-[#6B6058] italic">No control changes</span>
+                        )}
+                      </td>
+
                       <td className="p-3 text-center">
                         <button
                           type="button"
+                          data-testid={`review-vendor-btn-${vendor.id}`}
                           onClick={() => openReviewModal(vendor)}
                           className="px-3 py-1.5 rounded-xl bg-[#FA661C] text-[#FF811A] font-bold text-[10px] btn-interactive cursor-pointer shadow-xs inline-flex items-center space-x-1"
                         >
@@ -313,10 +729,10 @@ export default function VendorHubModule() {
         </div>
       )}
 
-      {/* 6. Real Merchant Review Modal & Document Inspector */}
+      {/* 6. Real Merchant Review, Operational Controls & Control History Modal */}
       {selectedVendor && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl border border-[#EAE3DC] w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl p-6 sm:p-8 space-y-6 animate-reveal">
+          <div className="bg-white rounded-3xl border border-[#EAE3DC] w-full max-w-4xl max-h-[92vh] overflow-y-auto shadow-2xl p-6 sm:p-8 space-y-6 animate-reveal">
             
             {/* Modal Header */}
             <div className="flex items-start justify-between pb-4 border-b border-[#EAE3DC]">
@@ -331,12 +747,13 @@ export default function VendorHubModule() {
                   </span>
                 </h3>
                 <p className="text-xs text-[#6B6058] mt-0.5">
-                  Verify merchant business credentials, uploaded KYC documents, and issue onboarding decisions.
+                  Manage operational selling and withdrawal switches, inspect control history, and review KYC onboarding.
                 </p>
               </div>
               
               <button
                 type="button"
+                data-testid="close-vendor-modal-btn"
                 onClick={closeReviewModal}
                 className="p-1.5 rounded-xl text-[#6B6058] hover:text-[#FA661C] hover:bg-[#FFF3EC] transition-colors cursor-pointer"
               >
@@ -345,24 +762,24 @@ export default function VendorHubModule() {
             </div>
 
             {/* Merchant Details Summary Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-[#FFF8F2]/60 rounded-2xl border border-[#FF811A]/20 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 bg-[#FFF8F2]/60 rounded-2xl border border-[#FF811A]/20 text-xs">
               <div>
                 <span className="text-[#6B6058] block text-[10px] uppercase font-bold">Legal Business Name</span>
                 <span className="font-bold text-[#FA661C] text-sm">{selectedVendor.business_name || 'N/A'}</span>
               </div>
 
               <div>
-                <span className="text-[#6B6058] block text-[10px] uppercase font-bold">Store Name & Slug</span>
+                <span className="text-[#6B6058] block text-[10px] uppercase font-bold">Store Name &amp; Slug</span>
                 <span className="font-bold text-[#FA661C] text-sm">{selectedVendor.store_name} ({selectedVendor.store_slug})</span>
               </div>
 
               <div>
-                <span className="text-[#6B6058] block text-[10px] uppercase font-bold">Country Jurisdiction & Tax ID</span>
+                <span className="text-[#6B6058] block text-[10px] uppercase font-bold">Country Jurisdiction &amp; Tax ID</span>
                 <span className="font-bold text-[#FA661C]">{selectedVendor.country} • Tax ID: {selectedVendor.tax_id || 'Not set'}</span>
               </div>
 
               <div>
-                <span className="text-[#6B6058] block text-[10px] uppercase font-bold">Registration Number & Type</span>
+                <span className="text-[#6B6058] block text-[10px] uppercase font-bold">Registration Number &amp; Type</span>
                 <span className="font-bold text-[#FA661C] capitalize">{selectedVendor.registration_number || 'N/A'} ({selectedVendor.business_type || 'company'})</span>
               </div>
 
@@ -377,12 +794,513 @@ export default function VendorHubModule() {
               </div>
             </div>
 
+            {/* ========================================================================= */}
+            {/* VENDOR OPERATIONAL CONTROLS PANEL (Suspend, Reactivate, Withdrawals)      */}
+            {/* ========================================================================= */}
+            <div
+              data-testid="vendor-controls-panel"
+              className="p-5 rounded-3xl border-2 border-[#FA661C]/30 bg-[#FFF8F2]/50 space-y-4 text-xs"
+            >
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[#EAE3DC]">
+                <div>
+                  <h4 className="font-['Outfit'] font-black text-base text-[#FA661C] flex items-center gap-2">
+                    <ShieldAlert className="w-4 h-4 text-[#FF811A]" />
+                    <span>Vendor Operational Controls &amp; Switches</span>
+                  </h4>
+                  <p className="text-[11px] text-[#6B6058] mt-0.5">
+                    Every control change requires an audited reason and is permanently recorded in vendor control history.
+                  </p>
+                </div>
+
+                {/* Live State Pills */}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span
+                    data-testid="modal-operational-state"
+                    className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase border ${
+                      selectedVendor.operational_state === 'suspended'
+                        ? 'bg-[#FDE8EA] text-[#D7263D] border-[#D7263D]/40'
+                        : 'bg-[#EAF5ED] text-[#40916C] border-[#52B788]/40'
+                    }`}
+                  >
+                    State: {selectedVendor.operational_state || 'active'}
+                  </span>
+                  <span
+                    data-testid="modal-selling-switch"
+                    className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase border ${
+                      selectedVendor.can_sell !== false
+                        ? 'bg-[#EAF5ED] text-[#40916C] border-[#52B788]/40'
+                        : 'bg-[#FDE8EA] text-[#D7263D] border-[#D7263D]/40'
+                    }`}
+                  >
+                    can_sell: {selectedVendor.can_sell !== false ? 'true' : 'false'} (may_sell: {selectedVendor.may_sell ? 'true' : 'false'})
+                  </span>
+                  <span
+                    data-testid="modal-withdrawals-switch"
+                    className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase border ${
+                      selectedVendor.can_withdraw !== false
+                        ? 'bg-[#EAF5ED] text-[#40916C] border-[#52B788]/40'
+                        : 'bg-amber-100 text-amber-900 border-amber-300'
+                    }`}
+                  >
+                    can_withdraw: {selectedVendor.can_withdraw !== false ? 'true' : 'false'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Honest Server Policy Notes */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="p-3 rounded-2xl bg-white border border-[#EAE3DC] flex items-start gap-2">
+                  <Ban className="w-4 h-4 text-[#FA661C] shrink-0 mt-0.5" />
+                  <div className="text-[11px] text-[#6B6058]">
+                    <strong className="text-[#1A2420] block">Storefront Suspension</strong>
+                    A suspended vendor’s products disappear from the storefront and cannot be bought (<code>vendor_cannot_sell</code>). Product fields are untouched, and reactivation restores them.
+                  </div>
+                </div>
+                <div className="p-3 rounded-2xl bg-white border border-[#EAE3DC] flex items-start gap-2">
+                  <Lock className="w-4 h-4 text-[#FA661C] shrink-0 mt-0.5" />
+                  <div className="text-[11px] text-[#6B6058]">
+                    <strong className="text-[#1A2420] block">Withdrawal Gate (Superuser)</strong>
+                    Blocking withdrawals only refuses <strong>NEW</strong> requests (<code>withdrawals_blocked</code>). Requests already in flight continue unchanged.
+                  </div>
+                </div>
+                <div className="p-3 rounded-2xl bg-white border border-[#EAE3DC] flex items-start gap-2">
+                  <Wallet className="w-4 h-4 text-[#40916C] shrink-0 mt-0.5" />
+                  <div className="text-[11px] text-[#6B6058]">
+                    <strong className="text-[#1A2420] block">Settled Money Stays Seller’s</strong>
+                    Settled wallet balances remain the seller’s property. Suspension or withdrawal restrictions never remove settled funds.
+                  </div>
+                </div>
+              </div>
+
+              {/* Two Switch Cards: 1) Selling Switch (Staff)  2) Withdrawals Switch (Superuser Only) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                
+                {/* Card 1: Selling Controls (Staff & Superuser) */}
+                <div className="p-4 rounded-2xl bg-white border border-[#EAE3DC] space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-[#1A2420] uppercase text-[11px] tracking-wide">
+                      1. Selling Switch (Staff &amp; Superuser)
+                    </span>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                      selectedVendor.can_sell !== false ? 'bg-[#EAF5ED] text-[#40916C]' : 'bg-[#FDE8EA] text-[#D7263D]'
+                    }`}>
+                      {selectedVendor.operational_state === 'suspended' ? 'Suspended' : 'Active'}
+                    </span>
+                  </div>
+
+                  {!isSelectedApproved ? (
+                    <div
+                      data-testid="unapproved-suspend-notice"
+                      className="p-3 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 space-y-2 text-[11px]"
+                    >
+                      <div className="font-bold flex items-center gap-1.5">
+                        <AlertTriangle className="w-4 h-4 shrink-0 text-amber-700" />
+                        <span>Unapproved Vendor ({selectedVendor.onboarding_status})</span>
+                      </div>
+                      <p>
+                        <strong>Suspend is not for unapproved vendors.</strong> Use <strong>Reject</strong> in the Onboarding Decision form below for vendors who are not approved.
+                      </p>
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        <button
+                          type="button"
+                          data-testid="control-btn-reactivate"
+                          onClick={() => selectControlAction('reactivate')}
+                          className={`px-3 py-1.5 rounded-xl border font-bold text-[11px] cursor-pointer ${
+                            controlAction === 'reactivate'
+                              ? 'border-[#52B788] bg-[#EAF5ED] text-[#40916C] ring-2 ring-[#FA661C]'
+                              : 'border-[#EAE3DC] bg-white text-[#6B6058]'
+                          }`}
+                        >
+                          Reactivate Selling
+                        </button>
+                        <button
+                          type="button"
+                          data-testid="control-btn-suspend-unapproved"
+                          onClick={() => selectControlAction('suspend')}
+                          className={`px-3 py-1.5 rounded-xl border font-bold text-[11px] cursor-pointer ${
+                            controlAction === 'suspend'
+                              ? 'border-[#D7263D] bg-[#FDE8EA] text-[#D7263D] ring-2 ring-[#FA661C]'
+                              : 'border-amber-300 bg-white text-amber-900'
+                          }`}
+                        >
+                          Attempt Suspend (Server 400 Check)
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        data-testid="control-btn-suspend"
+                        onClick={() => selectControlAction('suspend')}
+                        className={`flex-1 py-2 px-3 rounded-xl border font-bold text-xs cursor-pointer transition-all ${
+                          controlAction === 'suspend'
+                            ? 'border-[#D7263D] bg-[#FDE8EA] text-[#D7263D] ring-2 ring-offset-1 ring-[#FA661C]'
+                            : 'border-[#EAE3DC] bg-white text-[#6B6058] hover:bg-[#FFF8F2]'
+                        }`}
+                      >
+                        Suspend Selling
+                      </button>
+                      <button
+                        type="button"
+                        data-testid="control-btn-reactivate"
+                        onClick={() => selectControlAction('reactivate')}
+                        className={`flex-1 py-2 px-3 rounded-xl border font-bold text-xs cursor-pointer transition-all ${
+                          controlAction === 'reactivate'
+                            ? 'border-[#52B788] bg-[#EAF5ED] text-[#40916C] ring-2 ring-offset-1 ring-[#FA661C]'
+                            : 'border-[#EAE3DC] bg-white text-[#6B6058] hover:bg-[#FFF8F2]'
+                        }`}
+                      >
+                        Reactivate Selling
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Card 2: Withdrawals Switch (Superuser Only) */}
+                <div className="p-4 rounded-2xl bg-white border border-[#EAE3DC] space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-[#1A2420] uppercase text-[11px] tracking-wide flex items-center gap-1">
+                      <Lock className="w-3.5 h-3.5 text-[#FA661C]" />
+                      <span>2. Withdrawals Switch (Superuser Only)</span>
+                    </span>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                      selectedVendor.can_withdraw !== false ? 'bg-[#EAF5ED] text-[#40916C]' : 'bg-amber-100 text-amber-900'
+                    }`}>
+                      {selectedVendor.can_withdraw !== false ? 'Withdrawals Allowed' : 'Withdrawals Blocked'}
+                    </span>
+                  </div>
+
+                  {!isSuperuser && (
+                    <div
+                      data-testid="staff-withdrawal-readonly-note"
+                      className="p-2.5 rounded-xl bg-gray-100 border border-gray-300 text-gray-700 text-[11px] font-semibold flex items-center gap-2"
+                    >
+                      <Lock className="w-4 h-4 shrink-0 text-gray-600" />
+                      <span>Read-only for normal staff — only a superuser may block or release withdrawals.</span>
+                    </div>
+                  )}
+
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      data-testid="control-btn-block_withdrawals"
+                      disabled={!isSuperuser}
+                      onClick={() => selectControlAction('block_withdrawals')}
+                      className={`flex-1 py-2 px-3 rounded-xl border font-bold text-xs transition-all ${
+                        !isSuperuser
+                          ? 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed opacity-60'
+                          : controlAction === 'block_withdrawals'
+                          ? 'border-amber-600 bg-amber-50 text-amber-900 ring-2 ring-offset-1 ring-[#FA661C] cursor-pointer'
+                          : 'border-[#EAE3DC] bg-white text-[#6B6058] hover:bg-[#FFF8F2] cursor-pointer'
+                      }`}
+                    >
+                      Block Withdrawals
+                    </button>
+                    <button
+                      type="button"
+                      data-testid="control-btn-release_withdrawals"
+                      disabled={!isSuperuser}
+                      onClick={() => selectControlAction('release_withdrawals')}
+                      className={`flex-1 py-2 px-3 rounded-xl border font-bold text-xs transition-all ${
+                        !isSuperuser
+                          ? 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed opacity-60'
+                          : controlAction === 'release_withdrawals'
+                          ? 'border-[#52B788] bg-[#EAF5ED] text-[#40916C] ring-2 ring-offset-1 ring-[#FA661C] cursor-pointer'
+                          : 'border-[#EAE3DC] bg-white text-[#6B6058] hover:bg-[#FFF8F2] cursor-pointer'
+                      }`}
+                    >
+                      Release Withdrawals
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Control Action Execution Form */}
+              <form
+                noValidate
+                onSubmit={handleControlSubmit}
+                data-testid="vendor-control-form"
+                className="p-4 rounded-2xl bg-white border border-[#EAE3DC] space-y-3"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-[#FA661C] text-xs">
+                    Selected Action: <span className="uppercase">{CONTROL_ACTION_META[controlAction]?.label || controlAction}</span>
+                  </span>
+                  <span className="text-[10px] font-mono text-[#6B6058]">
+                    POST /api/vendors/{selectedVendor.id}/{CONTROL_ACTION_META[controlAction]?.endpointSuffix}/
+                  </span>
+                </div>
+
+                {/* Honest Server Confirmation Banner */}
+                {controlSuccessMsg && (
+                  <div
+                    role="status"
+                    data-testid="control-success-banner"
+                    className="p-3 rounded-xl bg-[#EAF5ED] border border-[#52B788]/40 text-[#40916C] font-semibold flex items-center gap-2"
+                  >
+                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    <span>{controlSuccessMsg}</span>
+                  </div>
+                )}
+
+                {/* General / Non-Field Server Error Banner (400 unapproved, 403 staff, 409 conflict) */}
+                {controlGeneralError && (
+                  <div
+                    role="alert"
+                    data-testid="control-general-error"
+                    className="p-3 rounded-xl bg-[#FDE8EA] border border-[#D7263D]/40 text-[#D7263D] font-semibold flex items-start gap-2"
+                  >
+                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                    <span>{controlGeneralError}</span>
+                  </div>
+                )}
+
+                {/* 1. Required Reason Field */}
+                <div>
+                  <label htmlFor="control-reason-input" className="block text-xs font-bold text-[#1A2420] mb-1">
+                    Reason for Control Action <span className="text-[#D7263D]">* (Required)</span>
+                  </label>
+                  <textarea
+                    id="control-reason-input"
+                    data-testid="control-reason-input"
+                    rows={2}
+                    value={controlReason}
+                    onChange={(e) => {
+                      setControlReason(e.target.value);
+                      if (controlFieldErrors.reason) {
+                        setControlFieldErrors((prev) => ({ ...prev, reason: undefined }));
+                      }
+                      if (controlGeneralError) setControlGeneralError(null);
+                    }}
+                    placeholder="Enter audited reason for this control change..."
+                    className={`w-full p-2.5 rounded-xl border text-xs bg-white focus:outline-none ${
+                      controlFieldErrors.reason
+                        ? 'border-[#D7263D] focus:border-[#D7263D]'
+                        : 'border-[#EAE3DC] focus:border-[#FA661C]'
+                    }`}
+                  />
+                  {controlFieldErrors.reason && (
+                    <p
+                      role="alert"
+                      data-testid="control-error-reason"
+                      className="mt-1 text-[11px] font-bold text-[#D7263D]"
+                    >
+                      {controlFieldErrors.reason}
+                    </p>
+                  )}
+                </div>
+
+                {/* 2. Seller-Visible Tick-Box */}
+                <div>
+                  <label className="inline-flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      data-testid="control-seller-visible-checkbox"
+                      checked={controlSellerVisible}
+                      onChange={(e) => {
+                        setControlSellerVisible(e.target.checked);
+                        if (controlFieldErrors.seller_visible) {
+                          setControlFieldErrors((prev) => ({ ...prev, seller_visible: undefined }));
+                        }
+                      }}
+                      className="w-4 h-4 rounded accent-[#FA661C] cursor-pointer"
+                    />
+                    <span className="text-xs font-bold text-[#1A2420]">
+                      Show reason to the seller (<code>seller_visible</code>)
+                    </span>
+                  </label>
+                  {controlFieldErrors.seller_visible && (
+                    <p
+                      role="alert"
+                      data-testid="control-error-seller_visible"
+                      className="mt-1 text-[11px] font-bold text-[#D7263D]"
+                    >
+                      {controlFieldErrors.seller_visible}
+                    </p>
+                  )}
+                </div>
+
+                {/* 3. Private Staff Note */}
+                <div>
+                  <label htmlFor="control-private-note-input" className="block text-xs font-bold text-[#1A2420] mb-1">
+                    Private Staff Note <span className="text-[10px] font-normal text-[#6B6058]">(Staff only — never shown to the seller)</span>
+                  </label>
+                  <textarea
+                    id="control-private-note-input"
+                    data-testid="control-private-note-input"
+                    rows={2}
+                    value={controlPrivateNote}
+                    onChange={(e) => {
+                      setControlPrivateNote(e.target.value);
+                      if (controlFieldErrors.private_note) {
+                        setControlFieldErrors((prev) => ({ ...prev, private_note: undefined }));
+                      }
+                    }}
+                    placeholder="Optional internal audit note visible only to staff..."
+                    className={`w-full p-2.5 rounded-xl border text-xs bg-white focus:outline-none ${
+                      controlFieldErrors.private_note
+                        ? 'border-[#D7263D] focus:border-[#D7263D]'
+                        : 'border-[#EAE3DC] focus:border-[#FA661C]'
+                    }`}
+                  />
+                  {controlFieldErrors.private_note && (
+                    <p
+                      role="alert"
+                      data-testid="control-error-private_note"
+                      className="mt-1 text-[11px] font-bold text-[#D7263D]"
+                    >
+                      {controlFieldErrors.private_note}
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex justify-end pt-1">
+                  <button
+                    type="submit"
+                    data-testid="control-submit-btn"
+                    disabled={controlSubmitting}
+                    className="px-4 py-2 rounded-xl bg-[#FA661C] hover:bg-[#E0530B] text-white font-bold text-xs cursor-pointer disabled:opacity-50 shadow-sm"
+                  >
+                    {controlSubmitting
+                      ? 'Applying Control Change...'
+                      : `Apply ${CONTROL_ACTION_META[controlAction]?.label || 'Control Action'}`}
+                  </button>
+                </div>
+              </form>
+
+              {/* ========================================================================= */}
+              {/* PAGED VENDOR CONTROL HISTORY TABLE (Staff View with Private Notes)        */}
+              {/* ========================================================================= */}
+              <div
+                data-testid="vendor-control-history-panel"
+                className="p-4 rounded-2xl bg-white border border-[#EAE3DC] space-y-3"
+              >
+                <div className="flex items-center justify-between">
+                  <h5 className="font-['Outfit'] font-bold text-sm text-[#FA661C] flex items-center gap-1.5">
+                    <History className="w-4 h-4 text-[#FF811A]" />
+                    <span>Vendor Control History ({controlHistory.count})</span>
+                  </h5>
+                  <button
+                    type="button"
+                    onClick={() => fetchVendorControlHistory(selectedVendor.id, historyPage)}
+                    disabled={historyLoading}
+                    className="px-2.5 py-1 rounded-lg border border-[#EAE3DC] text-[#FA661C] hover:bg-[#FFF3EC] font-bold text-[10px] inline-flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                  >
+                    <RefreshCw className={`w-3 h-3 ${historyLoading ? 'animate-spin' : ''}`} />
+                    <span>Refresh History</span>
+                  </button>
+                </div>
+
+                {historyError && (
+                  <div role="alert" className="p-3 rounded-xl bg-[#FDE8EA] border border-[#D7263D]/30 text-[#D7263D] font-semibold">
+                    {historyError}
+                  </div>
+                )}
+
+                {historyLoading ? (
+                  <div className="py-4 text-center text-[#6B6058] animate-pulse">
+                    Loading control history...
+                  </div>
+                ) : controlHistory.results.length === 0 ? (
+                  <div className="py-4 text-center text-[#6B6058] bg-[#FFF8F2]/40 rounded-xl border border-dashed border-[#EAE3DC]">
+                    No operational control events recorded for this vendor yet.
+                  </div>
+                ) : (
+                  <>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse text-[11px]">
+                        <thead>
+                          <tr className="border-b border-[#EAE3DC] text-[10px] uppercase tracking-wider text-[#FA661C] font-extrabold">
+                            <th className="p-2">Action</th>
+                            <th className="p-2">Actor &amp; Time</th>
+                            <th className="p-2">Old → New Values</th>
+                            <th className="p-2">Reason &amp; Visibility</th>
+                            <th className="p-2">Private Note (Staff Only)</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[#EAE3DC]/60">
+                          {controlHistory.results.map((ev) => {
+                            const meta = CONTROL_ACTION_META[ev.action];
+                            return (
+                              <tr key={ev.id} data-testid={`admin-history-row-${ev.id}`}>
+                                <td className="p-2 align-top">
+                                  <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                                    meta?.badgeCls || 'bg-gray-100 text-gray-800 border-gray-300'
+                                  }`}>
+                                    {meta?.label || ev.action}
+                                  </span>
+                                </td>
+                                <td className="p-2 align-top font-mono text-[10px] text-[#6B6058] whitespace-nowrap">
+                                  <div className="font-bold text-[#1A2420]">Actor #{ev.actor}</div>
+                                  <div>{ev.occurred_at ? new Date(ev.occurred_at).toLocaleString() : '—'}</div>
+                                </td>
+                                <td className="p-2 align-top font-mono text-[10px] text-[#6B6058]">
+                                  <div>Old: {formatControlSnapshot(ev.old_values)}</div>
+                                  <div className="text-[#1A2420] font-semibold">New: {formatControlSnapshot(ev.new_values)}</div>
+                                </td>
+                                <td className="p-2 align-top">
+                                  <div className="font-semibold text-[#1A2420]">{ev.reason}</div>
+                                  <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase border ${
+                                    ev.seller_visible
+                                      ? 'bg-[#EAF5ED] text-[#40916C] border-[#52B788]/40'
+                                      : 'bg-gray-100 text-gray-700 border-gray-300'
+                                  }`}>
+                                    {ev.seller_visible ? 'Seller Visible: Yes' : 'Seller Visible: No'}
+                                  </span>
+                                </td>
+                                <td className="p-2 align-top text-[#6B6058]">
+                                  {ev.private_note ? (
+                                    <span className="font-medium text-[#1A2420] bg-[#FFF8F2] px-2 py-1 rounded-lg border border-[#EAE3DC] block">
+                                      {ev.private_note}
+                                    </span>
+                                  ) : (
+                                    <span className="italic text-gray-400">None</span>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {(controlHistory.previous || controlHistory.next) && (
+                      <div className="flex items-center justify-between pt-2 border-t border-[#EAE3DC]">
+                        <span className="text-[11px] text-[#6B6058]">
+                          Total events: {controlHistory.count} (Page {historyPage})
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            disabled={!controlHistory.previous || historyLoading}
+                            onClick={() => fetchVendorControlHistory(selectedVendor.id, historyPage - 1)}
+                            className="px-2.5 py-1 rounded-lg border border-[#EAE3DC] bg-white text-[#FA661C] font-bold disabled:opacity-40 cursor-pointer"
+                          >
+                            Previous
+                          </button>
+                          <button
+                            type="button"
+                            disabled={!controlHistory.next || historyLoading}
+                            onClick={() => fetchVendorControlHistory(selectedVendor.id, historyPage + 1)}
+                            className="px-2.5 py-1 rounded-lg border border-[#EAE3DC] bg-white text-[#FA661C] font-bold disabled:opacity-40 cursor-pointer"
+                          >
+                            Next
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+
             {/* Document Verification Section */}
             <div className="space-y-3 pt-2">
               <div className="flex items-center justify-between">
                 <h4 className="font-['Outfit'] font-bold text-sm text-[#FA661C] flex items-center space-x-1.5">
                   <FileText className="w-4 h-4 text-[#FF811A]" />
-                  <span>Uploaded KYC & Governance Documents</span>
+                  <span>Uploaded KYC &amp; Governance Documents</span>
                 </h4>
                 <span className="text-[11px] text-[#6B6058] font-bold">
                   {(selectedVendor.documents || []).filter(d => d.status === 'verified' && d.file_available).length} of {(selectedVendor.documents || []).length} Verified

@@ -9,6 +9,7 @@ import {
   User, 
   LogOut, 
   ExternalLink,
+  Megaphone,
   X 
 } from 'lucide-react';
 import AuthContext from '../../context/AuthContext';
@@ -18,6 +19,7 @@ import { resolveMediaUrl } from '../../config/env';
 
 const SELLER_NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', route: '/seller/dashboard', icon: LayoutDashboard },
+  { id: 'announcements', label: 'Announcements', route: '/seller/announcements', icon: Megaphone },
   { id: 'products', label: 'Products & Inventory', route: '/seller/products', icon: Package },
   { id: 'orders', label: 'Orders & Fulfillment', route: '/seller/orders', icon: ShoppingBag, isHighlight: true },
   { id: 'settlements', label: 'Settlements & Payouts', route: '/seller/settlements', icon: Landmark },
@@ -30,6 +32,7 @@ export default function SellerDashboardSidebar({
   onCloseMobile,
   productStatusCounts,
   orderStatusCounts,
+  unreadAnnouncementsCount,
   vendorProfile: propProfile
 }) {
   const navigate = useNavigate();
@@ -65,6 +68,12 @@ export default function SellerDashboardSidebar({
     : 0;
 
   const getBadgeForItem = (itemId) => {
+    if (itemId === 'announcements') {
+      if (typeof unreadAnnouncementsCount === 'number') {
+        return String(unreadAnnouncementsCount);
+      }
+      return null;
+    }
     if (itemId === 'products') {
       return totalProducts > 0 ? String(totalProducts) : null;
     }
@@ -183,7 +192,7 @@ export default function SellerDashboardSidebar({
                   }}
                   className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl font-bold transition-all cursor-pointer btn-interactive ${
                     isCurrent
-                      ? 'bg-[#FF811A] text-[#FA661C] shadow-sm'
+                      ? 'bg-[#FF811A] text-[#1A1A1A] shadow-sm'
                       : 'text-[#FFFFFF]/80 hover:bg-[#E0530B] hover:text-[#FFFFFF]'
                   }`}
                 >
@@ -193,13 +202,18 @@ export default function SellerDashboardSidebar({
                   </div>
 
                   {badgeText && (
-                    <span className={`text-[9px] font-extrabold px-1.5 py-0.2 rounded-full shrink-0 ${
-                      item.isHighlight 
-                        ? 'bg-[#1A1A1A] text-[#FF811A]' 
-                        : isCurrent
-                        ? 'bg-[#1A1A1A] text-[#FFFFFF]'
-                        : 'bg-[#E0530B] text-[#FF811A]'
-                    }`}>
+                    <span
+                      data-testid={item.id === 'announcements' ? 'sidebar-announcements-unread-badge' : undefined}
+                      className={`text-[9px] font-extrabold px-1.5 py-0.2 rounded-full shrink-0 ${
+                        item.id === 'announcements' && Number(unreadAnnouncementsCount) > 0
+                          ? 'bg-[#D7263D] text-white'
+                          : item.isHighlight 
+                          ? 'bg-[#1A1A1A] text-[#FF811A]' 
+                          : isCurrent
+                          ? 'bg-[#1A1A1A] text-[#FFFFFF]'
+                          : 'bg-[#E0530B] text-[#FF811A]'
+                      }`}
+                    >
                       {badgeText}
                     </span>
                   )}

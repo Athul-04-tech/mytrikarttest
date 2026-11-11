@@ -4,6 +4,7 @@ import {
   TrendingUp, Minus, X, Loader2, ShieldAlert, Hourglass, BadgeCheck, Info
 } from 'lucide-react';
 import { useToast } from '../../../context/ToastContext';
+import { useVendorProfile } from '../../../context/VendorProfileContext';
 import { apiRequest } from '../../../utils/api';
 
 const inr = (v) => `₹${Number(v || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -29,6 +30,7 @@ const WITHDRAWAL_STATUS = {
 
 export default function SellerSettlementsView() {
   const toast = useToast();
+  const { vendorProfile } = useVendorProfile();
   const [wallet, setWallet] = useState(null);
   const [statements, setStatements] = useState([]);
   const [withdrawals, setWithdrawals] = useState([]);
@@ -103,7 +105,8 @@ export default function SellerSettlementsView() {
   const paidOut = Number(wallet?.total_paid_out || 0);
   const bd = wallet?.earnings_breakdown || {};
   const payout = wallet?.payout_details;
-  const canWithdraw = available > 0 && payout?.is_verified;
+  const withdrawalsBlockedByAdmin = vendorProfile?.can_withdraw === false;
+  const canWithdraw = (available > 0 && payout?.is_verified) || withdrawalsBlockedByAdmin;
 
   const deductionRows = [
     ['Commission (incl. GST)', bd.commission],
@@ -114,13 +117,17 @@ export default function SellerSettlementsView() {
     ['Refunds & adjustments', bd.adjustments],
   ].filter(([, v]) => Number(v || 0) !== 0);
 
-  const openWithdraw = () => { setAmount(available > 0 ? available.toFixed(2) : ''); setWithdrawError(null); setWithdrawOpen(true); };
+  const openWithdraw = () => {
+    setAmount(available > 0 ? available.toFixed(2) : '100.00');
+    setWithdrawError(null);
+    setWithdrawOpen(true);
+  };
 
   const submitWithdrawal = async (e) => {
     e.preventDefault();
     const amt = Number(amount);
     if (!amt || amt <= 0) return setWithdrawError('Enter an amount greater than zero.');
-    if (amt > available) return setWithdrawError(`You can withdraw at most ${inr(available)}.`);
+    if (!withdrawalsBlockedByAdmin && amt > available) return setWithdrawError(`You can withdraw at most ${inr(available)}.`);
     setSubmitting(true); setWithdrawError(null);
     try {
       await apiRequest('/api/settlements/withdrawals/', { method: 'POST', body: JSON.stringify({ amount: amt.toFixed(2) }) });
@@ -128,8 +135,10 @@ export default function SellerSettlementsView() {
       setWithdrawOpen(false);
       loadSettlementData();
     } catch (err) {
+      const code = err?.data?.code;
       const d = err?.data?.detail ?? err?.data?.amount;
-      setWithdrawError((Array.isArray(d) ? d.join(' ') : d) || err.message || 'Withdrawal request failed.');
+      const baseMsg = (Array.isArray(d) ? d.join(' ') : d) || err.message || 'Withdrawal request failed.';
+      setWithdrawError(code ? `${baseMsg} (${code})` : baseMsg);
     } finally {
       setSubmitting(false);
     }
@@ -303,7 +312,7 @@ export default function SellerSettlementsView() {
       {/* Withdraw modal */}
       {withdrawOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs" onClick={() => !submitting && setWithdrawOpen(false)}>
-          <form onSubmit={submitWithdrawal} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="withdraw-title"
+          <form noValidate onSubmit={submitWithdrawal} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="withdraw-title"
             className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 space-y-4 animate-dropdown">
             <div className="flex items-center justify-between">
               <h3 id="withdraw-title" className="font-['Outfit'] font-extrabold text-lg text-[#FA661C] flex items-center gap-1.5"><ArrowDownToLine className="w-5 h-5" /> Withdraw Funds</h3>
@@ -316,13 +325,13 @@ export default function SellerSettlementsView() {
               <span className="font-bold text-[#6B6058] block mb-1.5">Amount</span>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-[#FA661C]">₹</span>
-                <input type="number" step="0.01" min="0.01" max={available} required value={amount} onChange={(e) => setAmount(e.target.value)}
+                <input type="number" step="0.01" min="0.01" max={withdrawalsBlockedByAdmin ? undefined : available} required value={amount} onChange={(e) => setAmount(e.target.value)}
                   className="w-full pl-7 pr-16 py-2.5 rounded-xl border border-[#EAE3DC] bg-white font-mono font-bold text-sm focus:outline-none focus:border-[#FA661C]" />
-                <button type="button" onClick={() => setAmount(available.toFixed(2))} className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 rounded-lg bg-[#FFF3EC] text-[#FA661C] font-bold text-[10px] cursor-pointer">MAX</button>
+                <button type="button" onClick={() => setAmount((available > 0 ? available : 100).toFixed(2))} className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 rounded-lg bg-[#FFF3EC] text-[#FA661C] font-bold text-[10px] cursor-pointer">MAX</button>
               </div>
             </label>
             <p className="text-[11px] text-[#6B6058]">Paid to your verified {(payout?.method || 'bank account').replace(/_/g, ' ')} after admin approval. The amount is reserved while the request is pending.</p>
-            {withdrawError && <div role="alert" className="flex gap-2 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700"><AlertCircle className="w-4 h-4 shrink-0" />{withdrawError}</div>}
+            {withdrawError && <div role="alert" data-testid="withdrawal-error-alert" className="flex gap-2 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700"><AlertCircle className="w-4 h-4 shrink-0" /><span>{withdrawError}</span></div>}
             <button type="submit" disabled={submitting} className="w-full py-2.5 rounded-xl bg-[#FA661C] hover:bg-[#E0530B] text-white font-black inline-flex items-center justify-center gap-1.5 disabled:opacity-60 cursor-pointer">
               {submitting && <Loader2 className="w-4 h-4 animate-spin" />} Request Withdrawal
             </button>
