@@ -211,4 +211,46 @@ describe('PersonalDetailsSection — Profile Save & Validation Lifecycle', () =>
     const notSetBadges = screen.getAllByText('Not set');
     expect(notSetBadges.length).toBeGreaterThanOrEqual(3);
   });
+
+  it('6. clicking Cancel while editing discards unsaved changes and restores saved values', () => {
+    const onUpdateMock = vi.fn();
+
+    render(
+      <PersonalDetailsSection
+        profileData={mockProfile}
+        userProfile={mockProfile}
+        onUpdateProfile={onUpdateMock}
+      />
+    );
+
+    // Enter edit mode
+    fireEvent.click(screen.getByRole('button', { name: /edit details/i }));
+
+    // Mutate all editable fields without saving
+    fireEvent.change(screen.getByLabelText(/date of birth/i), {
+      target: { value: '1985-12-31' },
+    });
+    fireEvent.change(screen.getByLabelText(/gender/i), {
+      target: { value: 'male' },
+    });
+    fireEvent.change(screen.getByLabelText(/preferred language/i), {
+      target: { value: 'hi' },
+    });
+
+    // Click Cancel
+    fireEvent.click(screen.getByRole('button', { name: /cancel/i }));
+
+    expect(onUpdateMock).not.toHaveBeenCalled();
+
+    // Read-only view displays original saved values
+    expect(screen.getByText('23 Apr 1992')).toBeInTheDocument();
+    expect(screen.getByText('Female')).toBeInTheDocument();
+    expect(screen.getByText('Malayalam (മലയാളം)')).toBeInTheDocument();
+
+    // Re-entering edit mode shows original saved input values
+    fireEvent.click(screen.getByRole('button', { name: /edit details/i }));
+    expect(screen.getByLabelText(/date of birth/i)).toHaveValue('1992-04-23');
+    expect(screen.getByLabelText(/gender/i)).toHaveValue('female');
+    expect(screen.getByLabelText(/preferred language/i)).toHaveValue('ml');
+  });
 });

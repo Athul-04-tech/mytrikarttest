@@ -4,6 +4,7 @@ import TopUtilityBar from './TopUtilityBar';
 import SearchBar from './SearchBar';
 import AccountMenuDropdown from '../dropdowns/AccountMenuDropdown';
 import MoreDropdown from '../dropdowns/MoreDropdown';
+import SponsoredAdSlot from '../advertising/SponsoredAdSlot';
 import { User, ChevronDown, MoreVertical, ShoppingBag, Sparkles, LogIn, Heart, Store, ShieldAlert } from 'lucide-react';
 import { useCart } from '../../context/CartWishlistContext';
 import { useAuth } from '../../context/AuthContext';
@@ -354,6 +355,9 @@ export default function Header({
 
 
       </div>
+
+      {/* 3. Storefront Header Banner Ad Slot (renders nothing when flag is off or no ad is served) */}
+      <SponsoredAdSlot placement="header_banner" />
     </header>
   );
 }

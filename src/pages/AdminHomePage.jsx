@@ -23,6 +23,8 @@ import UserManagementModule from '../components/admin/modules/UserManagementModu
 import CatalogSchemaModule from '../components/admin/modules/CatalogSchemaModule';
 import CouponManagementModule from '../components/admin/modules/CouponManagementModule';
 import AnnouncementsModule from '../components/admin/modules/AnnouncementsModule';
+import WarehouseModule from '../components/admin/modules/WarehouseModule';
+import AdvertisingAdminModule from '../components/admin/modules/AdvertisingAdminModule';
 
 import { ADMIN_NAV_GROUPS } from '../data/adminMockData';
 import { apiRequest } from '../utils/api';
@@ -188,9 +190,19 @@ export default function AdminHomePage() {
         return <UserManagementModule defaultTab="all" />;
       case 'coupons':
         return <CouponManagementModule />;
+      case 'advertising':
+      case 'ads':
+        return <AdvertisingAdminModule />;
       case 'announcements':
       case 'notifications':
         return <AnnouncementsModule />;
+      case 'warehouse':
+      case 'warehouses':
+      case 'warehouse-managers':
+        return <WarehouseModule key="warehouse" />;
+      case 'warehouse-rate-cards':
+      case 'rate-cards':
+        return <WarehouseModule key="warehouse-rate-cards" initialTab="rate-cards" />;
       case 'reports':
         return <ReportsModule />;
 

@@ -90,7 +90,10 @@ export default function PersonalDetailsSection({ profileData, userProfile, onUpd
       setFieldErrors({});
       setGeneralError('');
     }
-  }, [profileData, userProfile, isEditing]);
+    // Only re-sync when parent profile props change; handleCancel resets on cancel
+    // and handleSave applies the server's saved response on save.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profileData, userProfile]);
 
   const handleSave = async (e) => {
     e.preventDefault();

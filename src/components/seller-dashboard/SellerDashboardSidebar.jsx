@@ -10,6 +10,8 @@ import {
   LogOut, 
   ExternalLink,
   Megaphone,
+  Warehouse,
+  Sparkles,
   X 
 } from 'lucide-react';
 import AuthContext from '../../context/AuthContext';
@@ -21,6 +23,8 @@ const SELLER_NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', route: '/seller/dashboard', icon: LayoutDashboard },
   { id: 'announcements', label: 'Announcements', route: '/seller/announcements', icon: Megaphone },
   { id: 'products', label: 'Products & Inventory', route: '/seller/products', icon: Package },
+  { id: 'advertising', label: 'Advertising', route: '/seller/advertising', icon: Sparkles },
+  { id: 'warehouse', label: 'Warehouse Storage', route: '/seller/warehouse', icon: Warehouse },
   { id: 'orders', label: 'Orders & Fulfillment', route: '/seller/orders', icon: ShoppingBag, isHighlight: true },
   { id: 'settlements', label: 'Settlements & Payouts', route: '/seller/settlements', icon: Landmark },
   { id: 'settings', label: 'Store Settings', route: '/seller/settings', icon: Settings },
@@ -178,7 +182,11 @@ export default function SellerDashboardSidebar({
           <nav className="flex-1 overflow-y-auto p-3 space-y-1 text-xs">
             {SELLER_NAV_ITEMS.map((item) => {
               const Icon = item.icon;
-              const isCurrent = location.pathname === item.route || (item.id === 'dashboard' && location.pathname === '/seller');
+              const isCurrent =
+                location.pathname === item.route ||
+                (item.id === 'warehouse' && location.pathname.startsWith('/seller/warehouse')) ||
+                (item.id === 'advertising' && location.pathname.startsWith('/seller/advertising')) ||
+                (item.id === 'dashboard' && location.pathname === '/seller');
 
               const badgeText = getBadgeForItem(item.id);
 
@@ -186,6 +194,7 @@ export default function SellerDashboardSidebar({
                 <button
                   key={item.id}
                   type="button"
+                  data-testid={`seller-sidebar-nav-${item.id}`}
                   onClick={() => {
                     navigate(item.route);
                     if (onCloseMobile) onCloseMobile();

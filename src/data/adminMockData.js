@@ -35,6 +35,15 @@ export const ADMIN_NAV_GROUPS = [
     ]
   },
   {
+    id: 'warehouse',
+    label: 'Warehouse',
+    iconName: 'Boxes',
+    items: [
+      { id: 'warehouse', label: 'Warehouse & Managers', desc: 'Manage warehouses, manager setup invites, warehouse assignments, and audit logs.' },
+      { id: 'warehouse-rate-cards', label: 'Rate Cards', desc: 'Review submitted warehouse rate cards, approve or reject with audit reason, and run read-only storage estimates.' }
+    ]
+  },
+  {
     id: 'finance',
     label: 'Finance & Settlement',
     iconName: 'Landmark',
@@ -59,6 +68,7 @@ export const ADMIN_NAV_GROUPS = [
     label: 'Promotions & Content',
     iconName: 'ShieldAlert',
     items: [
+      { id: 'advertising', label: 'Seller Advertising', desc: 'Review seller advertisements, record superuser manual credits, reverse payments, and inspect ledger reconciliation.' },
       { id: 'coupons', label: 'Coupons & Vouchers', desc: 'Configure discount promo codes, flash vouchers, usage caps, and validity windows.', badge: 'Active' },
       { id: 'cms', label: 'CMS & Homepage Builder', desc: 'Manage static pages, layout blocks, and promotional banner assets.' },
       { id: 'announcements', label: 'Vendor Announcements', desc: 'Create, schedule, publish, and archive plain-text in-app notices for vendors.' }

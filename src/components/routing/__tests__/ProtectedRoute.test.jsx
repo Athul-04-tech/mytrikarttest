@@ -265,4 +265,91 @@ describe('ProtectedRoute Component Suite', () => {
     // CRITICAL: Assert protected content is NOT rendered (prevents UI flash bug)
     expect(screen.queryByText('Protected Secret Seller Data')).toBeNull();
   });
+
+  it('5a. allows warehouse_manager on /warehouse/dashboard and refuses admin, vendor, and customer with 403 screen', () => {
+    for (const blockedRole of ['admin', 'vendor', 'customer']) {
+      vi.mocked(AuthContextModule.useAuth).mockReturnValue({
+        isLoggedIn: true,
+        currentUser: { username: `user_${blockedRole}`, role: blockedRole },
+        isLoading: false,
+        isResolving: false,
+        logout: vi.fn(),
+      });
+
+      const { unmount } = render(
+        <MemoryRouter initialEntries={['/warehouse/dashboard']}>
+          <Routes>
+            <Route
+              path="/warehouse/dashboard"
+              element={
+                <ProtectedRoute>
+                  <div>Warehouse Manager Workspace</div>
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+        </MemoryRouter>
+      );
+
+      expect(screen.getByText(/HTTP 403 — Access Restricted/i)).toBeDefined();
+      expect(screen.queryByText('Warehouse Manager Workspace')).toBeNull();
+      unmount();
+    }
+
+    vi.mocked(AuthContextModule.useAuth).mockReturnValue({
+      isLoggedIn: true,
+      currentUser: { username: 'wm_user', role: 'warehouse_manager' },
+      isLoading: false,
+      isResolving: false,
+      logout: vi.fn(),
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/warehouse/dashboard']}>
+        <Routes>
+          <Route
+            path="/warehouse/dashboard"
+            element={
+              <ProtectedRoute>
+                <div>Warehouse Manager Workspace</div>
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText('Warehouse Manager Workspace')).toBeDefined();
+  });
+
+  it('5b. refuses warehouse_manager visiting /admin, /seller/dashboard, and /profile with 403 screen', () => {
+    vi.mocked(AuthContextModule.useAuth).mockReturnValue({
+      isLoggedIn: true,
+      currentUser: { username: 'wm_user', role: 'warehouse_manager' },
+      isLoading: false,
+      isResolving: false,
+      logout: vi.fn(),
+    });
+
+    for (const blockedPath of ['/admin', '/seller/dashboard', '/profile']) {
+      const { unmount } = render(
+        <MemoryRouter initialEntries={[blockedPath]}>
+          <Routes>
+            <Route
+              path="*"
+              element={
+                <ProtectedRoute>
+                  <div>Secret Area</div>
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+        </MemoryRouter>
+      );
+
+      expect(screen.getByText(/HTTP 403 — Access Restricted/i)).toBeDefined();
+      expect(screen.queryByText('Secret Area')).toBeNull();
+      unmount();
+    }
+  });
 });

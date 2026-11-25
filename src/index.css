@@ -500,3 +500,15 @@ a.hover\:bg-\[\#E0530B\]:hover svg {
   color: #FF811A !important;
 }
 
+dialog:modal {
+  overscroll-behavior: contain;
+}
+
+dialog::backdrop {
+  overflow: hidden;
+  overscroll-behavior: contain;
+  background: rgb(26 26 26 / 0.6);
+  backdrop-filter: blur(2px);
+}
+
+

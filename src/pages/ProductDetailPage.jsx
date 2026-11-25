@@ -26,6 +26,7 @@ import {
   Store
 } from 'lucide-react';
 import ProductReviewsSection from '../components/profile/ProductReviewsSection';
+import SponsoredAdSlot from '../components/advertising/SponsoredAdSlot';
 
 export default function ProductDetailPage({ isLoggedIn, currentUser, onLogout }) {
   const { id } = useParams();
@@ -255,6 +256,9 @@ export default function ProductDetailPage({ isLoggedIn, currentUser, onLogout })
               <ChevronRight className="w-3 h-3 text-[#6B6058]/60 shrink-0" />
               <span className="font-bold text-[#FA661C] truncate max-w-[200px]">{product.name}</span>
             </nav>
+
+            {/* Storefront Product-Page-Top Ad Slot (renders nothing when flag is off or no ad is served) */}
+            <SponsoredAdSlot placement="product_page_top" productId={product.id || id} />
 
             {/* Main Product Layout Grid */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">

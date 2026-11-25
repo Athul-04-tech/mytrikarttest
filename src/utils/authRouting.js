@@ -34,6 +34,27 @@ export const PROTECTED_ROUTE_REGISTRY = [
     pattern: /^\/seller-dashboard$/i,
     allowedRoles: ['vendor', 'seller'],
   },
+
+  // Public Warehouse Setup override (must precede /warehouse/*)
+  {
+    id: 'warehouse_setup_public',
+    pattern: /^\/warehouse\/setup(\/.*)?$/i,
+    allowedRoles: null,
+  },
+
+  // Warehouse Manager Workspace (Warehouse Manager only)
+  {
+    id: 'warehouse_routes',
+    pattern: /^\/warehouse(\/.*)?$/i,
+    allowedRoles: ['warehouse_manager'],
+  },
+
+  // Customer-only Account & Commerce Routes
+  {
+    id: 'customer_only_routes',
+    pattern: /^\/(profile|account|checkout|wishlist|cart|bag|orders|wallet|rewards|notifications|support|refunds|warranty|addresses|coupons|vouchers)(\/.*)?$/i,
+    allowedRoles: ['customer'],
+  },
 ];
 
 /**
@@ -77,6 +98,10 @@ export function getHomeRouteForRole(role) {
   
   if (normalizedRole === 'admin') {
     return '/admin';
+  }
+
+  if (normalizedRole === 'warehouse_manager') {
+    return '/warehouse/dashboard';
   }
   
   return '/';
@@ -129,7 +154,7 @@ export function isRouteAllowedForRole(targetPath, role) {
 export function resolvePostLoginRedirect(targetFrom, role) {
   const fromPath = typeof targetFrom === 'object' && targetFrom !== null ? targetFrom.pathname : targetFrom;
   const normalizedRole = String(role || 'customer').trim().toLowerCase();
-  const isPrivileged = ['admin', 'vendor', 'seller'].includes(normalizedRole);
+  const isPrivileged = ['admin', 'vendor', 'seller', 'warehouse_manager'].includes(normalizedRole);
 
   if (fromPath && isRouteAllowedForRole(fromPath, role)) {
     // Admins and sellers must land in their own workspace. Only honor a return

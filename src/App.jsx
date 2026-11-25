@@ -11,6 +11,8 @@ import AdminHomePage from './pages/AdminHomePage';
 import SellerDashboardPage from './pages/SellerDashboardPage';
 import SellerAddProductPage from './pages/SellerAddProductPage';
 import SellerProductDetailPage from './pages/SellerProductDetailPage';
+import WarehouseSetupPage from './pages/WarehouseSetupPage';
+import WarehouseDashboardPage from './pages/WarehouseDashboardPage';
 import WishlistPage from './pages/WishlistPage';
 import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
@@ -135,49 +137,61 @@ function MarketplaceRouter() {
         <Route 
           path="/profile" 
           element={
-            <PageTransitionWrapper>
-              <ProfilePage onLogout={handleLogout} />
-            </PageTransitionWrapper>
+            <ProtectedRoute allowedRoles={getAllowedRolesForRoute('/profile')}>
+              <PageTransitionWrapper>
+                <ProfilePage onLogout={handleLogout} />
+              </PageTransitionWrapper>
+            </ProtectedRoute>
           } 
         />
         <Route 
           path="/profile/:sectionId" 
           element={
-            <PageTransitionWrapper>
-              <ProfilePage onLogout={handleLogout} />
-            </PageTransitionWrapper>
+            <ProtectedRoute allowedRoles={getAllowedRolesForRoute('/profile')}>
+              <PageTransitionWrapper>
+                <ProfilePage onLogout={handleLogout} />
+              </PageTransitionWrapper>
+            </ProtectedRoute>
           } 
         />
         <Route 
           path="/account/addresses/new" 
           element={
-            <PageTransitionWrapper>
-              <CustomerAddressFormPage />
-            </PageTransitionWrapper>
+            <ProtectedRoute allowedRoles={getAllowedRolesForRoute('/account')}>
+              <PageTransitionWrapper>
+                <CustomerAddressFormPage />
+              </PageTransitionWrapper>
+            </ProtectedRoute>
           } 
         />
         <Route 
           path="/account/addresses/:id/edit" 
           element={
-            <PageTransitionWrapper>
-              <CustomerAddressFormPage />
-            </PageTransitionWrapper>
+            <ProtectedRoute allowedRoles={getAllowedRolesForRoute('/account')}>
+              <PageTransitionWrapper>
+                <CustomerAddressFormPage />
+              </PageTransitionWrapper>
+            </ProtectedRoute>
           } 
         />
         <Route 
           path="/profile/addresses/new" 
           element={
-            <PageTransitionWrapper>
-              <CustomerAddressFormPage />
-            </PageTransitionWrapper>
+            <ProtectedRoute allowedRoles={getAllowedRolesForRoute('/profile')}>
+              <PageTransitionWrapper>
+                <CustomerAddressFormPage />
+              </PageTransitionWrapper>
+            </ProtectedRoute>
           } 
         />
         <Route 
           path="/profile/addresses/:id/edit" 
           element={
-            <PageTransitionWrapper>
-              <CustomerAddressFormPage />
-            </PageTransitionWrapper>
+            <ProtectedRoute allowedRoles={getAllowedRolesForRoute('/profile')}>
+              <PageTransitionWrapper>
+                <CustomerAddressFormPage />
+              </PageTransitionWrapper>
+            </ProtectedRoute>
           } 
         />
         <Route path="/account" element={<Navigate to="/profile" replace />} />
@@ -197,26 +211,32 @@ function MarketplaceRouter() {
         <Route 
           path="/wishlist" 
           element={
-            <PageTransitionWrapper>
-              <WishlistPage />
-            </PageTransitionWrapper>
+            <ProtectedRoute allowedRoles={getAllowedRolesForRoute('/wishlist')}>
+              <PageTransitionWrapper>
+                <WishlistPage />
+              </PageTransitionWrapper>
+            </ProtectedRoute>
           } 
         />
         <Route 
           path="/cart" 
           element={
-            <PageTransitionWrapper>
-              <CartPage />
-            </PageTransitionWrapper>
+            <ProtectedRoute allowedRoles={getAllowedRolesForRoute('/cart')}>
+              <PageTransitionWrapper>
+                <CartPage />
+              </PageTransitionWrapper>
+            </ProtectedRoute>
           } 
         />
         <Route path="/bag" element={<Navigate to="/cart" replace />} />
         <Route 
           path="/checkout" 
           element={
-            <PageTransitionWrapper>
-              <CheckoutPage />
-            </PageTransitionWrapper>
+            <ProtectedRoute allowedRoles={getAllowedRolesForRoute('/checkout')}>
+              <PageTransitionWrapper>
+                <CheckoutPage />
+              </PageTransitionWrapper>
+            </ProtectedRoute>
           } 
         />
 
@@ -296,6 +316,46 @@ function MarketplaceRouter() {
         />
         <Route path="/seller/add-product" element={<Navigate to="/seller/products/new" replace />} />
         <Route path="/seller/products/add" element={<Navigate to="/seller/products/new" replace />} />
+        <Route 
+          path="/seller/advertising" 
+          element={
+            <ProtectedRoute allowedRoles={getAllowedRolesForRoute('/seller/dashboard')}>
+              <PageTransitionWrapper>
+                <SellerDashboardPage />
+              </PageTransitionWrapper>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/seller/advertising/:adId" 
+          element={
+            <ProtectedRoute allowedRoles={getAllowedRolesForRoute('/seller/dashboard')}>
+              <PageTransitionWrapper>
+                <SellerDashboardPage />
+              </PageTransitionWrapper>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/seller/warehouse" 
+          element={
+            <ProtectedRoute allowedRoles={getAllowedRolesForRoute('/seller/dashboard')}>
+              <PageTransitionWrapper>
+                <SellerDashboardPage />
+              </PageTransitionWrapper>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/seller/warehouse/:requestId" 
+          element={
+            <ProtectedRoute allowedRoles={getAllowedRolesForRoute('/seller/dashboard')}>
+              <PageTransitionWrapper>
+                <SellerDashboardPage />
+              </PageTransitionWrapper>
+            </ProtectedRoute>
+          } 
+        />
         <Route 
           path="/seller/orders" 
           element={
@@ -380,6 +440,27 @@ function MarketplaceRouter() {
         />
         <Route path="/admin/dashboard" element={<Navigate to="/admin" replace />} />
         <Route path="/admin/settlement-calculator" element={<Navigate to="/admin/settlement-calc" replace />} />
+
+        {/* 7. Warehouse Manager Setup (Public) & Workspace (Warehouse Manager only) */}
+        <Route
+          path="/warehouse/setup"
+          element={
+            <PageTransitionWrapper>
+              <WarehouseSetupPage />
+            </PageTransitionWrapper>
+          }
+        />
+        <Route path="/warehouse" element={<Navigate to="/warehouse/dashboard" replace />} />
+        <Route
+          path="/warehouse/*"
+          element={
+            <ProtectedRoute allowedRoles={getAllowedRolesForRoute('/warehouse/dashboard')}>
+              <PageTransitionWrapper>
+                <WarehouseDashboardPage />
+              </PageTransitionWrapper>
+            </ProtectedRoute>
+          }
+        />
 
         {/* Fallback to Home */}
         <Route path="*" element={<Navigate to="/" replace />} />

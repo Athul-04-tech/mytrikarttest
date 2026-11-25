@@ -42,8 +42,8 @@ describe('SellerDashboardTopBar Alerts Wiring Suite', () => {
     // Verify header title does NOT include "(Urgent)"
     expect(screen.getByText('Store Alerts')).toBeDefined();
 
-    // Static Weekly Payout block still renders
-    expect(screen.getByText('Weekly Payout Ready')).toBeDefined();
+    // Static fake Weekly Payout block is removed
+    expect(screen.queryByText('Weekly Payout Ready')).toBeNull();
   });
 
   it('2. renders low stock warning with badge count 1 and formatted variant detail', () => {
@@ -112,6 +112,6 @@ describe('SellerDashboardTopBar Alerts Wiring Suite', () => {
     expect(screen.getByText('Store Alerts (2 Urgent)')).toBeDefined();
     expect(screen.getByText('Low Stock Warning')).toBeDefined();
     expect(screen.getByText('3 New Customer Orders')).toBeDefined();
-    expect(screen.getByText('Weekly Payout Ready')).toBeDefined();
+    expect(screen.queryByText('Weekly Payout Ready')).toBeNull();
   });
 });

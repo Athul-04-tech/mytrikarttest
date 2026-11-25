@@ -45,7 +45,7 @@ export default function AdminSidebar({
   const location = useLocation();
   const toast = useToast();
   const { logout } = useAuth();
-  const [openGroups, setOpenGroups] = useState(['catalog', 'people', 'orders', 'finance', 'insights', 'platform']);
+  const [openGroups, setOpenGroups] = useState(['catalog', 'people', 'orders', 'warehouse', 'finance', 'insights', 'platform']);
 
   const activeSection = location.pathname === '/admin' ? 'dashboard' : location.pathname.replace('/admin/', '');
 

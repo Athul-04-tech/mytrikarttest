@@ -1,16 +1,28 @@
 import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { getHomeRouteForRole } from '../utils/authRouting';
 import { ShieldAlert, Home, User, LogOut } from 'lucide-react';
 
 export default function UnauthorizedPage({ allowedRoles = [] }) {
   const navigate = useNavigate();
   const { currentUser, logout } = useAuth();
 
-  const userRole = (currentUser?.role || 'customer').toUpperCase();
+  const rawRole = String(currentUser?.role || 'customer').trim().toLowerCase();
+  const userRole = rawRole.toUpperCase();
   const requiredRolesText = allowedRoles
     .map(r => r.toUpperCase())
     .join(' or ');
+
+  const roleHomePath = rawRole === 'customer' ? '/profile' : getHomeRouteForRole(rawRole);
+  const roleHomeLabel =
+    rawRole === 'warehouse_manager'
+      ? 'My Warehouse Workspace'
+      : rawRole === 'admin'
+      ? 'Admin Command Center'
+      : rawRole === 'vendor' || rawRole === 'seller'
+      ? 'Seller Hub Dashboard'
+      : 'My Customer Account';
 
   const handleLogout = async () => {
     await logout();
@@ -18,7 +30,10 @@ export default function UnauthorizedPage({ allowedRoles = [] }) {
   };
 
   return (
-    <div className="min-h-screen bg-[#FFFFFF] flex items-center justify-center p-4 font-sans selection:bg-[#FF811A]/30 selection:text-[#FA661C]">
+    <div
+      data-testid="role-forbidden-screen"
+      className="min-h-screen bg-[#FFFFFF] flex items-center justify-center p-4 font-sans selection:bg-[#FF811A]/30 selection:text-[#FA661C]"
+    >
       <div className="max-w-lg w-full bg-white rounded-3xl border border-[#EAE3DC] p-6 sm:p-10 shadow-xl text-center space-y-6 animate-reveal">
         
         {/* Header Icon */}
@@ -31,7 +46,10 @@ export default function UnauthorizedPage({ allowedRoles = [] }) {
           <span className="inline-block px-3 py-1 rounded-full bg-[#FFF3F3] text-[#DC2626] text-xs font-bold uppercase tracking-wider border border-[#FCA5A5]/30">
             HTTP 403 — Access Restricted
           </span>
-          <h1 className="font-['Outfit'] text-2xl sm:text-3xl font-extrabold text-[#FA661C]">
+          <h1
+            data-testid="role-forbidden-heading"
+            className="font-['Outfit'] text-2xl sm:text-3xl font-extrabold text-[#FA661C]"
+          >
             Permission Required
           </h1>
         </div>
@@ -58,11 +76,11 @@ export default function UnauthorizedPage({ allowedRoles = [] }) {
             </Link>
 
             <Link
-              to="/profile"
+              to={roleHomePath}
               className="py-2.5 px-4 rounded-xl text-xs font-bold text-[#FFFFFF] bg-[#FA661C] hover:bg-[#E0530B] transition-all flex items-center justify-center space-x-2 btn-interactive shadow-xs"
             >
               <User className="w-4 h-4 text-[#FF811A]" />
-              <span>My Customer Account</span>
+              <span>{roleHomeLabel}</span>
             </Link>
           </div>
 

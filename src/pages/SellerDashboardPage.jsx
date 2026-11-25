@@ -16,6 +16,8 @@ import SellerSettlementsView from '../components/seller-dashboard/subviews/Selle
 import SellerSettingsView from '../components/seller-dashboard/subviews/SellerSettingsView';
 import SellerProfileView from '../components/seller-dashboard/subviews/SellerProfileView';
 import SellerAnnouncementsView from '../components/seller-dashboard/subviews/SellerAnnouncementsView';
+import SellerWarehouseView from '../components/seller-dashboard/subviews/SellerWarehouseView';
+import SellerAdvertisingView from '../components/seller-dashboard/subviews/SellerAdvertisingView';
 import SellerRestrictionBanner, { SellerControlHistoryPanel } from '../components/seller-dashboard/SellerRestrictionBanner';
 import { VendorProfileProvider, useVendorProfile } from '../context/VendorProfileContext';
 import { apiRequest } from '../utils/api';
@@ -40,6 +42,8 @@ function SellerDashboardContent() {
     const path = location.pathname;
     if (path.includes('/seller/announcements')) return 'announcements';
     if (path.includes('/seller/products')) return 'products';
+    if (path.includes('/seller/advertising')) return 'advertising';
+    if (path.includes('/seller/warehouse')) return 'warehouse';
     if (path.includes('/seller/orders')) return 'orders';
     if (path.includes('/seller/settlements')) return 'settlements';
     if (path.includes('/seller/settings')) return 'settings';
@@ -72,6 +76,8 @@ function SellerDashboardContent() {
       dashboard: 'Seller Dashboard — MytriKart Hub',
       announcements: 'Vendor Announcements — MytriKart Hub',
       products: 'Products & Inventory Catalog — MytriKart Hub',
+      advertising: 'Seller Advertising — MytriKart Hub',
+      warehouse: 'Warehouse Storage — MytriKart Hub',
       orders: 'Orders Fulfillment — MytriKart Hub',
       settlements: 'Settlements & Payouts — MytriKart Hub',
       settings: 'Store Settings — MytriKart Hub',
@@ -255,6 +261,16 @@ function SellerDashboardContent() {
           {/* Sub-view: Products Catalog */}
           {activeSection === 'products' && (
             <SellerProductsView onNavigateToAddProduct={() => navigate('/seller/products/new')} />
+          )}
+
+          {/* Sub-view: Advertising (Phase 1) */}
+          {activeSection === 'advertising' && (
+            <SellerAdvertisingView vendorProfile={vendorProfile} />
+          )}
+
+          {/* Sub-view: Warehouse Storage */}
+          {activeSection === 'warehouse' && (
+            <SellerWarehouseView vendorProfile={vendorProfile} />
           )}
 
           {/* Sub-view: Orders Fulfillment */}

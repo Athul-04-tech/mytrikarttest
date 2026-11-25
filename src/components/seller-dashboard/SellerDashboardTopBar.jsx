@@ -247,12 +247,6 @@ export default function SellerDashboardTopBar({
                       <p className="text-[10px] text-[#6B6058] italic">No active store alerts</p>
                     </div>
                   )}
-
-                  {/* Standard payout schedule notification */}
-                  <div className="pt-2">
-                    <h5 className="font-bold text-[#FA661C]">Weekly Payout Ready</h5>
-                    <p className="text-[10px] text-[#6B6058]">Settlement cycle processing for active statement.</p>
-                  </div>
                 </div>
               </div>
             )}
