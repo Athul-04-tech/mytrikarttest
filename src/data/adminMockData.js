@@ -31,6 +31,7 @@ export const ADMIN_NAV_GROUPS = [
     iconName: 'Truck',
     items: [
       { id: 'order-ops', label: 'Order Management', desc: 'Order tracking and status updates across marketplace orders.' },
+      { id: 'delivery-packaging-fees', label: 'Delivery and Packaging Fees', desc: 'Schedule currency-specific delivery fee thresholds, flat delivery charges, and per-parcel packaging fees.' },
       { id: 'rma', label: 'Returns, Refunds & RMA', desc: 'Review RMA return requests, inspection decisions, and refund approvals.' }
     ]
   },
@@ -40,7 +41,11 @@ export const ADMIN_NAV_GROUPS = [
     iconName: 'Boxes',
     items: [
       { id: 'warehouse', label: 'Warehouse & Managers', desc: 'Manage warehouses, manager setup invites, warehouse assignments, and audit logs.' },
-      { id: 'warehouse-rate-cards', label: 'Rate Cards', desc: 'Review submitted warehouse rate cards, approve or reject with audit reason, and run read-only storage estimates.' }
+      { id: 'warehouse-rate-cards', label: 'Rate Cards', desc: 'Review submitted warehouse rate cards, approve or reject with audit reason, and run read-only storage estimates.' },
+      { id: 'warehouse-shipments', label: 'Warehouse Shipments', desc: 'Inspect warehouse pick, pack, label, dispatch, and delivery shipments and event logs.' },
+      { id: 'warehouse-stock-reconciliation', label: 'Stock Reconciliation', desc: 'Inspect per-variant and warehouse stock reconciliation report and apply superuser seller stock corrections.' },
+      { id: 'warehouse-hub-assignments', label: 'Hub Assignments & Handovers', desc: 'Assign platform hubs to sellers and inspect needs-hub and overdue seller handovers.' },
+      { id: 'warehouse-returns', label: 'Warehouse Returns', desc: 'Inspect and receive customer return requests at platform hubs.' }
     ]
   },
   {

@@ -31,6 +31,45 @@ const APPROVED_ONBOARDING_STATUSES = new Set([
   'store_published',
 ]);
 
+/**
+ * Derive the status ('Verified' | 'Pending' | 'Missing') for each required document
+ * type strictly from the API response (`vendor.document_requirements` and `vendor.documents`).
+ */
+export function getRequiredDocumentStatuses(vendor) {
+  const requiredTypes = Array.isArray(vendor?.document_requirements?.required)
+    ? vendor.document_requirements.required
+    : [];
+  const verifiedSet = new Set(
+    Array.isArray(vendor?.document_requirements?.verified)
+      ? vendor.document_requirements.verified
+      : []
+  );
+  const docs = Array.isArray(vendor?.documents) ? vendor.documents : [];
+
+  return requiredTypes.map((docType) => {
+    const usableDocsForType = docs.filter(
+      (d) => d && d.document_type === docType && d.file_available !== false
+    );
+
+    if (usableDocsForType.length > 0) {
+      const latestDoc = usableDocsForType[0];
+      if (latestDoc.status === 'verified') {
+        return { type: docType, status: 'Verified' };
+      }
+      if (latestDoc.status === 'pending') {
+        return { type: docType, status: 'Pending' };
+      }
+      return { type: docType, status: 'Missing' };
+    }
+
+    if (verifiedSet.has(docType)) {
+      return { type: docType, status: 'Verified' };
+    }
+
+    return { type: docType, status: 'Missing' };
+  });
+}
+
 const CONTROL_ACTION_META = {
   suspend: {
     label: 'Suspend Selling',
@@ -385,11 +424,32 @@ export default function VendorHubModule() {
         body: JSON.stringify(payload)
       });
 
-      // Update document in selectedVendor and vendors list
-      const updateDocs = (docList) => (docList || []).map(d => d.id === docId ? updatedDoc : d);
+      // Update document and document_requirements in selectedVendor and vendors list
+      const updateVendorWithDoc = (vendorObj) => {
+        if (!vendorObj) return vendorObj;
+        const nextDocs = (vendorObj.documents || []).map(d => d.id === docId ? updatedDoc : d);
+        let nextReqs = vendorObj.document_requirements;
+        if (nextReqs && Array.isArray(nextReqs.required)) {
+          const verifiedTypes = nextReqs.required.filter((reqType) => {
+            const matching = nextDocs.filter(d => d && d.document_type === reqType && d.file_available !== false);
+            return matching.length > 0 && matching[0].status === 'verified';
+          });
+          const missingOrUnverified = nextReqs.required.filter((reqType) => !verifiedTypes.includes(reqType));
+          nextReqs = {
+            ...nextReqs,
+            verified: verifiedTypes,
+            missing_or_unverified: missingOrUnverified,
+          };
+        }
+        return {
+          ...vendorObj,
+          documents: nextDocs,
+          document_requirements: nextReqs,
+        };
+      };
 
-      setSelectedVendor(prev => prev ? { ...prev, documents: updateDocs(prev.documents) } : null);
-      setVendors(prev => prev.map(v => v.id === selectedVendor.id ? { ...v, documents: updateDocs(v.documents) } : v));
+      setSelectedVendor(prev => prev ? updateVendorWithDoc(prev) : null);
+      setVendors(prev => prev.map(v => v.id === selectedVendor.id ? updateVendorWithDoc(v) : v));
 
       toast.success(
         newStatus === 'verified' ? "Document Verified" : "Document Rejected",
@@ -433,10 +493,34 @@ export default function VendorHubModule() {
       console.error("Failed to submit vendor review decision:", err);
       let errMsg = "Failed to update onboarding decision.";
       if (err.data) {
-        if (typeof err.data === 'string') errMsg = err.data;
-        else if (err.data.detail) errMsg = typeof err.data.detail === 'string' ? err.data.detail : JSON.stringify(err.data.detail);
-        else if (err.data.reason) errMsg = Array.isArray(err.data.reason) ? err.data.reason[0] : err.data.reason;
-        else if (err.data.action) errMsg = Array.isArray(err.data.action) ? err.data.action[0] : err.data.action;
+        if (typeof err.data === 'string') {
+          errMsg = err.data;
+        } else {
+          const parts = [];
+          if (err.data.detail) {
+            const detailStr = Array.isArray(err.data.detail)
+              ? err.data.detail.join(' ')
+              : typeof err.data.detail === 'string'
+              ? err.data.detail
+              : JSON.stringify(err.data.detail);
+            if (detailStr) parts.push(detailStr);
+          } else if (err.data.reason) {
+            parts.push(Array.isArray(err.data.reason) ? err.data.reason.join(' ') : String(err.data.reason));
+          } else if (err.data.action) {
+            parts.push(Array.isArray(err.data.action) ? err.data.action.join(' ') : String(err.data.action));
+          }
+          if (err.data.missing_or_unverified) {
+            const missingList = Array.isArray(err.data.missing_or_unverified)
+              ? err.data.missing_or_unverified.join(', ')
+              : String(err.data.missing_or_unverified);
+            if (missingList) {
+              parts.push(`Missing or unverified: ${missingList}`);
+            }
+          }
+          if (parts.length > 0) {
+            errMsg = parts.join(' — ');
+          }
+        }
       } else if (err.message) {
         errMsg = err.message;
       }
@@ -1297,6 +1381,54 @@ export default function VendorHubModule() {
 
             {/* Document Verification Section */}
             <div className="space-y-3 pt-2">
+              {/* Required documents checklist derived strictly from API document_requirements + documents */}
+              {Array.isArray(selectedVendor.document_requirements?.required) &&
+                selectedVendor.document_requirements.required.length > 0 && (
+                  <div
+                    data-testid="required-documents-section"
+                    className="p-4 rounded-2xl bg-[#FFF8F2] border border-[#EAE3DC] space-y-2.5"
+                  >
+                    <div className="flex items-center justify-between">
+                      <h5 className="font-['Outfit'] font-bold text-xs uppercase tracking-wider text-[#FA661C]">
+                        Required documents
+                      </h5>
+                      <span className="text-[11px] text-[#6B6058] font-semibold">
+                        Country: {selectedVendor.country}
+                      </span>
+                    </div>
+                    <ul
+                      data-testid="required-documents-list"
+                      className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs"
+                    >
+                      {getRequiredDocumentStatuses(selectedVendor).map(({ type, status }) => {
+                        const badgeClass =
+                          status === 'Verified'
+                            ? 'bg-[#EAF5ED] text-[#40916C] border-[#52B788]/40'
+                            : status === 'Pending'
+                            ? 'bg-[#FFF8F2] text-[#FA661C] border-[#FF811A]/40'
+                            : 'bg-[#FDE8EA] text-[#D7263D] border-[#D7263D]/40';
+                        return (
+                          <li
+                            key={type}
+                            data-testid={`required-doc-${type}`}
+                            className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-[#EAE3DC]"
+                          >
+                            <span className="font-bold uppercase text-[#1A2420] tracking-wide">
+                              {type}
+                            </span>
+                            <span
+                              data-testid={`required-doc-status-${type}`}
+                              className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${badgeClass}`}
+                            >
+                              {status}
+                            </span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                )}
+
               <div className="flex items-center justify-between">
                 <h4 className="font-['Outfit'] font-bold text-sm text-[#FA661C] flex items-center space-x-1.5">
                   <FileText className="w-4 h-4 text-[#FF811A]" />
@@ -1450,7 +1582,11 @@ export default function VendorHubModule() {
 
               {/* Form Error Banner */}
               {formError && (
-                <div className="p-3 bg-[#FDE8EA] border border-[#D7263D]/40 rounded-xl text-xs text-[#D7263D] flex items-start space-x-2">
+                <div
+                  role="alert"
+                  data-testid="onboarding-decision-error"
+                  className="p-3 bg-[#FDE8EA] border border-[#D7263D]/40 rounded-xl text-xs text-[#D7263D] flex items-start space-x-2"
+                >
                   <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                   <div className="flex-1 font-semibold">{formError}</div>
                 </div>

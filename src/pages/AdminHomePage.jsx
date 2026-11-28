@@ -25,6 +25,7 @@ import CouponManagementModule from '../components/admin/modules/CouponManagement
 import AnnouncementsModule from '../components/admin/modules/AnnouncementsModule';
 import WarehouseModule from '../components/admin/modules/WarehouseModule';
 import AdvertisingAdminModule from '../components/admin/modules/AdvertisingAdminModule';
+import DeliveryPackagingFeesModule from '../components/admin/modules/DeliveryPackagingFeesModule';
 
 import { ADMIN_NAV_GROUPS } from '../data/adminMockData';
 import { apiRequest } from '../utils/api';
@@ -167,6 +168,9 @@ export default function AdminHomePage() {
         );
       case 'rma':
         return <RmaModule />;
+      case 'delivery-packaging-fees':
+      case 'order-fees':
+        return <DeliveryPackagingFeesModule />;
       case 'settlement-calc':
       case 'settlement-dash':
         return <SettlementCalcModule />;
@@ -203,6 +207,16 @@ export default function AdminHomePage() {
       case 'warehouse-rate-cards':
       case 'rate-cards':
         return <WarehouseModule key="warehouse-rate-cards" initialTab="rate-cards" />;
+      case 'warehouse-shipments':
+        return <WarehouseModule key="warehouse-shipments" initialTab="shipments" />;
+      case 'warehouse-stock-reconciliation':
+      case 'stock-reconciliation':
+        return <WarehouseModule key="warehouse-stock-reconciliation" initialTab="reconciliation" />;
+      case 'warehouse-hub-assignments':
+      case 'hub-assignments':
+        return <WarehouseModule key="warehouse-hub-assignments" initialTab="hub-assignments" />;
+      case 'warehouse-returns':
+        return <WarehouseModule key="warehouse-returns" initialTab="returns" />;
       case 'reports':
         return <ReportsModule />;
 

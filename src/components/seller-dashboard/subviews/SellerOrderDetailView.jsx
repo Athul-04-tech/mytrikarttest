@@ -7,6 +7,13 @@ import { apiRequest } from '../../../utils/api';
 import { formatSellerINR } from '../../../utils/currency';
 import { useToast } from '../../../context/ToastContext';
 import { downloadSellerInvoice } from '../../../utils/sellerInvoice';
+import {
+  formatShipmentStatusLabel,
+  getShipmentStatusBadgeClass,
+  formatFulfilmentStageLabel,
+  hasNonZeroMoneyString,
+  parseWarehouseApiError,
+} from '../../../utils/warehouseUtils';
 
 const STATUS = {
   pending: { label: 'Pending', cls: 'bg-[#FFF8F2] text-[#FA661C] border-[#FF811A]/50', icon: Clock },
@@ -37,6 +44,78 @@ export default function SellerOrderDetailView({ orderId, vendorProfile, onBack, 
   const [error, setError] = useState(null);
   const [downloading, setDownloading] = useState(false);
   const toast = useToast();
+
+  // Seller confirm returned goods on rejected/cancelled parcel (`POST /api/warehouse/vendor-orders/<pk>/confirm-return/`)
+  const [confirmReturnOpen, setConfirmReturnOpen] = useState(false);
+  const [returnReceiptRef, setReturnReceiptRef] = useState('');
+  const [returnQuantities, setReturnQuantities] = useState({});
+  const [returnFieldErrors, setReturnFieldErrors] = useState({});
+  const [returnGeneralError, setReturnGeneralError] = useState('');
+  const [returnSubmitting, setReturnSubmitting] = useState(false);
+  const [returnResult, setReturnResult] = useState(null);
+  const [returnFeatureDisabled, setReturnFeatureDisabled] = useState(false);
+
+  const openConfirmReturnDialog = () => {
+    if (!order || returnSubmitting) return;
+    const initialQty = {};
+    (order.items || []).forEach((it, idx) => {
+      const itemId = it.id ?? it.order_item_id ?? idx + 1;
+      initialQty[itemId] = String(it.held_quantity ?? it.quantity ?? '');
+    });
+    setReturnQuantities(initialQty);
+    setReturnReceiptRef('');
+    setReturnFieldErrors({});
+    setReturnGeneralError('');
+    setConfirmReturnOpen(true);
+  };
+
+  const handleConfirmReturnSubmit = async (e) => {
+    e.preventDefault();
+    if (!order || returnSubmitting) return;
+    setReturnFieldErrors({});
+    setReturnGeneralError('');
+    setReturnSubmitting(true);
+
+    const quantitiesPayload = (order.items || []).map((it, idx) => {
+      const itemId = Number(it.id ?? it.order_item_id ?? idx + 1);
+      const rawVal = returnQuantities[itemId] ?? '';
+      return {
+        order_item_id: itemId,
+        quantity: rawVal === '' ? 0 : Number(rawVal),
+      };
+    });
+
+    try {
+      const res = await apiRequest(
+        `/api/warehouse/vendor-orders/${order.id}/confirm-return/`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            receipt_reference: returnReceiptRef,
+            quantities: quantitiesPayload,
+          }),
+        }
+      );
+      setReturnResult(res);
+      setConfirmReturnOpen(false);
+    } catch (err) {
+      if (err?.status === 404 && /disabled/i.test(String(err?.data?.detail || ''))) {
+        setReturnFeatureDisabled(true);
+        setConfirmReturnOpen(false);
+        return;
+      }
+      const parsed = parseWarehouseApiError(err, [
+        'receipt_reference',
+        'quantities',
+      ]);
+      setReturnFieldErrors(parsed.fieldErrors);
+      if (Object.keys(parsed.fieldErrors).length === 0 || err?.status === 409) {
+        setReturnGeneralError(parsed.generalError);
+      }
+    } finally {
+      setReturnSubmitting(false);
+    }
+  };
 
   const load = async () => {
     setLoading(true); setError(null);
@@ -86,12 +165,43 @@ export default function SellerOrderDetailView({ orderId, vendorProfile, onBack, 
   const st = STATUS[order.status] || STATUS.pending;
   const StIcon = st.icon;
   const stepIdx = STEPS.indexOf(order.status);
-  const addr = order.shipping_address || {};
-  const cust = order.customer || {};
+  const hasCustomer =
+    order.customer !== null &&
+    order.customer !== undefined &&
+    typeof order.customer === 'object' &&
+    Boolean(
+      order.customer.full_name ||
+        order.customer.username ||
+        order.customer.email
+    );
+  const hasAddress =
+    order.shipping_address !== null &&
+    order.shipping_address !== undefined &&
+    typeof order.shipping_address === 'object' &&
+    Boolean(
+      order.shipping_address.recipient_name ||
+        order.shipping_address.address_line1 ||
+        order.shipping_address.city
+    );
+  const addr = hasAddress ? order.shipping_address : {};
+  const cust = hasCustomer ? order.customer : {};
   const items = order.items || [];
-  const sumTax = (k) => items.reduce((s, it) => s + Number(it[k] || 0), 0);
-  const taxRows = [['CGST', sumTax('cgst_amount')], ['SGST', sumTax('sgst_amount')], ['IGST', sumTax('igst_amount')], ['VAT', sumTax('vat_amount')]].filter(([, v]) => v > 0);
-  const initials = (cust.full_name || cust.username || 'C').split(' ').map((p) => p[0]).join('').slice(0, 2).toUpperCase();
+  const initials = hasCustomer
+    ? (cust.full_name || cust.username || 'C')
+        .split(' ')
+        .map((p) => p[0])
+        .join('')
+        .slice(0, 2)
+        .toUpperCase()
+    : 'C';
+  const canConfirmHandoverReturn =
+    !showVendor &&
+    !returnFeatureDisabled &&
+    (order.status === 'cancelled' ||
+      order.fulfilment_stage === 'cancelled' ||
+      Boolean(order.has_held_handover_stock) ||
+      (Array.isArray(order.handover_stock_holds) &&
+        order.handover_stock_holds.length > 0));
 
   return (
     <div className="space-y-6 text-xs animate-reveal">
@@ -107,6 +217,14 @@ export default function SellerOrderDetailView({ orderId, vendorProfile, onBack, 
               <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full uppercase inline-flex items-center gap-1 border ${st.cls}`}>
                 <StIcon className="w-3 h-3" />{st.label}
               </span>
+              {order.fulfilment_stage && (
+                <span
+                  data-testid="seller-order-fulfilment-stage"
+                  className="text-[11px] font-bold px-3 py-1 rounded-full bg-[#FFF3EC] text-[#FA661C] border border-[#FA661C]/20"
+                >
+                  {formatFulfilmentStageLabel(order.fulfilment_stage)}
+                </span>
+              )}
             </div>
             <p className="text-[11px] text-[#6B6058] mt-0.5">
               {order.order_number && <span className="font-mono">{order.order_number} • </span>}Placed {fmtDate(order.order_created_at || order.created_at)}
@@ -145,31 +263,50 @@ export default function SellerOrderDetailView({ orderId, vendorProfile, onBack, 
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* Customer */}
-        <Card icon={User} title="Customer">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#FA661C] to-[#FF811A] text-white font-['Outfit'] font-black text-base flex items-center justify-center">{initials}</div>
-            <div className="min-w-0">
-              <p className="font-bold text-sm text-[#1A2420] truncate">{cust.full_name || cust.username || 'Customer'}</p>
-              {cust.username && <p className="text-[11px] text-[#FA661C] font-mono">@{cust.username}</p>}
+        {/* Customer (omitted cleanly when privacy switch omits customer details) */}
+        {hasCustomer && (
+          <Card icon={User} title="Customer">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#FA661C] to-[#FF811A] text-white font-['Outfit'] font-black text-base flex items-center justify-center">{initials}</div>
+              <div className="min-w-0">
+                <p className="font-bold text-sm text-[#1A2420] truncate">{cust.full_name || cust.username}</p>
+                {cust.username && <p className="text-[11px] text-[#FA661C] font-mono">@{cust.username}</p>}
+              </div>
             </div>
-          </div>
-          <div className="mt-4 space-y-2 text-[#6B6058]">
-            {cust.email && <p className="flex items-center gap-2 break-all"><Mail className="w-3.5 h-3.5 text-[#FF811A] shrink-0" />{cust.email}</p>}
-            {addr.recipient_phone && <p className="flex items-center gap-2"><Phone className="w-3.5 h-3.5 text-[#FF811A] shrink-0" />{addr.recipient_phone}</p>}
-          </div>
-        </Card>
+            <div className="mt-4 space-y-2 text-[#6B6058]">
+              {cust.email && <p className="flex items-center gap-2 break-all"><Mail className="w-3.5 h-3.5 text-[#FF811A] shrink-0" />{cust.email}</p>}
+              {addr.recipient_phone && <p className="flex items-center gap-2"><Phone className="w-3.5 h-3.5 text-[#FF811A] shrink-0" />{addr.recipient_phone}</p>}
+            </div>
+          </Card>
+        )}
 
-        {/* Address */}
-        <Card icon={MapPin} title="Shipping Address">
-          <address className="not-italic space-y-0.5 text-[#1A2420] leading-relaxed">
-            <p className="font-bold text-sm">{addr.recipient_name || '—'}</p>
-            <p>{addr.address_line1}</p>
-            {addr.address_line2 && <p>{addr.address_line2}</p>}
-            <p>{[addr.city, addr.state].filter(Boolean).join(', ')} {addr.postal_code}</p>
-            <p className="text-[#6B6058]">{addr.country}</p>
-          </address>
-        </Card>
+        {/* Address (omitted cleanly when privacy switch omits address details) */}
+        {hasAddress && (
+          <Card icon={MapPin} title="Shipping Address">
+            <address className="not-italic space-y-0.5 text-[#1A2420] leading-relaxed">
+              {addr.recipient_name && <p className="font-bold text-sm">{addr.recipient_name}</p>}
+              {addr.address_line1 && <p>{addr.address_line1}</p>}
+              {addr.address_line2 && <p>{addr.address_line2}</p>}
+              {([addr.city, addr.state].filter(Boolean).length > 0 || addr.postal_code) && (
+                <p>{[addr.city, addr.state].filter(Boolean).join(', ')} {addr.postal_code}</p>
+              )}
+              {addr.country && <p className="text-[#6B6058]">{addr.country}</p>}
+            </address>
+          </Card>
+        )}
+
+        {/* Privacy Notice when customer or shipping address is omitted by server */}
+        {(!hasCustomer || !hasAddress) && (
+          <div
+            data-testid="seller-order-privacy-note"
+            className="bg-white rounded-3xl border border-[#EAE3DC] p-5 shadow-xs flex items-center space-x-3 text-xs text-[#6B6058]"
+          >
+            <PackageCheck className="w-5 h-5 text-[#FA661C] shrink-0" />
+            <span className="font-semibold text-[#1A2420]">
+              Customer details are handled by our warehouse team.
+            </span>
+          </div>
+        )}
 
         {/* Payment */}
         <Card icon={CreditCard} title="Payment & Dates">
@@ -179,6 +316,49 @@ export default function SellerOrderDetailView({ orderId, vendorProfile, onBack, 
             <div className="flex justify-between gap-2"><dt className="text-[#6B6058] flex items-center gap-1"><Calendar className="w-3 h-3" />Ordered</dt><dd className="font-semibold text-right">{fmtDate(order.order_created_at || order.created_at)}</dd></div>
             <div className="flex justify-between gap-2"><dt className="text-[#6B6058] flex items-center gap-1"><CheckCircle2 className="w-3 h-3" />Delivered</dt><dd className="font-semibold text-right">{fmtDate(order.delivered_at)}</dd></div>
           </dl>
+          {order.shipment && (
+            <div
+              data-testid="seller-order-shipment-tracking"
+              className="mt-4 pt-3 border-t border-[#EAE3DC] space-y-1.5"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[#6B6058] font-bold flex items-center gap-1">
+                  <Truck className="w-3.5 h-3.5 text-[#FA661C]" />
+                  <span>Warehouse Shipment</span>
+                </span>
+                <span
+                  data-testid="seller-order-shipment-status"
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${getShipmentStatusBadgeClass(
+                    order.shipment.status
+                  )}`}
+                >
+                  {formatShipmentStatusLabel(order.shipment.status)}
+                </span>
+              </div>
+              {order.shipment.courier_name && (
+                <div className="flex justify-between">
+                  <span className="text-[#6B6058]">Courier</span>
+                  <strong
+                    data-testid="seller-order-shipment-courier"
+                    className="text-[#1A2420]"
+                  >
+                    {order.shipment.courier_name}
+                  </strong>
+                </div>
+              )}
+              {order.shipment.tracking_number && (
+                <div className="flex justify-between">
+                  <span className="text-[#6B6058]">Tracking</span>
+                  <strong
+                    data-testid="seller-order-shipment-tracking-number"
+                    className="font-mono text-[#FA661C]"
+                  >
+                    {order.shipment.tracking_number}
+                  </strong>
+                </div>
+              )}
+            </div>
+          )}
         </Card>
       </div>
 
@@ -220,11 +400,8 @@ export default function SellerOrderDetailView({ orderId, vendorProfile, onBack, 
         <Card icon={Receipt} title="Charges Breakdown">
           <dl className="space-y-2.5 font-mono">
             <div className="flex justify-between"><dt className="font-sans text-[#6B6058]">Subtotal</dt><dd className="font-bold">{formatSellerINR(order.subtotal)}</dd></div>
-            {taxRows.map(([k, v]) => (
-              <div key={k} className="flex justify-between pl-3 text-[11px]"><dt className="font-sans text-[#6B6058]">{k}</dt><dd>{formatSellerINR(v)}</dd></div>
-            ))}
             <div className="flex justify-between"><dt className="font-sans text-[#6B6058]">Tax Total</dt><dd className="font-bold">{formatSellerINR(order.tax_total)}</dd></div>
-            <div className="flex justify-between"><dt className="font-sans text-[#6B6058]">Shipping Charges</dt><dd className="font-bold">{Number(order.shipping_total) ? formatSellerINR(order.shipping_total) : 'FREE'}</dd></div>
+            <div className="flex justify-between"><dt className="font-sans text-[#6B6058]">Shipping Charges</dt><dd className="font-bold">{hasNonZeroMoneyString(order.shipping_total) ? formatSellerINR(order.shipping_total) : 'FREE'}</dd></div>
           </dl>
           <div className="mt-4 p-4 rounded-2xl bg-gradient-to-r from-[#FA661C] to-[#FF811A] text-white flex justify-between items-center">
             <span className="font-['Outfit'] font-bold text-sm">Grand Total</span>
@@ -232,6 +409,213 @@ export default function SellerOrderDetailView({ orderId, vendorProfile, onBack, 
           </div>
         </Card>
       </div>
+
+      {/* Confirm returned goods on a rejected or cancelled parcel whose goods were held at the hub */}
+      {(canConfirmHandoverReturn || returnResult) && (
+        <section
+          data-testid="seller-order-confirm-return-section"
+          className="bg-white rounded-3xl border border-[#EAE3DC] p-5 shadow-xs space-y-3"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="font-['Outfit'] font-extrabold text-sm text-[#1A2420]">
+                Hub Return Confirmation
+              </h2>
+              <p className="text-xs text-[#6B6058]">
+                If this parcel was rejected or cancelled while goods were held at the platform hub, confirm physical return to restore your seller stock.
+              </p>
+            </div>
+            {canConfirmHandoverReturn && (
+              <button
+                type="button"
+                data-testid="seller-order-confirm-return-btn"
+                disabled={returnSubmitting}
+                onClick={openConfirmReturnDialog}
+                className="px-4 py-2 rounded-xl bg-[#6B21A8] hover:bg-[#581C87] text-white font-bold text-xs cursor-pointer disabled:opacity-50"
+              >
+                Confirm returned goods
+              </button>
+            )}
+          </div>
+
+          {returnResult && (
+            <div
+              data-testid="seller-order-return-confirmed-panel"
+              className="p-3.5 rounded-2xl bg-[#ECFDF5] border border-[#6EE7B7] text-[#065F46] space-y-1.5 text-xs"
+            >
+              <div className="font-bold flex items-center space-x-1.5">
+                <CheckCircle2 className="w-4 h-4 text-[#059669] shrink-0" />
+                <span>
+                  Returned goods confirmed for Parcel #{returnResult.vendor_order_id}
+                </span>
+              </div>
+              {Array.isArray(returnResult.returned_quantities) && (
+                <div
+                  data-testid="seller-order-returned-quantities-list"
+                  className="space-y-1 text-[11px]"
+                >
+                  {returnResult.returned_quantities.map((rq, idx) => (
+                    <div
+                      key={rq.order_item_id ?? idx}
+                      data-testid={`seller-order-returned-line-${
+                        rq.order_item_id ?? idx
+                      }`}
+                    >
+                      Order Item #{rq.order_item_id}: Returned quantity{' '}
+                      <strong>{rq.returned_quantity}</strong> (Held:{' '}
+                      {rq.held_quantity})
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* NATIVE <dialog>: CONFIRM RETURNED GOODS FROM HUB (`POST /api/warehouse/vendor-orders/<pk>/confirm-return/`) */}
+      {confirmReturnOpen && (
+        <dialog
+          open
+          data-testid="seller-order-confirm-return-dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 bg-[#1A2420]/60 backdrop-blur-2xs flex items-center justify-center p-4 w-full h-full m-0 border-0"
+        >
+          <div className="bg-white rounded-3xl border border-[#EAE3DC] shadow-2xl max-w-md w-full p-6 space-y-4 text-xs">
+            <div className="flex items-center justify-between border-b border-[#EAE3DC] pb-3">
+              <h3 className="font-['Outfit'] font-extrabold text-base text-[#1A2420]">
+                Confirm Returned Goods — Order #ORD-{order.id}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setConfirmReturnOpen(false)}
+                className="p-1 text-[#6B6058] hover:text-[#1A2420] cursor-pointer"
+                aria-label="Close confirm returned goods dialog"
+              >
+                <AlertCircle className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-[#6B6058]">
+              Enter your receipt reference and the returned quantity for each line item physically received back from the hub.
+            </p>
+
+            {returnGeneralError && (
+              <div
+                role="alert"
+                data-testid="seller-order-return-general-error"
+                className="p-3 rounded-xl bg-[#FFF3F3] border border-[#FCA5A5] text-xs font-bold text-[#991B1B]"
+              >
+                {returnGeneralError}
+              </div>
+            )}
+
+            <form
+              onSubmit={handleConfirmReturnSubmit}
+              noValidate
+              className="space-y-3"
+            >
+              <div>
+                <label
+                  htmlFor="seller-order-return-receipt"
+                  className="block font-bold text-[#1A2420] mb-1"
+                >
+                  Receipt Reference *
+                </label>
+                <input
+                  id="seller-order-return-receipt"
+                  type="text"
+                  data-testid="seller-order-return-receipt-input"
+                  value={returnReceiptRef}
+                  onChange={(e) => {
+                    setReturnReceiptRef(e.target.value);
+                    setReturnFieldErrors((fe) => ({
+                      ...fe,
+                      receipt_reference: '',
+                    }));
+                  }}
+                  placeholder="e.g. HUB-RET-2026-01"
+                  className="w-full px-3 py-2 rounded-xl border border-[#EAE3DC] font-mono"
+                />
+                {returnFieldErrors.receipt_reference && (
+                  <p
+                    data-testid="seller-order-return-error-receipt_reference"
+                    className="mt-1 text-[11px] font-semibold text-[#DC2626]"
+                  >
+                    {returnFieldErrors.receipt_reference}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <span className="block font-bold text-[#1A2420]">
+                  Returned Quantities per Line *
+                </span>
+                {items.map((it, idx) => {
+                  const itemId = Number(it.id ?? it.order_item_id ?? idx + 1);
+                  return (
+                    <div
+                      key={itemId}
+                      className="flex items-center justify-between gap-3 p-2.5 rounded-xl border border-[#EAE3DC] bg-[#FFF8F2]/50"
+                    >
+                      <div>
+                        <div className="font-bold text-[#1A2420]">
+                          {it.product_name_snapshot}
+                        </div>
+                        <div className="font-mono text-[10px] text-[#6B6058]">
+                          Item #{itemId} • SKU {it.sku_snapshot || 'N/A'} •
+                          Ordered Qty: {it.quantity}
+                        </div>
+                      </div>
+                      <input
+                        type="number"
+                        min="1"
+                        max={it.quantity}
+                        data-testid={`seller-order-return-qty-input-${itemId}`}
+                        aria-label={`Returned quantity for ${it.product_name_snapshot}`}
+                        value={returnQuantities[itemId] ?? ''}
+                        onChange={(e) =>
+                          setReturnQuantities((prev) => ({
+                            ...prev,
+                            [itemId]: e.target.value,
+                          }))
+                        }
+                        className="w-20 px-2.5 py-1.5 rounded-xl border border-[#EAE3DC] bg-white font-mono text-right"
+                      />
+                    </div>
+                  );
+                })}
+                {returnFieldErrors.quantities && (
+                  <p
+                    data-testid="seller-order-return-error-quantities"
+                    className="mt-1 text-[11px] font-semibold text-[#DC2626]"
+                  >
+                    {returnFieldErrors.quantities}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setConfirmReturnOpen(false)}
+                  className="px-4 py-2 rounded-xl border border-[#EAE3DC] font-bold text-[#6B6058] cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  data-testid="seller-order-return-submit-btn"
+                  disabled={returnSubmitting}
+                  className="px-4 py-2 rounded-xl bg-[#6B21A8] hover:bg-[#581C87] text-white font-bold cursor-pointer disabled:opacity-50"
+                >
+                  {returnSubmitting ? 'Confirming…' : 'Confirm Returned Goods'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </dialog>
+      )}
     </div>
   );
 }

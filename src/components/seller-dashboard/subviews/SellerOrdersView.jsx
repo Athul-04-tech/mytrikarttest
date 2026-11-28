@@ -21,6 +21,11 @@ import { apiRequest } from '../../../utils/api';
 import { formatSellerINR } from '../../../utils/currency';
 import { useToast } from '../../../context/ToastContext';
 import { downloadSellerInvoice } from '../../../utils/sellerInvoice';
+import {
+  formatShipmentStatusLabel,
+  getShipmentStatusBadgeClass,
+  formatFulfilmentStageLabel,
+} from '../../../utils/warehouseUtils';
 
 // Map raw backend status choices to UI badge styling and human labels
 const STATUS_CONFIG = {
@@ -359,10 +364,20 @@ export default function SellerOrdersView({ onInspectOrder, vendorProfile } = {})
 
                       {/* Fulfillment Status */}
                       <td className="p-3.5">
-                        <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full uppercase inline-flex items-center space-x-1 ${statusInfo.badgeClass}`}>
-                          <StatusIcon className="w-3 h-3 stroke-[2.5]" />
-                          <span>{statusInfo.label}</span>
-                        </span>
+                        <div className="flex flex-col items-start gap-1">
+                          <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full uppercase inline-flex items-center space-x-1 ${statusInfo.badgeClass}`}>
+                            <StatusIcon className="w-3 h-3 stroke-[2.5]" />
+                            <span>{statusInfo.label}</span>
+                          </span>
+                          {ord.fulfilment_stage && (
+                            <span
+                              data-testid={`seller-orders-row-stage-${ord.id}`}
+                              className="text-[10px] font-bold text-[#FA661C] bg-[#FFF3EC] px-2 py-0.5 rounded-md border border-[#FA661C]/20"
+                            >
+                              {formatFulfilmentStageLabel(ord.fulfilment_stage)}
+                            </span>
+                          )}
+                        </div>
                       </td>
 
                       {/* Actions */}
@@ -461,8 +476,71 @@ export default function SellerOrdersView({ onInspectOrder, vendorProfile } = {})
                 <p className="text-[11px] text-[#6B6058] mt-0.5">
                   Order status updates (Processing → Shipped → Delivered) are managed by MytriKart central hub logistics and automatically synced upon courier scan.
                 </p>
+                {selectedOrder.fulfilment_stage && (
+                  <p
+                    data-testid="seller-modal-fulfilment-stage"
+                    className="text-xs font-extrabold text-[#FA661C] mt-1.5"
+                  >
+                    Stage: {formatFulfilmentStageLabel(selectedOrder.fulfilment_stage)}
+                  </p>
+                )}
               </div>
             </div>
+
+            {(!selectedOrder.customer || !selectedOrder.shipping_address) && (
+              <div
+                data-testid="seller-modal-privacy-note"
+                className="p-3 rounded-2xl border border-[#EAE3DC] bg-white text-xs font-semibold text-[#1A2420]"
+              >
+                Customer details are handled by our warehouse team.
+              </div>
+            )}
+
+            {selectedOrder.shipment && (
+              <div
+                data-testid="seller-modal-shipment-tracking"
+                className="p-3.5 rounded-2xl border border-[#EAE3DC] bg-white flex flex-wrap items-center justify-between gap-3 text-xs"
+              >
+                <div className="flex items-center space-x-2">
+                  <Truck className="w-4 h-4 text-[#FA661C]" />
+                  <span className="font-bold text-[#1A2420]">
+                    Warehouse Shipment:
+                  </span>
+                  <span
+                    data-testid="seller-modal-shipment-status"
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${getShipmentStatusBadgeClass(
+                      selectedOrder.shipment.status
+                    )}`}
+                  >
+                    {formatShipmentStatusLabel(selectedOrder.shipment.status)}
+                  </span>
+                </div>
+                {(selectedOrder.shipment.courier_name ||
+                  selectedOrder.shipment.tracking_number) && (
+                  <div className="text-[#1A2420]">
+                    {selectedOrder.shipment.courier_name && (
+                      <span>
+                        Courier:{' '}
+                        <strong data-testid="seller-modal-shipment-courier">
+                          {selectedOrder.shipment.courier_name}
+                        </strong>
+                      </span>
+                    )}
+                    {selectedOrder.shipment.tracking_number && (
+                      <span className="ml-3">
+                        Tracking:{' '}
+                        <strong
+                          data-testid="seller-modal-shipment-tracking-number"
+                          className="font-mono text-[#FA661C]"
+                        >
+                          {selectedOrder.shipment.tracking_number}
+                        </strong>
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Financial Summary Cards Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">

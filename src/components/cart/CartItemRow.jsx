@@ -1,23 +1,19 @@
 import React from 'react';
-import { Plus, Minus, Trash2, Bookmark, Store, CheckCircle2 } from 'lucide-react';
-import { useCountUp } from '../../hooks/useCountUp';
+import { Plus, Minus, Trash2, Bookmark, Store } from 'lucide-react';
 import { resolveMediaUrl } from '../../config/env';
-
-function AnimatedPrice({ value }) {
-  return <span>₹{Number(value).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>;
-}
+import { formatVerbatimMoney } from '../../utils/orderPricingUtils';
 
 export default function CartItemRow({
   item,
   onUpdateQty,
   onRemove,
-  onSaveForLater
+  onSaveForLater,
 }) {
-  const lineTotal = item.price * item.quantity;
-
   return (
-    <div className="p-4 sm:p-5 bg-white rounded-2xl border border-[#EAE3DC] hover:border-[#FF811A]/50 shadow-2xs transition-all duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group">
-      
+    <div
+      data-testid={`cart-item-row-${item.id}`}
+      className="p-4 sm:p-5 bg-white rounded-2xl border border-[#EAE3DC] hover:border-[#FF811A]/50 shadow-2xs transition-all duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group"
+    >
       {/* Left: Product Thumbnail + Title Details */}
       <div className="flex items-start space-x-3.5 min-w-0">
         <img
@@ -29,7 +25,9 @@ export default function CartItemRow({
         <div className="min-w-0 flex-1">
           <div className="flex items-center space-x-1.5 text-[10px] text-[#6B6058] mb-0.5">
             <Store className="w-3 h-3 text-[#FF811A]" />
-            <span className="truncate">{item.vendorName || 'Verified Merchant'}</span>
+            <span className="truncate">
+              {item.vendorName || 'Verified Merchant'}
+            </span>
           </div>
 
           <h3 className="font-['Outfit'] font-bold text-xs sm:text-sm text-[#FA661C] leading-snug line-clamp-2">
@@ -42,23 +40,50 @@ export default function CartItemRow({
             </span>
           )}
 
-          {/* Unit Price */}
+          {(item.availableQuantity !== undefined && item.availableQuantity !== null) ||
+          item.fulfilmentSource === 'stored' ? (
+            <div className="flex flex-wrap items-center gap-1.5 mt-1">
+              {item.availableQuantity !== undefined && item.availableQuantity !== null && (
+                <span
+                  data-testid={`cart-item-available-qty-${item.id}`}
+                  className="text-[10px] font-bold text-[#6B6058] bg-[#FFF8F2] px-2 py-0.5 rounded-md border border-[#EAE3DC]"
+                >
+                  Available: {item.availableQuantity}
+                </span>
+              )}
+              {item.fulfilmentSource === 'stored' && (
+                <span
+                  data-testid={`cart-item-fulfilment-stored-${item.id}`}
+                  className="text-[10px] font-bold text-[#FA661C] bg-[#FFF3EC] px-2 py-0.5 rounded-md border border-[#FA661C]/20"
+                >
+                  Ships from our warehouse
+                </span>
+              )}
+            </div>
+          ) : null}
+
+          {/* Unit Price (shown verbatim as sent by server) */}
           <div className="flex items-baseline space-x-2 mt-1.5">
-            <span className="font-bold text-xs text-[#FA661C]">
-              ₹{item.price.toLocaleString('en-IN')}
+            <span
+              data-testid={`cart-item-unit-price-${item.id}`}
+              className="font-mono font-bold text-xs text-[#FA661C]"
+            >
+              {formatVerbatimMoney(item.currency || 'INR', item.price)}
             </span>
             {item.originalPrice && (
-              <span className="text-[10px] text-[#6B6058] line-through">
-                ₹{item.originalPrice.toLocaleString('en-IN')}
+              <span className="text-[10px] text-[#6B6058] line-through font-mono">
+                {formatVerbatimMoney(
+                  item.currency || 'INR',
+                  item.originalPrice
+                )}
               </span>
             )}
           </div>
         </div>
       </div>
 
-      {/* Right: Quantity Stepper, Line Total, Save for Later & Delete */}
+      {/* Right: Quantity Stepper, Save for Later & Delete */}
       <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-[#EAE3DC]/50">
-        
         {/* Quantity Stepper */}
         <div className="flex items-center space-x-2 bg-[#FFFFFF] p-1 rounded-xl border border-[#EAE3DC]">
           <button
@@ -71,7 +96,10 @@ export default function CartItemRow({
             <Minus className="w-3 h-3" />
           </button>
 
-          <span className="w-6 text-center font-['Outfit'] font-black text-xs text-[#FA661C]">
+          <span
+            data-testid={`cart-item-qty-${item.id}`}
+            className="w-6 text-center font-['Outfit'] font-black text-xs text-[#FA661C]"
+          >
             {item.quantity}
           </span>
 
@@ -85,11 +113,11 @@ export default function CartItemRow({
           </button>
         </div>
 
-        {/* Line Total */}
+        {/* Unit Price Recap */}
         <div className="text-right">
-          <span className="text-[10px] text-[#6B6058] block">Item Total</span>
-          <div className="font-['Outfit'] font-black text-sm sm:text-base text-[#FA661C]">
-            <AnimatedPrice value={lineTotal} />
+          <span className="text-[10px] text-[#6B6058] block">Unit Price</span>
+          <div className="font-['Outfit'] font-mono font-black text-sm sm:text-base text-[#FA661C]">
+            {formatVerbatimMoney(item.currency || 'INR', item.price)}
           </div>
         </div>
 
@@ -115,9 +143,7 @@ export default function CartItemRow({
             <span>Remove</span>
           </button>
         </div>
-
       </div>
-
     </div>
   );
 }

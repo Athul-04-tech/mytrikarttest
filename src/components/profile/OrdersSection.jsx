@@ -19,6 +19,19 @@ import {
 import { useCart } from '../../context/CartWishlistContext';
 import { useToast } from '../../context/ToastContext';
 import { apiRequest } from '../../utils/api';
+import {
+  formatVerbatimMoney,
+  isNonZeroMoneyString,
+  ORDER_CHARGE_KIND_LABELS,
+} from '../../utils/orderPricingUtils';
+import {
+  formatShipmentStatusLabel,
+  getShipmentStatusBadgeClass,
+  formatDateTime,
+  formatFulfilmentStageLabel,
+  formatRefundBreakdownLabel,
+  parseWarehouseApiError,
+} from '../../utils/warehouseUtils';
 
 export const TRACKING_STEPS = [
   "Order Placed",
@@ -93,6 +106,66 @@ export default function OrdersSection({ orders = [], isLoading = false, error = 
   const [activeTrackingOrderId, setActiveTrackingOrderId] = useState(null);
   const [actionSuccessMsg, setActionSuccessMsg] = useState('');
   const [cancellingOrderId, setCancellingOrderId] = useState(null);
+
+  // Per-parcel cancellation dialog & result state (Phase C: POST /api/orders/vendor-orders/<pk>/cancel/)
+  const [cancelParcelModal, setCancelParcelModal] = useState(null); // { order, vendorOrderId }
+  const [cancelParcelReason, setCancelParcelReason] = useState('');
+  const [cancelParcelFieldErrors, setCancelParcelFieldErrors] = useState({});
+  const [cancelParcelGeneralError, setCancelParcelGeneralError] = useState('');
+  const [cancelParcelSubmitting, setCancelParcelSubmitting] = useState(false);
+  const [parcelCancelResults, setParcelCancelResults] = useState({}); // { [vendorOrderId]: { status, refund_request, idempotent_replay } }
+  const [parcelCancelFeatureDisabled, setParcelCancelFeatureDisabled] = useState({}); // { [vendorOrderId]: true }
+
+  const openCancelParcelDialog = (order, vendorOrderId) => {
+    if (cancelParcelSubmitting) return;
+    setCancelParcelModal({ order, vendorOrderId });
+    setCancelParcelReason('');
+    setCancelParcelFieldErrors({});
+    setCancelParcelGeneralError('');
+  };
+
+  const handleConfirmCancelParcel = async (e) => {
+    e.preventDefault();
+    if (!cancelParcelModal || cancelParcelSubmitting) return;
+    const { vendorOrderId } = cancelParcelModal;
+    setCancelParcelFieldErrors({});
+    setCancelParcelGeneralError('');
+    setCancelParcelSubmitting(true);
+
+    try {
+      const res = await apiRequest(
+        `/api/orders/vendor-orders/${vendorOrderId}/cancel/`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ reason: cancelParcelReason }),
+        }
+      );
+      setParcelCancelResults((prev) => ({
+        ...prev,
+        [vendorOrderId]: res,
+      }));
+      setCancelParcelModal(null);
+      if (onRefreshOrders) {
+        await onRefreshOrders();
+      }
+    } catch (err) {
+      if (err?.status === 404) {
+        setParcelCancelFeatureDisabled((prev) => ({
+          ...prev,
+          [vendorOrderId]: true,
+        }));
+        setCancelParcelModal(null);
+        return;
+      }
+      const parsed = parseWarehouseApiError(err, ['reason']);
+      setCancelParcelFieldErrors(parsed.fieldErrors);
+      if (Object.keys(parsed.fieldErrors).length === 0 || err?.status === 409) {
+        setCancelParcelGeneralError(parsed.generalError);
+      }
+    } finally {
+      setCancelParcelSubmitting(false);
+    }
+  };
 
   const parseOrderDate = (order) => {
     if (order.created_at) {
@@ -392,8 +465,16 @@ export default function OrdersSection({ orders = [], isLoading = false, error = 
                       <span className="text-[10px] text-[#6B6058] uppercase font-bold tracking-wider block">
                         Total Amount
                       </span>
-                      <span className="font-black text-[#FA661C]">
-                        {order.total}
+                      <span
+                        data-testid={`order-grand-total-${order.realOrderId ?? order.id}`}
+                        className="font-mono font-black text-[#FA661C]"
+                      >
+                        {order.grand_total !== undefined
+                          ? formatVerbatimMoney(
+                              order.currency || 'INR',
+                              order.grand_total
+                            )
+                          : order.total}
                       </span>
                     </div>
 
@@ -483,6 +564,496 @@ export default function OrdersSection({ orders = [], isLoading = false, error = 
                     </div>
                   ))}
                 </div>
+
+                {/* Order Fee Lines & Totals Breakdown (from customer_charges and server totals) */}
+                {(Array.isArray(order.customer_charges) &&
+                  order.customer_charges.length > 0) ||
+                isNonZeroMoneyString(order.delivery_charge) ||
+                isNonZeroMoneyString(order.packaging_fee_total) ||
+                isNonZeroMoneyString(order.fee_tax_total) ||
+                order.subtotal !== undefined ? (
+                  <div
+                    data-testid={`order-charges-breakdown-${
+                      order.realOrderId ?? order.id
+                    }`}
+                    className="px-4 sm:px-5 py-3.5 bg-[#FFF8F2]/50 border-t border-[#EAE3DC] space-y-1.5 text-xs text-[#6B6058]"
+                  >
+                    {order.subtotal !== undefined && (
+                      <div className="flex justify-between">
+                        <span>Item subtotal</span>
+                        <span
+                          data-testid={`order-subtotal-${
+                            order.realOrderId ?? order.id
+                          }`}
+                          className="font-mono font-bold text-[#1A2420]"
+                        >
+                          {formatVerbatimMoney(
+                            order.currency || 'INR',
+                            order.subtotal
+                          )}
+                        </span>
+                      </div>
+                    )}
+                    {order.tax_total !== undefined && (
+                      <div className="flex justify-between">
+                        <span>Item tax</span>
+                        <span
+                          data-testid={`order-item-tax-${
+                            order.realOrderId ?? order.id
+                          }`}
+                          className="font-mono font-bold text-[#1A2420]"
+                        >
+                          {formatVerbatimMoney(
+                            order.currency || 'INR',
+                            order.tax_total
+                          )}
+                        </span>
+                      </div>
+                    )}
+                    {isNonZeroMoneyString(order.discount_total) && (
+                      <div className="flex justify-between text-emerald-700">
+                        <span>Discount</span>
+                        <span
+                          data-testid={`order-discount-${
+                            order.realOrderId ?? order.id
+                          }`}
+                          className="font-mono font-bold"
+                        >
+                          -{' '}
+                          {formatVerbatimMoney(
+                            order.currency || 'INR',
+                            order.discount_total
+                          )}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Customer charges array (delivery & packaging per parcel) */}
+                    {Array.isArray(order.customer_charges) &&
+                    order.customer_charges.length > 0 ? (
+                      <div
+                        data-testid={`order-customer-charges-list-${
+                          order.realOrderId ?? order.id
+                        }`}
+                        className="space-y-1 pt-1"
+                      >
+                        {order.customer_charges.map((charge, cIdx) => (
+                          <div
+                            key={charge.id ?? cIdx}
+                            data-testid={`order-charge-line-${
+                              order.realOrderId ?? order.id
+                            }-${charge.kind}-${charge.id ?? cIdx}`}
+                            className="flex justify-between"
+                          >
+                            <span>
+                              {ORDER_CHARGE_KIND_LABELS[charge.kind] ||
+                                charge.kind}
+                              {charge.vendor_order
+                                ? ` (Parcel #${charge.vendor_order})`
+                                : ''}
+                              {charge.rule_version
+                                ? ` (v${charge.rule_version})`
+                                : ''}
+                            </span>
+                            <span className="font-mono font-bold text-[#1A2420]">
+                              {formatVerbatimMoney(
+                                charge.currency || order.currency || 'INR',
+                                charge.amount
+                              )}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <>
+                        {isNonZeroMoneyString(order.delivery_charge) && (
+                          <div className="flex justify-between">
+                            <span>Delivery charge</span>
+                            <span
+                              data-testid={`order-delivery-charge-${
+                                order.realOrderId ?? order.id
+                              }`}
+                              className="font-mono font-bold text-[#1A2420]"
+                            >
+                              {formatVerbatimMoney(
+                                order.currency || 'INR',
+                                order.delivery_charge
+                              )}
+                            </span>
+                          </div>
+                        )}
+                        {isNonZeroMoneyString(order.packaging_fee_total) && (
+                          <div className="flex justify-between">
+                            <span>Packaging fee</span>
+                            <span
+                              data-testid={`order-packaging-fee-${
+                                order.realOrderId ?? order.id
+                              }`}
+                              className="font-mono font-bold text-[#1A2420]"
+                            >
+                              {formatVerbatimMoney(
+                                order.currency || 'INR',
+                                order.packaging_fee_total
+                              )}
+                            </span>
+                          </div>
+                        )}
+                      </>
+                    )}
+
+                    {isNonZeroMoneyString(order.fee_tax_total) && (
+                      <div className="flex justify-between">
+                        <span>Fee tax</span>
+                        <span
+                          data-testid={`order-fee-tax-${
+                            order.realOrderId ?? order.id
+                          }`}
+                          className="font-mono font-bold text-[#1A2420]"
+                        >
+                          {formatVerbatimMoney(
+                            order.currency || 'INR',
+                            order.fee_tax_total
+                          )}
+                        </span>
+                      </div>
+                    )}
+
+                    {order.grand_total !== undefined && (
+                      <div className="flex justify-between pt-1.5 border-t border-[#EAE3DC]/60 font-bold text-[#FA661C]">
+                        <span>Total</span>
+                        <span
+                          data-testid={`order-breakdown-total-${
+                            order.realOrderId ?? order.id
+                          }`}
+                          className="font-mono font-black"
+                        >
+                          {formatVerbatimMoney(
+                            order.currency || 'INR',
+                            order.grand_total
+                          )}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                ) : null}
+
+                {/* Customer Parcels, Fulfilment Stages, Shipments Tracking & Per-Parcel Cancellation */}
+                {(() => {
+                  const shipmentsList = Array.isArray(order.shipments)
+                    ? order.shipments
+                    : [];
+                  const stagesList = Array.isArray(order.fulfilment_stages)
+                    ? order.fulfilment_stages
+                    : [];
+                  const vendorOrdersList = Array.isArray(order.vendor_orders)
+                    ? order.vendor_orders
+                    : [];
+
+                  const parcelMap = new Map();
+                  const ensureParcel = (voId) => {
+                    if (voId === null || voId === undefined) return null;
+                    const key = Number(voId);
+                    if (!parcelMap.has(key)) {
+                      parcelMap.set(key, {
+                        vendor_order_id: key,
+                        shipment: null,
+                        stage: null,
+                        vendorOrder: null,
+                      });
+                    }
+                    return parcelMap.get(key);
+                  };
+
+                  shipmentsList.forEach((shp) => {
+                    const entry = ensureParcel(shp.vendor_order_id);
+                    if (entry) entry.shipment = shp;
+                  });
+                  stagesList.forEach((st) => {
+                    const entry = ensureParcel(st.vendor_order_id);
+                    if (entry) entry.stage = st.stage;
+                  });
+                  vendorOrdersList.forEach((vo) => {
+                    const voId = vo.vendor_order_id ?? vo.id;
+                    const entry = ensureParcel(voId);
+                    if (entry) {
+                      entry.vendorOrder = vo;
+                      if (vo.stage && !entry.stage) entry.stage = vo.stage;
+                    }
+                  });
+
+                  const parcels = Array.from(parcelMap.values());
+                  const hasShipments = shipmentsList.length > 0;
+                  const hasParcels = parcels.length > 0;
+
+                  return (
+                    <>
+                      {/* Customer Shipments Tracking Panel (shown when server sends shipments) */}
+                      {hasShipments && (
+                        <div
+                          data-testid={`customer-order-shipments-${
+                            order.realOrderId ?? order.id
+                          }`}
+                          className="px-4 sm:px-5 py-3.5 bg-[#EFF6FF]/40 border-t border-[#EAE3DC] space-y-2 text-xs"
+                        >
+                          <div className="font-bold text-[#1A2420] flex items-center space-x-1.5">
+                            <Truck className="w-3.5 h-3.5 text-[#FA661C]" />
+                            <span>Shipment Tracking</span>
+                          </div>
+                          <div className="space-y-2">
+                            {shipmentsList.map((shp, sIdx) => (
+                              <div
+                                key={shp.vendor_order_id ?? sIdx}
+                                data-testid={`customer-order-shipment-${
+                                  order.realOrderId ?? order.id
+                                }-${shp.vendor_order_id ?? sIdx}`}
+                                className="p-3 rounded-xl bg-white border border-[#EAE3DC] flex flex-wrap items-center justify-between gap-3"
+                              >
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span
+                                    data-testid={`customer-shipment-status-${
+                                      order.realOrderId ?? order.id
+                                    }-${shp.vendor_order_id ?? sIdx}`}
+                                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${getShipmentStatusBadgeClass(
+                                      shp.status
+                                    )}`}
+                                  >
+                                    {formatShipmentStatusLabel(shp.status)}
+                                  </span>
+                                  {shp.courier_name && (
+                                    <span
+                                      data-testid={`customer-shipment-courier-${
+                                        order.realOrderId ?? order.id
+                                      }-${shp.vendor_order_id ?? sIdx}`}
+                                      className="font-bold text-[#1A2420]"
+                                    >
+                                      Courier: {shp.courier_name}
+                                    </span>
+                                  )}
+                                  {shp.tracking_number && (
+                                    <span
+                                      data-testid={`customer-shipment-tracking-${
+                                        order.realOrderId ?? order.id
+                                      }-${shp.vendor_order_id ?? sIdx}`}
+                                      className="font-mono font-bold text-[#FA661C]"
+                                    >
+                                      Tracking: {shp.tracking_number}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-[11px] text-[#6B6058] space-x-3">
+                                  {shp.shipped_at && (
+                                    <span
+                                      data-testid={`customer-shipment-shipped-at-${
+                                        order.realOrderId ?? order.id
+                                      }-${shp.vendor_order_id ?? sIdx}`}
+                                    >
+                                      Shipped: {formatDateTime(shp.shipped_at)}
+                                    </span>
+                                  )}
+                                  {shp.delivered_at && (
+                                    <span
+                                      data-testid={`customer-shipment-delivered-at-${
+                                        order.realOrderId ?? order.id
+                                      }-${shp.vendor_order_id ?? sIdx}`}
+                                    >
+                                      Delivered:{' '}
+                                      {formatDateTime(shp.delivered_at)}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Seller Parcels: Fulfilment Stage Display & Per-Parcel Cancellation (Phases C & D) */}
+                      {hasParcels && (
+                        <div
+                          data-testid={`customer-order-parcels-${
+                            order.realOrderId ?? order.id
+                          }`}
+                          className="px-4 sm:px-5 py-3.5 bg-[#FFF8F2]/60 border-t border-[#EAE3DC] space-y-2.5 text-xs"
+                        >
+                          <div className="font-bold text-[#1A2420] flex items-center space-x-1.5">
+                            <Package className="w-3.5 h-3.5 text-[#FA661C]" />
+                            <span>Seller Parcels &amp; Fulfilment Status</span>
+                          </div>
+
+                          <div className="space-y-2.5">
+                            {parcels.map((p) => {
+                              const voId = p.vendor_order_id;
+                              const cancelResult = parcelCancelResults[voId];
+                              const refundReq =
+                                cancelResult?.refund_request ||
+                                p.vendorOrder?.refund_request ||
+                                null;
+                              const shpStatus = String(
+                                p.shipment?.status || ''
+                              ).toLowerCase();
+                              const voStatus = String(
+                                cancelResult?.status ||
+                                  p.vendorOrder?.status ||
+                                  ''
+                              ).toLowerCase();
+                              const effectiveStage =
+                                cancelResult?.status === 'cancelled'
+                                  ? 'cancelled'
+                                  : p.stage;
+
+                              const isParcelCancelled =
+                                voStatus === 'cancelled' ||
+                                effectiveStage === 'cancelled' ||
+                                shpStatus === 'cancelled';
+
+                              const isShortPickOrHeld =
+                                shpStatus === 'exception' ||
+                                voStatus === 'exception' ||
+                                effectiveStage === 'exception';
+
+                              const isShippedOrDelivered =
+                                ['shipped', 'delivered'].includes(shpStatus) ||
+                                ['shipped', 'delivered'].includes(voStatus) ||
+                                ['shipped', 'delivered'].includes(
+                                  String(effectiveStage || '').toLowerCase()
+                                );
+
+                              const isOrderPaid =
+                                String(
+                                  order.payment_status || 'paid'
+                                ).toLowerCase() === 'paid';
+
+                              const canCancelParcel =
+                                !parcelCancelFeatureDisabled[voId] &&
+                                isOrderPaid &&
+                                !isParcelCancelled &&
+                                !isShortPickOrHeld &&
+                                !isShippedOrDelivered &&
+                                p.vendorOrder?.can_cancel !== false;
+
+                              return (
+                                <div
+                                  key={voId}
+                                  data-testid={`customer-parcel-card-${voId}`}
+                                  className="p-3.5 rounded-xl bg-white border border-[#EAE3DC] space-y-2"
+                                >
+                                  <div className="flex flex-wrap items-center justify-between gap-2">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <span className="font-mono font-extrabold text-[#1A2420]">
+                                        Parcel #{voId}
+                                      </span>
+
+                                      {effectiveStage && (
+                                        <span
+                                          data-testid={`customer-parcel-stage-${voId}`}
+                                          className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#FFF3EC] text-[#FA661C] border border-[#FA661C]/20"
+                                        >
+                                          {formatFulfilmentStageLabel(
+                                            effectiveStage
+                                          )}
+                                        </span>
+                                      )}
+
+                                      {isParcelCancelled && (
+                                        <span
+                                          data-testid={`customer-parcel-cancelled-badge-${voId}`}
+                                          className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-[#FDE8EA] text-[#D7263D] border border-[#D7263D]/30"
+                                        >
+                                          Cancelled
+                                        </span>
+                                      )}
+                                    </div>
+
+                                    <div>
+                                      {canCancelParcel && (
+                                        <button
+                                          type="button"
+                                          data-testid={`customer-cancel-parcel-btn-${voId}`}
+                                          disabled={cancelParcelSubmitting}
+                                          onClick={() =>
+                                            openCancelParcelDialog(order, voId)
+                                          }
+                                          className="px-3 py-1.5 rounded-xl bg-white hover:bg-[#FDE8EA] text-[#D7263D] border border-[#D7263D]/40 font-bold text-xs cursor-pointer disabled:opacity-50"
+                                        >
+                                          Cancel this parcel
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  {/* Short-pick or held parcel calm line (shown only if server status says exception) */}
+                                  {isShortPickOrHeld && (
+                                    <p
+                                      data-testid={`customer-parcel-held-note-${voId}`}
+                                      className="text-xs font-semibold text-[#92400E] bg-[#FFFBEB] px-3 py-2 rounded-lg border border-[#F59E0B]/40"
+                                    >
+                                      This parcel is being looked into by our team
+                                    </p>
+                                  )}
+
+                                  {/* Refund Request & Breakdown Lines (shown verbatim as sent by server) */}
+                                  {refundReq && (
+                                    <div
+                                      data-testid={`customer-parcel-refund-summary-${voId}`}
+                                      className="p-3 rounded-xl bg-[#ECFDF5]/60 border border-[#6EE7B7] space-y-1.5 text-xs"
+                                    >
+                                      <div className="flex flex-wrap items-center justify-between gap-2 font-bold text-[#065F46]">
+                                        <span>
+                                          Refund Request #{refundReq.id} • Status:{' '}
+                                          <strong
+                                            data-testid={`customer-parcel-refund-status-${voId}`}
+                                            className="uppercase"
+                                          >
+                                            {refundReq.status}
+                                          </strong>
+                                        </span>
+                                        <span
+                                          data-testid={`customer-parcel-refund-amount-${voId}`}
+                                          className="font-mono font-extrabold text-sm"
+                                        >
+                                          {refundReq.currency} {refundReq.amount}
+                                        </span>
+                                      </div>
+
+                                      {refundReq.breakdown &&
+                                        typeof refundReq.breakdown ===
+                                          'object' && (
+                                          <div
+                                            data-testid={`customer-parcel-refund-breakdown-${voId}`}
+                                            className="pt-1.5 border-t border-[#6EE7B7]/50 space-y-1 text-[11px] text-[#1A2420]"
+                                          >
+                                            {Object.entries(
+                                              refundReq.breakdown
+                                            ).map(([bKey, bVal]) => (
+                                              <div
+                                                key={bKey}
+                                                data-testid={`customer-parcel-refund-line-${voId}-${bKey}`}
+                                                className="flex justify-between"
+                                              >
+                                                <span className="text-[#6B6058]">
+                                                  {formatRefundBreakdownLabel(
+                                                    bKey
+                                                  )}
+                                                </span>
+                                                <span className="font-mono font-bold">
+                                                  {refundReq.currency}{' '}
+                                                  {String(bVal)}
+                                                </span>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        )}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
 
                 {/* Restored 5-Step Visual Stepper & Honest Status Drawer */}
                 {isTrackingOpen && (() => {
@@ -651,6 +1222,104 @@ export default function OrdersSection({ orders = [], isLoading = false, error = 
           })
         )}
       </div>
+
+      {/* NATIVE <dialog>: CANCEL THIS PARCEL (Phase C: POST /api/orders/vendor-orders/<pk>/cancel/) */}
+      {cancelParcelModal && (
+        <dialog
+          open
+          data-testid="customer-cancel-parcel-dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 bg-[#1A2420]/60 backdrop-blur-2xs flex items-center justify-center p-4 w-full h-full m-0 border-0"
+        >
+          <div className="bg-white rounded-3xl border border-[#EAE3DC] shadow-2xl max-w-md w-full p-6 space-y-4 text-xs">
+            <div className="flex items-center justify-between border-b border-[#EAE3DC] pb-3">
+              <h3 className="font-['Outfit'] font-extrabold text-base text-[#1A2420]">
+                Cancel Parcel #{cancelParcelModal.vendorOrderId}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setCancelParcelModal(null)}
+                className="p-1 text-[#6B6058] hover:text-[#1A2420] cursor-pointer"
+                aria-label="Close cancel parcel dialog"
+              >
+                <XCircle className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div
+              data-testid="customer-cancel-parcel-explanation"
+              className="p-3.5 rounded-xl bg-[#FFFBEB] border border-[#F59E0B] text-xs font-bold text-[#92400E]"
+            >
+              This cancels only this seller parcel before shipment and creates a refund request for the parcel amount. Other parcels in your order are not affected.
+            </div>
+
+            {cancelParcelGeneralError && (
+              <div
+                role="alert"
+                data-testid="customer-cancel-parcel-general-error"
+                className="p-3 rounded-xl bg-[#FFF3F3] border border-[#FCA5A5] text-xs font-bold text-[#991B1B]"
+              >
+                {cancelParcelGeneralError}
+              </div>
+            )}
+
+            <form
+              onSubmit={handleConfirmCancelParcel}
+              noValidate
+              className="space-y-3"
+            >
+              <div>
+                <label
+                  htmlFor="customer-cancel-parcel-reason"
+                  className="block font-bold text-[#1A2420] mb-1"
+                >
+                  Cancellation Reason *
+                </label>
+                <textarea
+                  id="customer-cancel-parcel-reason"
+                  rows={2}
+                  data-testid="customer-cancel-parcel-reason-input"
+                  value={cancelParcelReason}
+                  onChange={(e) => {
+                    setCancelParcelReason(e.target.value);
+                    setCancelParcelFieldErrors((fe) => ({ ...fe, reason: '' }));
+                  }}
+                  placeholder="Please tell us why you are cancelling this parcel..."
+                  className="w-full px-3 py-2 rounded-xl border border-[#EAE3DC]"
+                />
+                {cancelParcelFieldErrors.reason && (
+                  <p
+                    data-testid="customer-cancel-parcel-error-reason"
+                    className="mt-1 text-[11px] font-semibold text-[#DC2626]"
+                  >
+                    {cancelParcelFieldErrors.reason}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setCancelParcelModal(null)}
+                  className="px-4 py-2 rounded-xl border border-[#EAE3DC] font-bold text-[#6B6058] cursor-pointer"
+                >
+                  Keep Parcel
+                </button>
+                <button
+                  type="submit"
+                  data-testid="customer-cancel-parcel-submit-btn"
+                  disabled={cancelParcelSubmitting}
+                  className="px-4 py-2 rounded-xl bg-[#D7263D] hover:bg-[#B91C1C] text-white font-bold cursor-pointer disabled:opacity-50"
+                >
+                  {cancelParcelSubmitting
+                    ? 'Cancelling…'
+                    : 'Confirm Cancel Parcel'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </dialog>
+      )}
 
     </div>
   );

@@ -13,8 +13,9 @@ import {
   AlertCircle
 } from 'lucide-react';
 
-const REQUIRED_DOCUMENTS = [
+export const REQUIRED_DOCUMENTS = [
   { id: 'aadhaar', label: 'Aadhaar / National Identity Card', desc: 'Front & back scan (PDF/JPG)', required: true },
+  { id: 'pan', label: 'PAN Card', desc: 'Permanent Account Number card (PDF/JPG/PNG)', required: true },
   { id: 'passport', label: 'Passport (First & Last Page)', desc: 'Valid international travel passport', required: false },
   { id: 'driving_license', label: 'Driving License', desc: 'Government issued photo license', required: false },
   { id: 'gst_certificate', label: 'GST / VAT Registration Certificate', desc: 'Form GST REG-06 or regional equivalent', required: true },
@@ -23,13 +24,20 @@ const REQUIRED_DOCUMENTS = [
   { id: 'address_proof', label: 'Commercial Address Proof', desc: 'Electricity bill, rent agreement, or bank statement', required: true }
 ];
 
-export default function Step6IdentityVerify({ formData, updateFormData, onNext, onBack }) {
+export default function Step6IdentityVerify({
+  formData,
+  updateFormData,
+  onNext,
+  onBack,
+  onUploadDocument,
+  backendErrors = {},
+}) {
   const [errors, setErrors] = useState({});
   const fileInputRefs = useRef({});
 
   const uploadedDocs = formData.uploadedDocuments || {};
 
-  const handleFileChange = (docId, e) => {
+  const handleFileChange = async (docId, e) => {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
 
@@ -43,12 +51,16 @@ export default function Step6IdentityVerify({ formData, updateFormData, onNext, 
         fileName: file.name,
         fileSize: sizeStr,
         fileObj: file,
-        status: 'done', // 'idle' | 'uploading' | 'done' | 'failed'
+        status: onUploadDocument ? 'uploading' : 'done', // 'idle' | 'uploading' | 'done' | 'uploaded_backend' | 'failed'
         errorMessage: null
       }
     };
     updateFormData({ uploadedDocuments: updated });
     setErrors(prev => ({ ...prev, docs: null }));
+
+    if (onUploadDocument) {
+      await onUploadDocument(docId, file, sizeStr);
+    }
   };
 
   const handleTriggerFileInput = (docId) => {
@@ -123,13 +135,15 @@ export default function Step6IdentityVerify({ formData, updateFormData, onNext, 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {REQUIRED_DOCUMENTS.map((doc) => {
           const docData = uploadedDocs[doc.id];
-          const isUploaded = Boolean(docData && docData.status !== 'failed');
-          const isFailed = Boolean(docData && docData.status === 'failed');
+          const fieldError = (docData && docData.errorMessage) || backendErrors[doc.id] || null;
+          const isFailed = Boolean((docData && docData.status === 'failed') || fieldError);
+          const isUploaded = Boolean(docData && !isFailed && docData.status !== 'uploading');
           const isCurrentlyUploading = Boolean(docData && docData.status === 'uploading');
 
           return (
             <div
               key={doc.id}
+              data-testid={`doc-card-${doc.id}`}
               className={`p-4 rounded-2xl border-2 transition-all duration-200 flex flex-col justify-between ${
                 isFailed
                   ? 'bg-[#FDE8EA]/50 border-[#D7263D] shadow-2xs'
@@ -142,6 +156,8 @@ export default function Step6IdentityVerify({ formData, updateFormData, onNext, 
                 {/* Hidden File Input */}
                 <input
                   type="file"
+                  aria-label={doc.label}
+                  data-testid={`doc-input-${doc.id}`}
                   ref={(el) => (fileInputRefs.current[doc.id] = el)}
                   onChange={(e) => handleFileChange(doc.id, e)}
                   accept={doc.isPhoto ? "image/*" : "application/pdf,image/*"}
@@ -176,9 +192,13 @@ export default function Step6IdentityVerify({ formData, updateFormData, onNext, 
                   {doc.desc}
                 </p>
 
-                {isFailed && docData.errorMessage && (
-                  <p className="text-[10px] text-[#D7263D] font-bold mt-1 ml-8">
-                    {docData.errorMessage}
+                {fieldError && (
+                  <p
+                    role="alert"
+                    data-testid={`doc-error-${doc.id}`}
+                    className="text-[10px] text-[#D7263D] font-bold mt-1 ml-8"
+                  >
+                    {fieldError}
                   </p>
                 )}
               </div>

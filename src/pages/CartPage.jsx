@@ -1,16 +1,11 @@
 import React, { useEffect, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { 
-  ShoppingBag, 
-  ArrowLeft, 
-  Sparkles,
-  AlertCircle,
-  Store
-} from 'lucide-react';
+import { ShoppingBag, ArrowLeft, Store } from 'lucide-react';
 import { useCart } from '../context/CartWishlistContext';
 import { useAuth } from '../context/AuthContext';
 import CartItemRow from '../components/cart/CartItemRow';
 import OrderSummarySidebar from '../components/cart/OrderSummarySidebar';
+import { formatVerbatimMoney } from '../utils/orderPricingUtils';
 
 export default function CartPage() {
   const auth = useAuth();
@@ -25,12 +20,12 @@ export default function CartPage() {
     removeFromCart,
     saveForLaterItem,
     moveToCartFromSaved,
-    removeSavedForLater
+    removeSavedForLater,
   } = useCart();
 
   const hasOwnProductsInCart = useMemo(() => {
     if (!isProductOwnedByCurrentSeller || !Array.isArray(cart)) return false;
-    return cart.some(item => isProductOwnedByCurrentSeller(item));
+    return cart.some((item) => isProductOwnedByCurrentSeller(item));
   }, [cart, isProductOwnedByCurrentSeller]);
 
   const navigate = useNavigate();
@@ -49,7 +44,6 @@ export default function CartPage() {
 
   return (
     <div className="min-h-screen bg-[#FFFFFF] flex flex-col text-[#1A2420] font-sans selection:bg-[#FF811A]/30 selection:text-[#FA661C]">
-      
       {/* 1. Header Bar */}
       <header className="sticky top-0 z-40 bg-[#FFFFFF]/95 backdrop-blur-md border-b border-[#EAE3DC] shadow-xs px-4 sm:px-8 py-3.5">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -59,10 +53,10 @@ export default function CartPage() {
               className="flex items-center btn-interactive shrink-0"
               aria-label="Return to Marketplace"
             >
-              <img 
-                src="/mytrikart-logo.png" 
-                alt="MytriKart Logo" 
-                className="h-7 sm:h-8 w-auto object-contain" 
+              <img
+                src="/mytrikart-logo.png"
+                alt="MytriKart Logo"
+                className="h-7 sm:h-8 w-auto object-contain"
               />
             </Link>
 
@@ -101,31 +95,23 @@ export default function CartPage() {
 
       {/* 2. Main Content Workspace */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-8 py-6 sm:py-8">
-        
         {cart.length > 0 ? (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
-            
             {/* LEFT COLUMN: Cart Items (8 Cols) */}
             <div className="lg:col-span-7 xl:col-span-8 space-y-5">
-              
-              {/* Value Header Banner */}
-              <div className="bg-[#FFF3EC] border border-[#FA661C]/20 rounded-2xl p-3.5 px-4 flex items-center justify-between text-xs text-[#FA661C]">
-                <div className="flex items-center space-x-2">
-                  <Sparkles className="w-4 h-4 text-[#FF811A] shrink-0" />
-                  <span className="font-semibold">
-                    Free Standard Delivery on all marketplace orders.
-                  </span>
-                </div>
-              </div>
-
               {/* Seller Account Self-Purchase Warning Banner */}
               {hasOwnProductsInCart && (
                 <div className="bg-[#FFF8F2] border border-[#FF811A]/40 rounded-2xl p-4 flex items-start space-x-3 text-xs text-[#FA661C] shadow-xs">
                   <Store className="w-5 h-5 text-[#FF811A] shrink-0 mt-0.5" />
                   <div className="flex-1 space-y-1">
-                    <span className="font-extrabold block text-sm">Seller Account Self-Purchase Notice</span>
+                    <span className="font-extrabold block text-sm">
+                      Seller Account Self-Purchase Notice
+                    </span>
                     <p className="text-[#6B6058] font-medium leading-relaxed">
-                      Your bag contains products from your own merchant catalog. As a seller, you cannot purchase your own products, but you can buy products listed by other sellers. Please remove your own products to complete checkout.
+                      Your bag contains products from your own merchant catalog.
+                      As a seller, you cannot purchase your own products, but
+                      you can buy products listed by other sellers. Please
+                      remove your own products to complete checkout.
                     </p>
                   </div>
                 </div>
@@ -171,8 +157,11 @@ export default function CartPage() {
                             <h4 className="font-bold text-[#FA661C] truncate max-w-[240px]">
                               {sv.name}
                             </h4>
-                            <span className="font-black text-xs text-[#FA661C] mt-0.5 block">
-                              ₹{typeof sv.price === 'number' ? sv.price.toLocaleString('en-IN') : sv.price}
+                            <span className="font-mono font-black text-xs text-[#FA661C] mt-0.5 block">
+                              {formatVerbatimMoney(
+                                sv.currency || 'INR',
+                                sv.price
+                              )}
                             </span>
                           </div>
                         </div>
@@ -198,14 +187,14 @@ export default function CartPage() {
                   </div>
                 </div>
               )}
-
             </div>
 
             {/* RIGHT COLUMN: Sticky Order Summary (4-5 Cols) */}
             <div className="lg:col-span-5 xl:col-span-4 space-y-4">
-              <OrderSummarySidebar onProceedToCheckout={() => navigate('/checkout')} />
+              <OrderSummarySidebar
+                onProceedToCheckout={() => navigate('/checkout')}
+              />
             </div>
-
           </div>
         ) : (
           /* Empty Cart State */
@@ -218,7 +207,8 @@ export default function CartPage() {
                 Your Shopping Bag is Empty
               </h2>
               <p className="text-xs text-[#6B6058] mt-1.5 leading-relaxed">
-                Discover trending flagship electronics, pure Banarasi silk sarees, and handcrafted home furnishings.
+                Discover trending flagship electronics, pure Banarasi silk
+                sarees, and handcrafted home furnishings.
               </p>
             </div>
             <div className="pt-2">
@@ -231,10 +221,7 @@ export default function CartPage() {
             </div>
           </div>
         )}
-
       </main>
-
     </div>
   );
 }
-

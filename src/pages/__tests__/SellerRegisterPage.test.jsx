@@ -1,6 +1,7 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import '@testing-library/jest-dom';
 import { MemoryRouter } from 'react-router-dom';
 import SellerRegisterPage from '../SellerRegisterPage';
 import * as apiModule from '../../utils/api';
@@ -144,5 +145,70 @@ describe('SellerRegisterPage — Phone Number Wiring & Error Handling', () => {
     expect(capturedPayload.phone_number).toBe('9876543210');
     // Profile support_phone is custom support phone
     expect(capturedPayload.profile.support_phone).toBe('18001234567');
+  });
+
+  it('4. uploads PAN card document with document_type "pan" to POST /api/vendors/documents/ and shows server errors under the field', async () => {
+    const uploadedDocCalls = [];
+    let shouldFailPan = true;
+
+    vi.mocked(apiModule.apiRequest).mockImplementation((endpoint, options) => {
+      if (endpoint === '/api/vendors/register/') {
+        return Promise.resolve({ id: 10, store_name: 'PAN Test Store' });
+      }
+      if (endpoint === '/api/vendors/documents/') {
+        const formData = options.body;
+        const docType = formData.get('document_type');
+        const file = formData.get('file');
+        uploadedDocCalls.push({ docType, fileName: file?.name });
+        if (docType === 'pan' && shouldFailPan) {
+          throw new apiModule.ApiError('HTTP 400 Error', 400, {
+            file: ['Only PDF, JPEG, and PNG documents are allowed.'],
+          });
+        }
+        return Promise.resolve({
+          id: 501,
+          document_type: docType,
+          status: 'pending',
+        });
+      }
+      return Promise.resolve({});
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/seller/register']}>
+        <SellerRegisterPage />
+      </MemoryRouter>
+    );
+
+    // Go to Step 6: Identity Verification
+    fireEvent.click(screen.getByText('6. Verification'));
+    expect(screen.getByText(/PAN Card/i)).toBeInTheDocument();
+
+    const panInput = screen.getByTestId('doc-input-pan');
+    const badPanFile = new File(['bad-content'], 'pan_invalid.exe', { type: 'application/octet-stream' });
+    fireEvent.change(panInput, { target: { files: [badPanFile] } });
+
+    // Proceed to Step 7 and submit
+    fireEvent.click(screen.getByText('7. Agreement'));
+    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(screen.getByText('Submit Seller Registration'));
+
+    // Upload fails -> navigates back to Step 6 and displays server error under PAN field
+    await waitFor(() => {
+      expect(uploadedDocCalls).toContainEqual({ docType: 'pan', fileName: 'pan_invalid.exe' });
+      expect(screen.getByTestId('doc-error-pan')).toHaveTextContent(
+        'Only PDF, JPEG, and PNG documents are allowed.'
+      );
+    });
+
+    // Retry PAN upload on Step 6 with valid PDF -> immediately uploads to POST /api/vendors/documents/ with document_type 'pan'
+    shouldFailPan = false;
+    const validPanFile = new File(['%PDF-1.4'], 'pan_card.pdf', { type: 'application/pdf' });
+    fireEvent.change(screen.getByTestId('doc-input-pan'), { target: { files: [validPanFile] } });
+
+    await waitFor(() => {
+      expect(uploadedDocCalls).toContainEqual({ docType: 'pan', fileName: 'pan_card.pdf' });
+      expect(screen.queryByTestId('doc-error-pan')).not.toBeInTheDocument();
+    });
   });
 });

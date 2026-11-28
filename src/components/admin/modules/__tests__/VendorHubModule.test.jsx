@@ -33,9 +33,14 @@ const mockVendors = [
     may_sell: false,
     control_reason: null,
     documents: [
-      { id: 101, document_type: 'aadhaar', status: 'verified', rejection_reason: '', uploaded_at: '2026-09-20' },
-      { id: 102, document_type: 'pan', status: 'pending', rejection_reason: '', uploaded_at: '2026-09-20' },
+      { id: 101, document_type: 'aadhaar', status: 'verified', file_available: true, rejection_reason: '', uploaded_at: '2026-09-20' },
+      { id: 102, document_type: 'pan', status: 'pending', file_available: true, rejection_reason: '', uploaded_at: '2026-09-20' },
     ],
+    document_requirements: {
+      required: ['aadhaar', 'pan'],
+      verified: ['aadhaar'],
+      missing_or_unverified: ['pan'],
+    },
   },
   {
     id: 2,
@@ -380,5 +385,77 @@ describe('VendorHubModule — Real Backend API Wiring & Governance Flow', () => 
 
     expect(await screen.findByTestId('control-success-banner')).toBeInTheDocument();
     expect(screen.getByTestId('admin-history-row-77')).toHaveTextContent('Superuser audit note');
+  });
+
+  it('6. renders Required documents list (Verified, Pending, Missing) from API and shows missing_or_unverified in approval error', async () => {
+    const vendorsWithMissingPan = [
+      {
+        ...mockVendors[0],
+        documents: [
+          { id: 101, document_type: 'aadhaar', status: 'verified', file_available: true, rejection_reason: '', uploaded_at: '2026-09-20' },
+        ],
+        document_requirements: {
+          required: ['aadhaar', 'pan', 'gst_certificate'],
+          verified: ['aadhaar'],
+          missing_or_unverified: ['pan', 'gst_certificate'],
+        },
+      },
+      {
+        ...mockVendors[0],
+        id: 3,
+        business_name: 'Pending PAN Sellers',
+        store_name: 'Pending PAN Store',
+        store_slug: 'pending-pan-store',
+        documents: [
+          { id: 201, document_type: 'aadhaar', status: 'verified', file_available: true, rejection_reason: '', uploaded_at: '2026-09-20' },
+          { id: 202, document_type: 'pan', status: 'pending', file_available: true, rejection_reason: '', uploaded_at: '2026-09-20' },
+        ],
+        document_requirements: {
+          required: ['aadhaar', 'pan'],
+          verified: ['aadhaar'],
+          missing_or_unverified: ['pan'],
+        },
+      },
+    ];
+
+    apiRequest.mockImplementation(async (url) => {
+      if (url === '/api/vendors/admin/') return vendorsWithMissingPan;
+      if (url === '/api/vendors/1/review/') {
+        const err = new Error('Bad Request');
+        err.status = 400;
+        err.data = {
+          detail: ['All required vendor documents must be verified before approval.'],
+          missing_or_unverified: ['pan', 'gst_certificate'],
+        };
+        throw err;
+      }
+      return { count: 0, results: [] };
+    });
+
+    renderWithAuth({ id: 50, username: 'admin_test', is_staff: true, is_superuser: false });
+
+    expect(await screen.findByText('Acme Trade Pvt Ltd')).toBeInTheDocument();
+
+    // Open vendor #1 (aadhaar Verified, pan Missing, gst_certificate Missing)
+    fireEvent.click(screen.getByTestId('review-vendor-btn-1'));
+
+    expect(screen.getByTestId('required-documents-section')).toBeInTheDocument();
+    expect(screen.getByTestId('required-doc-status-aadhaar')).toHaveTextContent('Verified');
+    expect(screen.getByTestId('required-doc-status-pan')).toHaveTextContent('Missing');
+    expect(screen.getByTestId('required-doc-status-gst_certificate')).toHaveTextContent('Missing');
+
+    // Attempt to approve vendor #1 -> shows detail + missing_or_unverified in approval error
+    fireEvent.click(screen.getByText('Approve Merchant'));
+    fireEvent.click(screen.getByText('Submit Staff Decision'));
+
+    const errBanner = await screen.findByTestId('onboarding-decision-error');
+    expect(errBanner).toHaveTextContent('All required vendor documents must be verified before approval.');
+    expect(errBanner).toHaveTextContent('Missing or unverified: pan, gst_certificate');
+
+    // Open vendor #3 (aadhaar Verified, pan Pending)
+    fireEvent.click(screen.getByTestId('close-vendor-modal-btn'));
+    fireEvent.click(screen.getByTestId('review-vendor-btn-3'));
+    expect(screen.getByTestId('required-doc-status-aadhaar')).toHaveTextContent('Verified');
+    expect(screen.getByTestId('required-doc-status-pan')).toHaveTextContent('Pending');
   });
 });

@@ -26,10 +26,15 @@ import {
 import { apiRequest } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import ManagerRateCardsSection from '../components/warehouse/ManagerRateCardsSection';
+import ManagerFulfilmentSection from '../components/warehouse/ManagerFulfilmentSection';
+import ManagerHandoversSection from '../components/warehouse/ManagerHandoversSection';
+import ManagerReturnsSection from '../components/warehouse/ManagerReturnsSection';
 import {
   STORAGE_REQUEST_STATUSES,
   STATUS_LABELS,
   getStatusBadgeClass,
+  getValidStorageRequestActions,
+  hasNonZeroMoneyString,
   DISCREPANCY_ACTION_LABELS,
   MOVEMENT_TYPE_LABELS,
   formatAttributesSnapshot,
@@ -50,7 +55,20 @@ export default function WarehouseDashboardPage() {
     if (pathname.startsWith('/warehouse/stock')) return 'stock';
     if (pathname.startsWith('/warehouse/movements')) return 'movements';
     if (pathname.startsWith('/warehouse/rate-cards')) return 'rate-cards';
+    if (pathname.startsWith('/warehouse/shipments')) return 'shipments';
+    if (pathname.startsWith('/warehouse/handovers')) return 'handovers';
+    if (pathname.startsWith('/warehouse/returns')) return 'returns';
     return 'home';
+  };
+
+  const deriveShipmentIdFromPath = (pathname) => {
+    const match = pathname.match(/^\/warehouse\/shipments\/(\d+)\/?$/);
+    return match ? Number(match[1]) : null;
+  };
+
+  const deriveRequestIdFromPath = (pathname) => {
+    const match = pathname.match(/^\/warehouse\/requests\/(\d+)\/?$/);
+    return match ? Number(match[1]) : null;
   };
 
   const deriveRateCardSubView = (pathname) => {
@@ -90,14 +108,23 @@ export default function WarehouseDashboardPage() {
   const [requestsError, setRequestsError] = useState('');
 
   // Selected request detail state
-  const [selectedRequestId, setSelectedRequestId] = useState(null);
+  const [selectedRequestId, setSelectedRequestId] = useState(() =>
+    deriveRequestIdFromPath(location.pathname)
+  );
   const [requestDetail, setRequestDetail] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState('');
   const [conflictAlert, setConflictAlert] = useState('');
 
-  // Accept / Reject / Close modal state
-  const [decisionModal, setDecisionModal] = useState(null); // { type: 'accept' | 'reject' | 'close', request: obj }
+  useEffect(() => {
+    const pathReqId = deriveRequestIdFromPath(location.pathname);
+    if (pathReqId) {
+      setSelectedRequestId(pathReqId);
+    }
+  }, [location.pathname]);
+
+  // Accept / Reject / Close / Decline modal state
+  const [decisionModal, setDecisionModal] = useState(null); // { type: 'accept' | 'reject' | 'close' | 'decline', request: obj }
   const [acceptWindowStart, setAcceptWindowStart] = useState('');
   const [acceptWindowEnd, setAcceptWindowEnd] = useState('');
   const [acceptInstructions, setAcceptInstructions] = useState('');
@@ -107,6 +134,15 @@ export default function WarehouseDashboardPage() {
   const [decisionItemErrors, setDecisionItemErrors] = useState([]);
   const [decisionGeneralError, setDecisionGeneralError] = useState('');
   const [decisionSubmitting, setDecisionSubmitting] = useState(false);
+
+  // Record handback (Recall) modal state
+  const [recallModal, setRecallModal] = useState(null); // { request: obj }
+  const [recallDate, setRecallDate] = useState('');
+  const [recallReference, setRecallReference] = useState('');
+  const [recallReason, setRecallReason] = useState('');
+  const [recallFieldErrors, setRecallFieldErrors] = useState({});
+  const [recallGeneralError, setRecallGeneralError] = useState('');
+  const [recallSubmitting, setRecallSubmitting] = useState(false);
 
   // Receive form state (inline or panel when request.status === 'in_transit')
   const [receiveItemsForm, setReceiveItemsForm] = useState({});
@@ -144,6 +180,18 @@ export default function WarehouseDashboardPage() {
   const [movementsPrev, setMovementsPrev] = useState(null);
   const [movementsLoading, setMovementsLoading] = useState(false);
   const [movementsError, setMovementsError] = useState('');
+
+  // Pick & Pack Fulfilment feature switch state (hidden quietly when server returns 404)
+  const [pickPackAvailable, setPickPackAvailable] = useState(true);
+  const [handoversAvailable, setHandoversAvailable] = useState(true);
+  const [returnsAvailable, setReturnsAvailable] = useState(true);
+  const [selectedShipmentId, setSelectedShipmentId] = useState(() =>
+    deriveShipmentIdFromPath(location.pathname)
+  );
+
+  useEffect(() => {
+    setSelectedShipmentId(deriveShipmentIdFromPath(location.pathname));
+  }, [location.pathname]);
 
   const authNavRef = useRef({ logout, navigate });
   authNavRef.current = { logout, navigate };
@@ -533,6 +581,19 @@ export default function WarehouseDashboardPage() {
           }
         );
         setFeedbackBanner(`Storage request #${updated.id} closed.`);
+      } else if (type === 'decline') {
+        updated = await apiRequest(
+          `/api/warehouse/storage-requests/${request.id}/decline/`,
+          {
+            method: 'POST',
+            body: JSON.stringify({ reason: decisionReason }),
+          }
+        );
+        setFeedbackBanner(
+          `Storage request #${updated.id} declined into recall (${
+            STATUS_LABELS[updated.status] || updated.status
+          }).`
+        );
       }
 
       setDecisionModal(null);
@@ -542,13 +603,20 @@ export default function WarehouseDashboardPage() {
       }
       await fetchRequests(requestsPage, requestsStatusFilter);
     } catch (err) {
-      const parsed = parseWarehouseApiError(err);
+      const itemIds = (request?.items || []).map((it) => it.id);
+      const parsed = parseWarehouseApiError(
+        err,
+        ['reason', 'receiving_window_start', 'receiving_window_end', 'instructions', 'items'],
+        itemIds
+      );
       if (err?.status === 409) {
         const msg =
           parsed.generalError ||
           err?.data?.detail ||
           'This storage request state has already changed.';
-        setDecisionModal(null);
+        setDecisionFieldErrors(parsed.fieldErrors);
+        setDecisionItemErrors(parsed.itemErrors);
+        setDecisionGeneralError(msg);
         setConflictAlert(msg);
         await fetchRequests(requestsPage, requestsStatusFilter);
         if (request?.id) {
@@ -561,6 +629,92 @@ export default function WarehouseDashboardPage() {
       }
     } finally {
       setDecisionSubmitting(false);
+    }
+  };
+
+  // Open Record Handback (Recall) Modal
+  const openRecallModal = (reqObj) => {
+    setFeedbackBanner('');
+    setConflictAlert('');
+    setRecallFieldErrors({});
+    setRecallGeneralError('');
+    setRecallDate('');
+    setRecallReference('');
+    setRecallReason('');
+    setRecallModal({ request: reqObj });
+  };
+
+  // Submit Record Handback (`POST /api/warehouse/storage-requests/{id}/recall/`)
+  const handleRecallSubmit = async (e) => {
+    e.preventDefault();
+    if (!recallModal?.request) return;
+    setRecallFieldErrors({});
+    setRecallGeneralError('');
+    setRecallSubmitting(true);
+
+    const reqObj = recallModal.request;
+    try {
+      let formattedRecalledAt = recallDate;
+      if (
+        recallDate &&
+        /^\d{4}-\d{2}-\d{2}$/.test(recallDate.trim())
+      ) {
+        formattedRecalledAt = `${recallDate.trim()}T00:00:00Z`;
+      } else if (
+        recallDate &&
+        /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(recallDate.trim())
+      ) {
+        formattedRecalledAt = `${recallDate.trim()}:00Z`;
+      }
+
+      const updated = await apiRequest(
+        `/api/warehouse/storage-requests/${reqObj.id}/recall/`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            recalled_at: formattedRecalledAt,
+            recall_reference: recallReference,
+            reason: recallReason,
+          }),
+        }
+      );
+
+      setRecallModal(null);
+      if (updated) {
+        setRequestDetail(updated);
+        initFormsForDetail(updated);
+      }
+      setFeedbackBanner(
+        `Handback recorded for storage request #${updated.id} (status: ${
+          STATUS_LABELS[updated.status] || updated.status
+        }).`
+      );
+      await fetchRequests(requestsPage, requestsStatusFilter);
+    } catch (err) {
+      const parsed = parseWarehouseApiError(err, [
+        'recalled_at',
+        'recall_reference',
+        'reason',
+      ]);
+      if (err?.status === 409) {
+        const msg =
+          parsed.generalError ||
+          err?.data?.detail ||
+          'This storage request state has already changed.';
+        setRecallModal(null);
+        setConflictAlert(msg);
+        await fetchRequests(requestsPage, requestsStatusFilter);
+        if (reqObj?.id) {
+          await fetchRequestDetail(reqObj.id);
+        }
+      } else {
+        setRecallFieldErrors(parsed.fieldErrors);
+        if (Object.keys(parsed.fieldErrors).length === 0 || err?.data?.detail) {
+          setRecallGeneralError(parsed.generalError);
+        }
+      }
+    } finally {
+      setRecallSubmitting(false);
     }
   };
 
@@ -620,14 +774,21 @@ export default function WarehouseDashboardPage() {
           return {
             item_id: Number(item.id),
             counted_quantity:
-              row.counted_quantity !== '' ? Number(row.counted_quantity) : 0,
-            good_quantity: row.good_quantity !== '' ? Number(row.good_quantity) : 0,
+              row.counted_quantity !== '' && row.counted_quantity != null
+                ? Number(row.counted_quantity)
+                : null,
+            good_quantity:
+              row.good_quantity !== '' && row.good_quantity != null
+                ? Number(row.good_quantity)
+                : null,
             damaged_quantity:
-              row.damaged_quantity !== '' ? Number(row.damaged_quantity) : 0,
-            length: row.length,
-            width: row.width,
-            height: row.height,
-            weight: row.weight,
+              row.damaged_quantity !== '' && row.damaged_quantity != null
+                ? Number(row.damaged_quantity)
+                : null,
+            length: row.length ?? '',
+            width: row.width ?? '',
+            height: row.height ?? '',
+            weight: row.weight ?? '',
             location: row.location || '',
             discrepancy_reason: row.discrepancy_reason || '',
           };
@@ -651,7 +812,12 @@ export default function WarehouseDashboardPage() {
       );
       await fetchRequests(requestsPage, requestsStatusFilter);
     } catch (err) {
-      const parsed = parseWarehouseApiError(err);
+      const itemIds = itemsList.map((it) => it.id);
+      const parsed = parseWarehouseApiError(
+        err,
+        ['reason', 'notes', 'items'],
+        itemIds
+      );
       if (err?.status === 409) {
         const msg =
           parsed.generalError ||
@@ -898,6 +1064,63 @@ export default function WarehouseDashboardPage() {
               <FileText className="w-3.5 h-3.5" />
               <span>Rate Cards</span>
             </button>
+
+            {pickPackAvailable && (
+              <button
+                type="button"
+                data-testid="warehouse-nav-shipments"
+                onClick={() => {
+                  setSelectedRequestId(null);
+                  switchSection('shipments', '/warehouse/shipments');
+                }}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition-all cursor-pointer ${
+                  activeSection === 'shipments'
+                    ? 'bg-[#FA661C] text-white shadow-xs'
+                    : 'bg-white text-[#6B6058] border border-[#EAE3DC] hover:text-[#FA661C]'
+                }`}
+              >
+                <PackageCheck className="w-3.5 h-3.5" />
+                <span>Pick &amp; Pack</span>
+              </button>
+            )}
+
+            {handoversAvailable && (
+              <button
+                type="button"
+                data-testid="warehouse-nav-handovers"
+                onClick={() => {
+                  setSelectedRequestId(null);
+                  switchSection('handovers', '/warehouse/handovers');
+                }}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition-all cursor-pointer ${
+                  activeSection === 'handovers'
+                    ? 'bg-[#FA661C] text-white shadow-xs'
+                    : 'bg-white text-[#6B6058] border border-[#EAE3DC] hover:text-[#FA661C]'
+                }`}
+              >
+                <Boxes className="w-3.5 h-3.5" />
+                <span>Hub Handovers</span>
+              </button>
+            )}
+
+            {returnsAvailable && (
+              <button
+                type="button"
+                data-testid="warehouse-nav-returns"
+                onClick={() => {
+                  setSelectedRequestId(null);
+                  switchSection('returns', '/warehouse/returns');
+                }}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition-all cursor-pointer ${
+                  activeSection === 'returns'
+                    ? 'bg-[#FA661C] text-white shadow-xs'
+                    : 'bg-white text-[#6B6058] border border-[#EAE3DC] hover:text-[#FA661C]'
+                }`}
+              >
+                <PackageCheck className="w-3.5 h-3.5" />
+                <span>Returns</span>
+              </button>
+            )}
           </nav>
         </div>
       </header>
@@ -1158,53 +1381,94 @@ export default function WarehouseDashboardPage() {
                         <span>Back to Requests Queue</span>
                       </button>
 
-                      {requestDetail && (
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span
-                            data-testid="manager-detail-status-badge"
-                            className={`px-3 py-1 rounded-full text-xs font-extrabold uppercase ${getStatusBadgeClass(
-                              requestDetail.status
-                            )}`}
-                          >
-                            {STATUS_LABELS[requestDetail.status] || requestDetail.status}
-                          </span>
+                      {requestDetail && (() => {
+                        const validManagerActions = getValidStorageRequestActions(
+                          requestDetail.status,
+                          'warehouse_manager',
+                          requestDetail.seller_discrepancy_action
+                        );
+                        return (
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span
+                              data-testid="manager-detail-status-badge"
+                              className={`px-3 py-1 rounded-full text-xs font-extrabold uppercase ${getStatusBadgeClass(
+                                requestDetail.status
+                              )}`}
+                            >
+                              {STATUS_LABELS[requestDetail.status] ||
+                                requestDetail.status}
+                            </span>
 
-                          {requestDetail.status === 'requested' && (
-                            <>
+                            {validManagerActions.includes('accept') && (
                               <button
                                 type="button"
                                 data-testid="manager-open-accept-btn"
-                                onClick={() => openDecisionModal('accept', requestDetail)}
+                                onClick={() =>
+                                  openDecisionModal('accept', requestDetail)
+                                }
                                 className="px-3.5 py-1.5 rounded-xl bg-[#059669] hover:bg-[#047857] text-white text-xs font-bold inline-flex items-center space-x-1.5 cursor-pointer"
                               >
                                 <Check className="w-3.5 h-3.5" />
                                 <span>Accept Request</span>
                               </button>
+                            )}
+
+                            {validManagerActions.includes('reject') && (
                               <button
                                 type="button"
                                 data-testid="manager-open-reject-btn"
-                                onClick={() => openDecisionModal('reject', requestDetail)}
+                                onClick={() =>
+                                  openDecisionModal('reject', requestDetail)
+                                }
                                 className="px-3.5 py-1.5 rounded-xl bg-[#DC2626] hover:bg-[#B91C1C] text-white text-xs font-bold inline-flex items-center space-x-1.5 cursor-pointer"
                               >
                                 <XCircle className="w-3.5 h-3.5" />
                                 <span>Reject Request</span>
                               </button>
-                            </>
-                          )}
+                            )}
 
-                          {requestDetail.status === 'received' && (
-                            <button
-                              type="button"
-                              data-testid="manager-open-close-btn"
-                              onClick={() => openDecisionModal('close', requestDetail)}
-                              className="px-3.5 py-1.5 rounded-xl bg-[#1A2420] hover:bg-[#334139] text-white text-xs font-bold inline-flex items-center space-x-1.5 cursor-pointer"
-                            >
-                              <Lock className="w-3.5 h-3.5" />
-                              <span>Close Request</span>
-                            </button>
-                          )}
-                        </div>
-                      )}
+                            {validManagerActions.includes('close') && (
+                              <button
+                                type="button"
+                                data-testid="manager-open-close-btn"
+                                onClick={() =>
+                                  openDecisionModal('close', requestDetail)
+                                }
+                                className="px-3.5 py-1.5 rounded-xl bg-[#1A2420] hover:bg-[#334139] text-white text-xs font-bold inline-flex items-center space-x-1.5 cursor-pointer"
+                              >
+                                <Lock className="w-3.5 h-3.5" />
+                                <span>Close Request</span>
+                              </button>
+                            )}
+
+                            {validManagerActions.includes('decline') && (
+                              <button
+                                type="button"
+                                data-testid="manager-open-decline-btn"
+                                onClick={() =>
+                                  openDecisionModal('decline', requestDetail)
+                                }
+                                className="px-3.5 py-1.5 rounded-xl bg-[#DC2626] hover:bg-[#B91C1C] text-white text-xs font-bold inline-flex items-center space-x-1.5 cursor-pointer"
+                              >
+                                <XCircle className="w-3.5 h-3.5" />
+                                <span>Decline</span>
+                              </button>
+                            )}
+
+                            {validManagerActions.includes('recall') && (
+                              <button
+                                type="button"
+                                data-testid="manager-open-recall-btn"
+                                onClick={() => openRecallModal(requestDetail)}
+                                className="px-3.5 py-1.5 rounded-xl bg-[#6B21A8] hover:bg-[#581C87] text-white text-xs font-bold inline-flex items-center space-x-1.5 cursor-pointer"
+                              >
+                                <PackageCheck className="w-3.5 h-3.5" />
+                                <span>Record handback</span>
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     {detailLoading ? (
@@ -1219,171 +1483,638 @@ export default function WarehouseDashboardPage() {
                       >
                         {detailError}
                       </div>
-                    ) : requestDetail ? (
-                      <div className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-                          <div className="p-4 rounded-2xl border border-[#EAE3DC] bg-[#FFF3EC]/20 space-y-1.5">
-                            <span className="text-[10px] font-black uppercase text-[#6B6058]">
-                              Request & Seller
-                            </span>
-                            <div className="font-bold text-sm text-[#1A2420]">
-                              Request #{requestDetail.id}
-                            </div>
+                    ) : requestDetail ? (() => {
+                      const validManagerActions = getValidStorageRequestActions(
+                        requestDetail.status,
+                        'warehouse_manager',
+                        requestDetail.seller_discrepancy_action
+                      );
+                      const quote = requestDetail.quote_snapshot;
+                      const hasQuote =
+                        quote &&
+                        typeof quote === 'object' &&
+                        Object.keys(quote).length > 0;
+                      const quoteDate =
+                        requestDetail.quote_as_of_date || quote?.date || '—';
+                      const quoteVersion =
+                        requestDetail.quote_rate_card_version ??
+                        quote?.rate_card_version ??
+                        '—';
+                      const quoteCurrency = quote?.currency || 'INR';
+                      const mismatchesList = Array.isArray(
+                        requestDetail.measurement_mismatches
+                      )
+                        ? requestDetail.measurement_mismatches
+                        : [];
+                      const mismatchByItemId = {};
+                      mismatchesList.forEach((m) => {
+                        if (m && m.item_id != null) {
+                          mismatchByItemId[m.item_id] = m.dimensions || {};
+                        }
+                      });
+                      const hasMeasuredData = (requestDetail.items || []).some(
+                        (it) =>
+                          it.measured_length_cm != null ||
+                          it.measured_width_cm != null ||
+                          it.measured_height_cm != null ||
+                          it.measured_weight_kg != null
+                      );
+
+                      return (
+                        <div className="space-y-6">
+                          {/* Refund Status Banner (replaces outdated "not been processed" text) */}
+                          {hasNonZeroMoneyString(requestDetail.refunded_amount) ? (
                             <div
-                              data-testid="manager-detail-seller-name"
-                              className="font-bold text-[#FA661C]"
+                              data-testid="manager-fee-refunded-banner"
+                              role="status"
+                              className="p-4 rounded-2xl border border-[#6EE7B7] bg-[#ECFDF5] flex items-center space-x-2.5 text-xs text-[#065F46] font-bold"
                             >
-                              {requestDetail.seller_business_name} (Seller #{requestDetail.vendor_id ?? requestDetail.seller})
-                            </div>
-                            <div className="text-[#6B6058]">
-                              Expected Arrival: {requestDetail.expected_arrival || '—'}
-                            </div>
-                            <div className="text-[#6B6058]">
-                              Created: {formatDateTime(requestDetail.created_at)}
-                            </div>
-                          </div>
-
-                          <div className="p-4 rounded-2xl border border-[#EAE3DC] bg-[#FFF3EC]/20 space-y-1.5">
-                            <span className="text-[10px] font-black uppercase text-[#6B6058]">
-                              Shipment & Tracking
-                            </span>
-                            <div>
-                              <span className="text-[#6B6058]">Courier:</span>{' '}
-                              <span className="font-semibold text-[#1A2420]">
-                                {requestDetail.courier_name || requestDetail.courier || '—'}
+                              <CheckCircle2 className="w-4 h-4 text-[#059669] shrink-0" />
+                              <span>
+                                The warehouse fee was refunded to the seller&apos;s wallet.
                               </span>
                             </div>
-                            <div>
-                              <span className="text-[#6B6058]">Tracking Ref:</span>{' '}
-                              <span className="font-mono font-semibold text-[#1A2420]">
-                                {requestDetail.tracking_reference || '—'}
+                          ) : requestDetail.refund_due === true ? (
+                            <div
+                              data-testid="manager-refund-due-banner"
+                              role="status"
+                              className="p-4 rounded-2xl border border-[#F59E0B] bg-[#FFFBEB] flex items-center space-x-2.5 text-xs text-[#92400E] font-bold"
+                            >
+                              <AlertCircle className="w-4 h-4 text-[#D97706] shrink-0" />
+                              <span>
+                                A refund is due and will be recorded by the platform.
                               </span>
                             </div>
-                            {requestDetail.dispatched_at && (
-                              <div className="text-[#6B6058]">
-                                Dispatched: {formatDateTime(requestDetail.dispatched_at)}
-                              </div>
-                            )}
-                            {(requestDetail.seller_notes || requestDetail.notes) && (
-                              <div className="text-[#6B6058]">
-                                Notes: {requestDetail.seller_notes || requestDetail.notes}
-                              </div>
-                            )}
-                          </div>
+                          ) : null}
 
-                          <div className="p-4 rounded-2xl border border-[#EAE3DC] bg-[#FFF3EC]/20 space-y-1.5">
-                            <span className="text-[10px] font-black uppercase text-[#6B6058]">
-                              Decision & Receiving
-                            </span>
-                            {requestDetail.decision_reason ? (
-                              <div>
-                                <span className="text-[#6B6058]">Decision Reason:</span>{' '}
-                                <span className="font-semibold text-[#1A2420]">
-                                  {requestDetail.decision_reason}
+                          {/* Charged & Refunded Amounts (shown ONLY when server sends non-zero amounts) */}
+                          {(hasNonZeroMoneyString(requestDetail.charged_amount) ||
+                            hasNonZeroMoneyString(requestDetail.refunded_amount)) && (
+                            <div
+                              data-testid="manager-charge-refund-summary"
+                              className="flex flex-wrap items-center gap-3 p-3.5 rounded-2xl border border-[#EAE3DC] bg-[#FFF8F2] text-xs"
+                            >
+                              {hasNonZeroMoneyString(requestDetail.charged_amount) && (
+                                <span
+                                  data-testid="manager-charged-amount"
+                                  className="px-3 py-1 rounded-xl bg-white border border-[#EAE3DC] font-mono font-bold text-[#1A2420]"
+                                >
+                                  Charged: {requestDetail.charged_amount}
                                 </span>
-                              </div>
-                            ) : (
-                              <div className="text-[#6B6058]">No decision recorded yet.</div>
-                            )}
-                            {(requestDetail.manager_instructions ||
-                              requestDetail.receiving_instructions) && (
-                              <div>
-                                <span className="text-[#6B6058]">Instructions:</span>{' '}
-                                <span className="font-semibold text-[#1A2420]">
-                                  {requestDetail.manager_instructions ||
-                                    requestDetail.receiving_instructions}
+                              )}
+                              {hasNonZeroMoneyString(requestDetail.refunded_amount) && (
+                                <span
+                                  data-testid="manager-refunded-amount"
+                                  className="px-3 py-1 rounded-xl bg-[#ECFDF5] border border-[#6EE7B7] font-mono font-bold text-[#065F46]"
+                                >
+                                  Refunded: {requestDetail.refunded_amount}
                                 </span>
-                              </div>
-                            )}
-                            {requestDetail.received_at && (
-                              <div className="text-[#6B6058]">
-                                Received: {formatDateTime(requestDetail.received_at)}
-                              </div>
-                            )}
-                          </div>
-                        </div>
+                              )}
+                            </div>
+                          )}
 
-                        {/* Items Snapshot & Counts Table */}
-                        <div className="space-y-2">
-                          <h3 className="font-['Outfit'] font-extrabold text-sm text-[#1A2420]">
-                            Item Snapshots & Counts ({requestDetail.items?.length || 0})
-                          </h3>
-                          <div className="overflow-x-auto rounded-2xl border border-[#EAE3DC]">
-                            <table className="w-full text-left border-collapse text-xs">
-                              <thead>
-                                <tr className="bg-[#FFF3EC]/60 border-b border-[#EAE3DC] text-[#6B6058] uppercase text-[10px] font-black tracking-wider">
-                                  <th className="py-3 px-4">Item Snapshot</th>
-                                  <th className="py-3 px-4 text-right">Requested</th>
-                                  <th className="py-3 px-4 text-right">Accepted</th>
-                                  <th className="py-3 px-4 text-right">Counted</th>
-                                  <th className="py-3 px-4 text-right">Good</th>
-                                  <th className="py-3 px-4 text-right">Damaged</th>
-                                  <th className="py-3 px-4">Dimensions / Weight</th>
-                                  <th className="py-3 px-4">Location & Discrepancy</th>
-                                </tr>
-                              </thead>
-                              <tbody className="divide-y divide-[#EAE3DC]">
-                                {(requestDetail.items || []).map((item) => (
-                                  <tr
-                                    key={item.id}
-                                    data-testid={`manager-detail-item-row-${item.id}`}
+                          {/* Decline & Recall Panel */}
+                          {(requestDetail.status === 'recall_pending' ||
+                            requestDetail.status === 'recalled' ||
+                            requestDetail.decline_reason) && (
+                            <div
+                              data-testid="manager-decline-recall-panel"
+                              className="p-4 rounded-2xl border border-[#FCA5A5] bg-[#FFF3F3] space-y-2 text-xs"
+                            >
+                              {requestDetail.status === 'recall_pending' && (
+                                <div
+                                  data-testid="manager-recall-pending-notice"
+                                  className="font-extrabold text-sm text-[#991B1B]"
+                                >
+                                  Recall Pending — Please collect your goods (Awaiting seller collection & handback)
+                                </div>
+                              )}
+                              {requestDetail.status === 'recalled' && (
+                                <div
+                                  data-testid="manager-recalled-notice"
+                                  className="font-extrabold text-sm text-[#6B21A8]"
+                                >
+                                  Recalled — Seller Handback Recorded
+                                </div>
+                              )}
+                              {requestDetail.decline_reason && (
+                                <div>
+                                  <span className="text-[#7F1D1D] font-semibold">
+                                    Decline Reason:{' '}
+                                  </span>
+                                  <strong
+                                    data-testid="manager-decline-reason"
+                                    className="text-[#991B1B]"
                                   >
-                                    <td className="py-3 px-4">
-                                      <div className="font-bold text-[#1A2420]">
-                                        {item.product_name_snapshot}
-                                      </div>
-                                      <div className="font-mono text-[11px] text-[#FA661C]">
-                                        SKU: {item.sku_snapshot} • Variant #{item.variant_id ?? item.variant}
-                                      </div>
-                                      <div className="text-[11px] text-[#6B6058]">
-                                        {formatAttributesSnapshot(item.attributes_snapshot)}
-                                      </div>
-                                    </td>
-                                    <td className="py-3 px-4 text-right font-mono font-bold">
-                                      {item.requested_quantity}
-                                    </td>
-                                    <td className="py-3 px-4 text-right font-mono font-bold text-[#059669]">
-                                      {item.accepted_quantity ?? '—'}
-                                    </td>
-                                    <td className="py-3 px-4 text-right font-mono font-bold">
-                                      {item.received_quantity ?? '—'}
-                                    </td>
-                                    <td className="py-3 px-4 text-right font-mono font-bold text-[#065F46]">
-                                      {item.good_quantity ?? '—'}
-                                    </td>
-                                    <td className="py-3 px-4 text-right font-mono font-bold text-[#DC2626]">
-                                      {item.damaged_quantity ?? '—'}
-                                    </td>
-                                    <td className="py-3 px-4 font-mono text-[11px]">
-                                      <div>
-                                        {formatDimensionsCm(
-                                          item.measured_length_cm ?? item.length_cm,
-                                          item.measured_width_cm ?? item.width_cm,
-                                          item.measured_height_cm ?? item.height_cm
-                                        )}
-                                      </div>
-                                      <div className="text-[#6B6058]">
-                                        {formatWeightKg(
-                                          item.measured_weight_kg ?? item.weight_kg
-                                        )}
-                                      </div>
-                                    </td>
-                                    <td className="py-3 px-4 text-[11px]">
-                                      <div className="font-mono font-semibold">
-                                        {item.location || item.storage_location || '—'}
-                                      </div>
-                                      {item.discrepancy_reason && (
-                                        <div className="text-[#DC2626] font-semibold mt-0.5">
-                                          Discrepancy: {item.discrepancy_reason}
-                                        </div>
-                                      )}
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
+                                    {requestDetail.decline_reason}
+                                  </strong>
+                                  {requestDetail.declined_at && (
+                                    <span className="text-[#7F1D1D] ml-2">
+                                      ({formatDateTime(requestDetail.declined_at)})
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                              {requestDetail.status === 'recalled' && (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-[#FCA5A5]/50">
+                                  <div>
+                                    <span className="text-[#7F1D1D] font-semibold">
+                                      Handback Reference:{' '}
+                                    </span>
+                                    <strong
+                                      data-testid="manager-recall-reference"
+                                      className="font-mono text-[#1A2420]"
+                                    >
+                                      {requestDetail.recall_reference || '—'}
+                                    </strong>
+                                  </div>
+                                  <div>
+                                    <span className="text-[#7F1D1D] font-semibold">
+                                      Handback Date:{' '}
+                                    </span>
+                                    <strong
+                                      data-testid="manager-recalled-date"
+                                      className="text-[#1A2420]"
+                                    >
+                                      {formatDateTime(requestDetail.recalled_at)}
+                                    </strong>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                            <div className="p-4 rounded-2xl border border-[#EAE3DC] bg-[#FFF3EC]/20 space-y-1.5">
+                              <span className="text-[10px] font-black uppercase text-[#6B6058]">
+                                Request & Seller
+                              </span>
+                              <div className="font-bold text-sm text-[#1A2420]">
+                                Request #{requestDetail.id}
+                              </div>
+                              <div
+                                data-testid="manager-detail-seller-name"
+                                className="font-bold text-[#FA661C]"
+                              >
+                                {requestDetail.seller_business_name} (Seller #{requestDetail.vendor_id ?? requestDetail.seller})
+                              </div>
+                              <div className="text-[#6B6058]">
+                                Expected Arrival: {requestDetail.expected_arrival || '—'}
+                              </div>
+                              <div className="text-[#6B6058]">
+                                Created: {formatDateTime(requestDetail.created_at)}
+                              </div>
+                            </div>
+
+                            <div className="p-4 rounded-2xl border border-[#EAE3DC] bg-[#FFF3EC]/20 space-y-1.5">
+                              <span className="text-[10px] font-black uppercase text-[#6B6058]">
+                                Shipment & Tracking
+                              </span>
+                              <div>
+                                <span className="text-[#6B6058]">Courier:</span>{' '}
+                                <span className="font-semibold text-[#1A2420]">
+                                  {requestDetail.courier_name || requestDetail.courier || '—'}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="text-[#6B6058]">Tracking Ref:</span>{' '}
+                                <span className="font-mono font-semibold text-[#1A2420]">
+                                  {requestDetail.tracking_reference || '—'}
+                                </span>
+                              </div>
+                              {requestDetail.dispatched_at && (
+                                <div className="text-[#6B6058]">
+                                  Dispatched: {formatDateTime(requestDetail.dispatched_at)}
+                                </div>
+                              )}
+                              {(requestDetail.seller_notes || requestDetail.notes) && (
+                                <div className="text-[#6B6058]">
+                                  Notes: {requestDetail.seller_notes || requestDetail.notes}
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="p-4 rounded-2xl border border-[#EAE3DC] bg-[#FFF3EC]/20 space-y-1.5">
+                              <span className="text-[10px] font-black uppercase text-[#6B6058]">
+                                Decision & Receiving
+                              </span>
+                              {requestDetail.decision_reason ? (
+                                <div>
+                                  <span className="text-[#6B6058]">Decision Reason:</span>{' '}
+                                  <span className="font-semibold text-[#1A2420]">
+                                    {requestDetail.decision_reason}
+                                  </span>
+                                </div>
+                              ) : (
+                                <div className="text-[#6B6058]">No decision recorded yet.</div>
+                              )}
+                              {(requestDetail.manager_instructions ||
+                                requestDetail.receiving_instructions) && (
+                                <div>
+                                  <span className="text-[#6B6058]">Instructions:</span>{' '}
+                                  <span className="font-semibold text-[#1A2420]">
+                                    {requestDetail.manager_instructions ||
+                                      requestDetail.receiving_instructions}
+                                  </span>
+                                </div>
+                              )}
+                              {requestDetail.received_at && (
+                                <div className="text-[#6B6058]">
+                                  Received: {formatDateTime(requestDetail.received_at)}
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        </div>
+
+                          {/* Saved Price Quote Section (Verbatim from Server) */}
+                          {hasQuote && (
+                            <div
+                              data-testid="manager-saved-quote-panel"
+                              className="p-4 rounded-2xl border border-[#EAE3DC] bg-white space-y-3 text-xs"
+                            >
+                              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#EAE3DC] pb-2.5">
+                                <div className="flex items-center space-x-2">
+                                  <FileText className="w-4 h-4 text-[#FA661C]" />
+                                  <h4 className="font-['Outfit'] font-extrabold text-sm text-[#1A2420]">
+                                    Saved Price Quote
+                                  </h4>
+                                </div>
+                                <span
+                                  data-testid="manager-quote-caption"
+                                  className="font-mono font-semibold text-[#6B6058]"
+                                >
+                                  as quoted on {quoteDate} using rate card version{' '}
+                                  {quoteVersion}
+                                </span>
+                              </div>
+
+                              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 p-3 rounded-xl bg-[#FFF8F2] border border-[#EAE3DC]">
+                                <div>
+                                  <span className="text-[#6B6058] block text-[11px]">
+                                    Storage Charge
+                                  </span>
+                                  <strong
+                                    data-testid="manager-quote-storage-charge"
+                                    className="font-mono text-[#1A2420]"
+                                  >
+                                    {quoteCurrency} {quote.storage_charge ?? '—'}
+                                  </strong>
+                                </div>
+                                <div>
+                                  <span className="text-[#6B6058] block text-[11px]">
+                                    Handling Charge
+                                  </span>
+                                  <strong
+                                    data-testid="manager-quote-handling-charge"
+                                    className="font-mono text-[#1A2420]"
+                                  >
+                                    {quoteCurrency} {quote.handling_charge ?? '—'}
+                                  </strong>
+                                </div>
+                                <div>
+                                  <span className="text-[#6B6058] block text-[11px]">
+                                    Packing Charge
+                                  </span>
+                                  <strong
+                                    data-testid="manager-quote-packing-charge"
+                                    className="font-mono text-[#1A2420]"
+                                  >
+                                    {quoteCurrency} {quote.packing_charge ?? '—'}
+                                  </strong>
+                                </div>
+                                <div>
+                                  <span className="text-[#6B6058] block text-[11px]">
+                                    Minimum Charge Applied
+                                  </span>
+                                  <strong
+                                    data-testid="manager-quote-minimum-applied"
+                                    className="font-mono text-[#1A2420]"
+                                  >
+                                    {quoteCurrency}{' '}
+                                    {quote.minimum_charge_applied ?? '—'}
+                                  </strong>
+                                </div>
+                                <div>
+                                  <span className="text-[#6B6058] block text-[11px]">
+                                    Quote Total
+                                  </span>
+                                  <strong
+                                    data-testid="manager-quote-total"
+                                    className="font-mono text-sm text-[#FA661C]"
+                                  >
+                                    {quoteCurrency} {quote.total ?? '—'}
+                                  </strong>
+                                </div>
+                              </div>
+
+                              {Array.isArray(quote.items) &&
+                                quote.items.length > 0 && (
+                                  <div className="overflow-x-auto">
+                                    <table
+                                      data-testid="manager-quote-lines-table"
+                                      className="w-full text-left border-collapse text-xs"
+                                    >
+                                      <thead>
+                                        <tr className="border-b border-[#EAE3DC] text-[#6B6058] uppercase text-[10px]">
+                                          <th className="py-2 px-2">Item / Variant</th>
+                                          <th className="py-2 px-2">Size Band</th>
+                                          <th className="py-2 px-2">Qty</th>
+                                          <th className="py-2 px-2">
+                                            Free / Billable Days
+                                          </th>
+                                          <th className="py-2 px-2">Storage</th>
+                                          <th className="py-2 px-2">Handling</th>
+                                          <th className="py-2 px-2">Packing</th>
+                                          <th className="py-2 px-2 text-right">
+                                            Line Total
+                                          </th>
+                                        </tr>
+                                      </thead>
+                                      <tbody className="divide-y divide-[#EAE3DC]/60">
+                                        {quote.items.map((line, lIdx) => (
+                                          <tr
+                                            key={line.item_id ?? lIdx}
+                                            data-testid={`manager-quote-line-${
+                                              line.item_id ?? lIdx
+                                            }`}
+                                          >
+                                            <td className="py-2 px-2 font-mono">
+                                              Item #{line.item_id ?? '—'} (Variant #
+                                              {line.variant_id ?? '—'})
+                                            </td>
+                                            <td className="py-2 px-2 font-semibold text-[#1A2420]">
+                                              {line.band?.label || '—'}
+                                            </td>
+                                            <td className="py-2 px-2 font-mono">
+                                              {line.quantity ?? '—'}
+                                            </td>
+                                            <td className="py-2 px-2 font-mono">
+                                              {line.free_days_applied ?? 0} free /{' '}
+                                              {line.billable_storage_days ?? '—'}{' '}
+                                              billable
+                                            </td>
+                                            <td className="py-2 px-2 font-mono">
+                                              {line.currency || quoteCurrency}{' '}
+                                              {line.storage_charge}
+                                            </td>
+                                            <td className="py-2 px-2 font-mono">
+                                              {line.currency || quoteCurrency}{' '}
+                                              {line.handling_charge}
+                                            </td>
+                                            <td className="py-2 px-2 font-mono">
+                                              {line.currency || quoteCurrency}{' '}
+                                              {line.packing_charge}
+                                            </td>
+                                            <td className="py-2 px-2 font-mono font-bold text-right">
+                                              {line.currency || quoteCurrency}{' '}
+                                              {line.total}
+                                            </td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                )}
+                            </div>
+                          )}
+
+                          {/* Declared vs. Measured Table (shown after receiving or when mismatches exist) */}
+                          {(mismatchesList.length > 0 ||
+                            requestDetail.status === 'mismatch' ||
+                            requestDetail.status === 'received' ||
+                            requestDetail.status === 'discrepancy' ||
+                            hasMeasuredData) && (
+                            <div
+                              data-testid="manager-measurement-mismatches-panel"
+                              className="p-4 rounded-2xl border border-[#EAE3DC] bg-[#FFF8F2] space-y-3 text-xs"
+                            >
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <div className="flex items-center space-x-2">
+                                  <Scale className="w-4 h-4 text-[#FA661C]" />
+                                  <h4 className="font-['Outfit'] font-extrabold text-sm text-[#1A2420]">
+                                    Declared vs. Measured Dimensions & Weight
+                                  </h4>
+                                </div>
+                                {requestDetail.measurement_tolerance_percent !=
+                                  null && (
+                                  <span
+                                    data-testid="manager-measurement-tolerance"
+                                    className="px-2.5 py-0.5 rounded-full bg-white border border-[#EAE3DC] font-mono font-bold text-[#1A2420]"
+                                  >
+                                    Tolerance:{' '}
+                                    {requestDetail.measurement_tolerance_percent}%
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className="overflow-x-auto bg-white rounded-xl border border-[#EAE3DC]">
+                                <table
+                                  data-testid="manager-declared-vs-measured-table"
+                                  className="w-full text-left border-collapse text-xs"
+                                >
+                                  <thead>
+                                    <tr className="border-b border-[#EAE3DC] text-[#6B6058] uppercase text-[10px]">
+                                      <th className="py-2 px-3">Item</th>
+                                      <th className="py-2 px-3">
+                                        Length (cm) Declared → Measured
+                                      </th>
+                                      <th className="py-2 px-3">
+                                        Width (cm) Declared → Measured
+                                      </th>
+                                      <th className="py-2 px-3">
+                                        Height (cm) Declared → Measured
+                                      </th>
+                                      <th className="py-2 px-3">
+                                        Weight (kg) Declared → Measured
+                                      </th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-[#EAE3DC]/60">
+                                    {(requestDetail.items || []).map((item) => {
+                                      const mm = mismatchByItemId[item.id] || {};
+                                      return (
+                                        <tr
+                                          key={item.id}
+                                          data-testid={`manager-mismatch-row-${item.id}`}
+                                        >
+                                          <td className="py-2 px-3 font-semibold text-[#1A2420]">
+                                            {item.sku_snapshot} (#{item.id})
+                                          </td>
+                                          <td className="py-2 px-3 font-mono">
+                                            {mm.length_cm ? (
+                                              <span
+                                                data-testid={`manager-mismatch-dim-${item.id}-length_cm`}
+                                                className="font-bold text-[#DC2626]"
+                                              >
+                                                {mm.length_cm.declared} →{' '}
+                                                {mm.length_cm.measured} (Mismatch)
+                                              </span>
+                                            ) : (
+                                              <span>
+                                                {item.declared_length_cm ?? '—'} →{' '}
+                                                {item.measured_length_cm ?? '—'}
+                                              </span>
+                                            )}
+                                          </td>
+                                          <td className="py-2 px-3 font-mono">
+                                            {mm.width_cm ? (
+                                              <span
+                                                data-testid={`manager-mismatch-dim-${item.id}-width_cm`}
+                                                className="font-bold text-[#DC2626]"
+                                              >
+                                                {mm.width_cm.declared} →{' '}
+                                                {mm.width_cm.measured} (Mismatch)
+                                              </span>
+                                            ) : (
+                                              <span>
+                                                {item.declared_width_cm ?? '—'} →{' '}
+                                                {item.measured_width_cm ?? '—'}
+                                              </span>
+                                            )}
+                                          </td>
+                                          <td className="py-2 px-3 font-mono">
+                                            {mm.height_cm ? (
+                                              <span
+                                                data-testid={`manager-mismatch-dim-${item.id}-height_cm`}
+                                                className="font-bold text-[#DC2626]"
+                                              >
+                                                {mm.height_cm.declared} →{' '}
+                                                {mm.height_cm.measured} (Mismatch)
+                                              </span>
+                                            ) : (
+                                              <span>
+                                                {item.declared_height_cm ?? '—'} →{' '}
+                                                {item.measured_height_cm ?? '—'}
+                                              </span>
+                                            )}
+                                          </td>
+                                          <td className="py-2 px-3 font-mono">
+                                            {mm.weight_kg ? (
+                                              <span
+                                                data-testid={`manager-mismatch-dim-${item.id}-weight_kg`}
+                                                className="font-bold text-[#DC2626]"
+                                              >
+                                                {mm.weight_kg.declared} →{' '}
+                                                {mm.weight_kg.measured} (Mismatch)
+                                              </span>
+                                            ) : (
+                                              <span>
+                                                {item.declared_weight_kg ?? '—'} →{' '}
+                                                {item.measured_weight_kg ?? '—'}
+                                              </span>
+                                            )}
+                                          </td>
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Items Snapshot & Counts Table */}
+                          <div className="space-y-2">
+                            <h3 className="font-['Outfit'] font-extrabold text-sm text-[#1A2420]">
+                              Item Snapshots & Counts ({requestDetail.items?.length || 0})
+                            </h3>
+                            <div className="overflow-x-auto rounded-2xl border border-[#EAE3DC]">
+                              <table className="w-full text-left border-collapse text-xs">
+                                <thead>
+                                  <tr className="bg-[#FFF3EC]/60 border-b border-[#EAE3DC] text-[#6B6058] uppercase text-[10px] font-black tracking-wider">
+                                    <th className="py-3 px-4">Item Snapshot</th>
+                                    <th className="py-3 px-4">
+                                      Declared (Size / Weight / Days)
+                                    </th>
+                                    <th className="py-3 px-4 text-right">Requested</th>
+                                    <th className="py-3 px-4 text-right">Accepted</th>
+                                    <th className="py-3 px-4 text-right">Counted</th>
+                                    <th className="py-3 px-4 text-right">Good</th>
+                                    <th className="py-3 px-4 text-right">Damaged</th>
+                                    <th className="py-3 px-4">Measured (Size / Weight)</th>
+                                    <th className="py-3 px-4">Location & Discrepancy</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-[#EAE3DC]">
+                                  {(requestDetail.items || []).map((item) => (
+                                    <tr
+                                      key={item.id}
+                                      data-testid={`manager-detail-item-row-${item.id}`}
+                                    >
+                                      <td className="py-3 px-4">
+                                        <div className="font-bold text-[#1A2420]">
+                                          {item.product_name_snapshot}
+                                        </div>
+                                        <div className="font-mono text-[11px] text-[#FA661C]">
+                                          SKU: {item.sku_snapshot} • Variant #{item.variant_id ?? item.variant}
+                                        </div>
+                                        <div className="text-[11px] text-[#6B6058]">
+                                          {formatAttributesSnapshot(item.attributes_snapshot)}
+                                        </div>
+                                      </td>
+                                      <td
+                                        data-testid={`manager-item-declared-${item.id}`}
+                                        className="py-3 px-4 font-mono text-[11px]"
+                                      >
+                                        <div>
+                                          {formatDimensionsCm(
+                                            item.declared_length_cm,
+                                            item.declared_width_cm,
+                                            item.declared_height_cm
+                                          )}
+                                        </div>
+                                        <div className="text-[#6B6058]">
+                                          {formatWeightKg(item.declared_weight_kg)}
+                                          {item.expected_storage_days != null
+                                            ? ` • ${item.expected_storage_days} days`
+                                            : ''}
+                                        </div>
+                                      </td>
+                                      <td className="py-3 px-4 text-right font-mono font-bold">
+                                        {item.requested_quantity}
+                                      </td>
+                                      <td className="py-3 px-4 text-right font-mono font-bold text-[#059669]">
+                                        {item.accepted_quantity ?? '—'}
+                                      </td>
+                                      <td className="py-3 px-4 text-right font-mono font-bold">
+                                        {item.received_quantity ?? '—'}
+                                      </td>
+                                      <td className="py-3 px-4 text-right font-mono font-bold text-[#065F46]">
+                                        {item.good_quantity ?? '—'}
+                                      </td>
+                                      <td className="py-3 px-4 text-right font-mono font-bold text-[#DC2626]">
+                                        {item.damaged_quantity ?? '—'}
+                                      </td>
+                                      <td className="py-3 px-4 font-mono text-[11px]">
+                                        <div>
+                                          {formatDimensionsCm(
+                                            item.measured_length_cm ?? item.length_cm,
+                                            item.measured_width_cm ?? item.width_cm,
+                                            item.measured_height_cm ?? item.height_cm
+                                          )}
+                                        </div>
+                                        <div className="text-[#6B6058]">
+                                          {formatWeightKg(
+                                            item.measured_weight_kg ?? item.weight_kg
+                                          )}
+                                        </div>
+                                      </td>
+                                      <td className="py-3 px-4 text-[11px]">
+                                        <div className="font-mono font-semibold">
+                                          {item.location || item.storage_location || '—'}
+                                        </div>
+                                        {item.discrepancy_reason && (
+                                          <div className="text-[#DC2626] font-semibold mt-0.5">
+                                            Discrepancy: {item.discrepancy_reason}
+                                          </div>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
 
                         {/* RECEIVE FORM (Only when status === 'in_transit') */}
                         {requestDetail.status === 'in_transit' && (
@@ -1495,7 +2226,10 @@ export default function WarehouseDashboardPage() {
                                           className="w-full px-3 py-2 rounded-xl border border-[#EAE3DC] text-xs font-mono"
                                         />
                                         {iErr.good_quantity && (
-                                          <p className="text-[11px] font-semibold text-[#DC2626] mt-1">
+                                          <p
+                                            data-testid={`receive-error-good-${item.id}`}
+                                            className="text-[11px] font-semibold text-[#DC2626] mt-1"
+                                          >
                                             {iErr.good_quantity}
                                           </p>
                                         )}
@@ -1520,7 +2254,10 @@ export default function WarehouseDashboardPage() {
                                           className="w-full px-3 py-2 rounded-xl border border-[#EAE3DC] text-xs font-mono"
                                         />
                                         {iErr.damaged_quantity && (
-                                          <p className="text-[11px] font-semibold text-[#DC2626] mt-1">
+                                          <p
+                                            data-testid={`receive-error-damaged-${item.id}`}
+                                            className="text-[11px] font-semibold text-[#DC2626] mt-1"
+                                          >
                                             {iErr.damaged_quantity}
                                           </p>
                                         )}
@@ -1545,7 +2282,10 @@ export default function WarehouseDashboardPage() {
                                           className="w-full px-3 py-2 rounded-xl border border-[#EAE3DC] text-xs font-mono"
                                         />
                                         {iErr.length && (
-                                          <p className="text-[11px] font-semibold text-[#DC2626] mt-1">
+                                          <p
+                                            data-testid={`receive-error-length-${item.id}`}
+                                            className="text-[11px] font-semibold text-[#DC2626] mt-1"
+                                          >
                                             {iErr.length}
                                           </p>
                                         )}
@@ -1568,7 +2308,10 @@ export default function WarehouseDashboardPage() {
                                           className="w-full px-3 py-2 rounded-xl border border-[#EAE3DC] text-xs font-mono"
                                         />
                                         {iErr.width && (
-                                          <p className="text-[11px] font-semibold text-[#DC2626] mt-1">
+                                          <p
+                                            data-testid={`receive-error-width-${item.id}`}
+                                            className="text-[11px] font-semibold text-[#DC2626] mt-1"
+                                          >
                                             {iErr.width}
                                           </p>
                                         )}
@@ -1591,7 +2334,10 @@ export default function WarehouseDashboardPage() {
                                           className="w-full px-3 py-2 rounded-xl border border-[#EAE3DC] text-xs font-mono"
                                         />
                                         {iErr.height && (
-                                          <p className="text-[11px] font-semibold text-[#DC2626] mt-1">
+                                          <p
+                                            data-testid={`receive-error-height-${item.id}`}
+                                            className="text-[11px] font-semibold text-[#DC2626] mt-1"
+                                          >
                                             {iErr.height}
                                           </p>
                                         )}
@@ -1614,7 +2360,10 @@ export default function WarehouseDashboardPage() {
                                           className="w-full px-3 py-2 rounded-xl border border-[#EAE3DC] text-xs font-mono"
                                         />
                                         {iErr.weight && (
-                                          <p className="text-[11px] font-semibold text-[#DC2626] mt-1">
+                                          <p
+                                            data-testid={`receive-error-weight-${item.id}`}
+                                            className="text-[11px] font-semibold text-[#DC2626] mt-1"
+                                          >
                                             {iErr.weight}
                                           </p>
                                         )}
@@ -1804,7 +2553,17 @@ export default function WarehouseDashboardPage() {
                               )}
                             </div>
 
-                            {requestDetail.status === 'discrepancy' && (
+                            {requestDetail.status === 'discrepancy' &&
+                              !validManagerActions.includes('resolve') && (
+                                <p
+                                  data-testid="manager-resolve-awaiting-seller-notice"
+                                  className="text-xs text-[#92400E] bg-[#FFFBEB] p-2.5 rounded-xl border border-[#F59E0B]/40 font-semibold"
+                                >
+                                  The seller has not acknowledged or disputed this discrepancy yet. Warehouse managers can resolve after the seller responds.
+                                </p>
+                              )}
+
+                            {validManagerActions.includes('resolve') && (
                               <form
                                 onSubmit={handleResolveSubmit}
                                 data-testid="manager-resolve-form"
@@ -1814,11 +2573,6 @@ export default function WarehouseDashboardPage() {
                                 <h4 className="font-['Outfit'] font-extrabold text-sm text-[#1A2420]">
                                   Resolve Discrepancy (Final Accepted Quantities)
                                 </h4>
-                                {requestDetail.seller_discrepancy_action === 'pending' && (
-                                  <p className="text-xs text-[#92400E] bg-[#FFFBEB] p-2.5 rounded-xl border border-[#F59E0B]/40 font-semibold">
-                                    Note: The seller has not acknowledged or disputed this discrepancy yet. Warehouse managers can resolve after the seller responds (admins can resolve at any time).
-                                  </p>
-                                )}
 
                                 {resolveGeneralError && (
                                   <div
@@ -1926,7 +2680,8 @@ export default function WarehouseDashboardPage() {
                           </div>
                         )}
                       </div>
-                    ) : null}
+                    );
+                    })() : null}
                   </section>
                 ) : (
                   /* REQUESTS QUEUE TABLE */
@@ -2435,17 +3190,76 @@ export default function WarehouseDashboardPage() {
                 onUnauthorized={handleUnauthorized}
               />
             )}
+
+            {/* SECTION 6: PICK & PACK ORDER FULFILMENT (Phases A & B; mounted when active or on home to probe switch) */}
+            {(activeSection === 'shipments' || activeSection === 'home') &&
+              warehouse &&
+              pickPackAvailable && (
+                <div
+                  className={activeSection === 'shipments' ? 'block' : 'hidden'}
+                >
+                  <ManagerFulfilmentSection
+                    initialShipmentId={selectedShipmentId}
+                    onSelectShipmentId={(id) => {
+                      setSelectedShipmentId(id);
+                      if (id) {
+                        navigate(`/warehouse/shipments/${id}`);
+                      } else if (activeSection === 'shipments') {
+                        navigate('/warehouse/shipments');
+                      }
+                    }}
+                    onFeatureDisabled={() => {
+                      setPickPackAvailable(false);
+                      if (activeSection === 'shipments') {
+                        switchSection('home', '/warehouse/dashboard');
+                      }
+                    }}
+                    onUnauthorized={handleUnauthorized}
+                  />
+                </div>
+              )}
+
+            {/* SECTION 7: HUB HANDOVERS INBOX & RECEIVING (Phase D) */}
+            {activeSection === 'handovers' &&
+              warehouse &&
+              handoversAvailable && (
+                <ManagerHandoversSection
+                  onOpenShipment={(shipmentId) => {
+                    setSelectedShipmentId(shipmentId);
+                    setActiveSection('shipments');
+                    navigate(`/warehouse/shipments/${shipmentId}`);
+                  }}
+                  onFeatureDisabled={() => {
+                    setHandoversAvailable(false);
+                    switchSection('home', '/warehouse/dashboard');
+                  }}
+                  onUnauthorized={handleUnauthorized}
+                />
+              )}
+
+            {/* SECTION 8: HUB RETURNS INBOX & INSPECTION (Phase E) */}
+            {activeSection === 'returns' &&
+              warehouse &&
+              returnsAvailable && (
+                <ManagerReturnsSection
+                  onFeatureDisabled={() => {
+                    setReturnsAvailable(false);
+                    switchSection('home', '/warehouse/dashboard');
+                  }}
+                  onUnauthorized={handleUnauthorized}
+                />
+              )}
           </>
         )}
       </main>
 
-      {/* MODAL: ACCEPT / REJECT / CLOSE STORAGE REQUEST */}
+      {/* MODAL: ACCEPT / REJECT / CLOSE / DECLINE STORAGE REQUEST (Native <dialog>) */}
       {decisionModal && (
-        <div
+        <dialog
+          open
           data-testid="manager-decision-modal"
-          role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 bg-[#1A1A1A]/60 backdrop-blur-2xs flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-[#1A1A1A]/60 backdrop-blur-2xs flex items-center justify-center p-4 w-full h-full m-0 border-0"
         >
           <div className="bg-white rounded-3xl border border-[#EAE3DC] shadow-2xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-[#EAE3DC] pb-3">
@@ -2456,6 +3270,8 @@ export default function WarehouseDashboardPage() {
                   `Reject Storage Request #${decisionModal.request?.id}`}
                 {decisionModal.type === 'close' &&
                   `Close Storage Request #${decisionModal.request?.id}`}
+                {decisionModal.type === 'decline' &&
+                  `Decline Storage Request #${decisionModal.request?.id}`}
               </h3>
               <button
                 type="button"
@@ -2466,6 +3282,24 @@ export default function WarehouseDashboardPage() {
                 <X className="w-5 h-5" />
               </button>
             </div>
+
+            {decisionModal.type === 'accept' && (
+              <div
+                data-testid="manager-accept-charge-notice"
+                className="p-3.5 rounded-xl bg-[#EFF6FF] border border-[#93C5FD] text-xs font-bold text-[#1D4ED8]"
+              >
+                Accepting charges the seller&apos;s wallet the saved quote total.
+              </div>
+            )}
+
+            {decisionModal.type === 'decline' && (
+              <div
+                data-testid="manager-decline-warning-text"
+                className="p-3.5 rounded-xl bg-[#FFFBEB] border border-[#F59E0B] text-xs font-bold text-[#92400E]"
+              >
+                The seller will be asked to collect the goods. The warehouse fee will be refunded to the seller&apos;s wallet.
+              </div>
+            )}
 
             {decisionGeneralError && (
               <div
@@ -2627,7 +3461,8 @@ export default function WarehouseDashboardPage() {
                   data-testid="manager-decision-submit-btn"
                   disabled={decisionSubmitting}
                   className={`px-4 py-2 rounded-xl text-white text-xs font-bold cursor-pointer ${
-                    decisionModal.type === 'reject'
+                    decisionModal.type === 'reject' ||
+                    decisionModal.type === 'decline'
                       ? 'bg-[#DC2626] hover:bg-[#B91C1C]'
                       : decisionModal.type === 'accept'
                       ? 'bg-[#059669] hover:bg-[#047857]'
@@ -2640,12 +3475,163 @@ export default function WarehouseDashboardPage() {
                     ? 'Confirm Accept'
                     : decisionModal.type === 'reject'
                     ? 'Confirm Reject'
+                    : decisionModal.type === 'decline'
+                    ? 'Confirm Decline'
                     : 'Confirm Close'}
                 </button>
               </div>
             </form>
           </div>
-        </div>
+        </dialog>
+      )}
+
+      {/* MODAL: RECORD HANDBACK / RECALL (Native <dialog>) */}
+      {recallModal && (
+        <dialog
+          open
+          data-testid="manager-recall-modal"
+          aria-modal="true"
+          className="fixed inset-0 z-50 bg-[#1A1A1A]/60 backdrop-blur-2xs flex items-center justify-center p-4 w-full h-full m-0 border-0"
+        >
+          <div className="bg-white rounded-3xl border border-[#EAE3DC] shadow-2xl max-w-md w-full p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-[#EAE3DC] pb-3">
+              <h3 className="font-['Outfit'] font-extrabold text-lg text-[#1A2420]">
+                Record Handback — Request #{recallModal.request?.id}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setRecallModal(null)}
+                className="p-1 text-[#6B6058] hover:text-[#1A2420] cursor-pointer"
+                aria-label="Close modal"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {recallGeneralError && (
+              <div
+                data-testid="manager-recall-general-error"
+                role="alert"
+                className="p-3.5 rounded-xl bg-[#FFF3F3] border border-[#FCA5A5] text-xs text-[#991B1B]"
+              >
+                {recallGeneralError}
+              </div>
+            )}
+
+            <form
+              onSubmit={handleRecallSubmit}
+              className="space-y-3 text-xs"
+              noValidate
+            >
+              <div>
+                <label
+                  htmlFor="recall-date"
+                  className="block font-bold text-[#1A2420] mb-1"
+                >
+                  Handback Date & Time <span className="text-[#DC2626]">*</span>
+                </label>
+                <input
+                  id="recall-date"
+                  data-testid="manager-recall-date-input"
+                  type="datetime-local"
+                  value={recallDate}
+                  onChange={(e) => {
+                    setRecallDate(e.target.value);
+                    setRecallFieldErrors((fe) => ({ ...fe, recalled_at: '' }));
+                  }}
+                  className="w-full px-3 py-2 rounded-xl border border-[#EAE3DC]"
+                />
+                {recallFieldErrors.recalled_at && (
+                  <p
+                    data-testid="manager-recall-error-recalled_at"
+                    className="text-[11px] font-semibold text-[#DC2626] mt-1"
+                  >
+                    {recallFieldErrors.recalled_at}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label
+                  htmlFor="recall-ref"
+                  className="block font-bold text-[#1A2420] mb-1"
+                >
+                  Handback Reference <span className="text-[#DC2626]">*</span>
+                </label>
+                <input
+                  id="recall-ref"
+                  data-testid="manager-recall-reference-input"
+                  type="text"
+                  value={recallReference}
+                  onChange={(e) => {
+                    setRecallReference(e.target.value);
+                    setRecallFieldErrors((fe) => ({
+                      ...fe,
+                      recall_reference: '',
+                    }));
+                  }}
+                  placeholder="e.g. HANDBACK-2026-0013"
+                  className="w-full px-3 py-2 rounded-xl border border-[#EAE3DC] font-mono"
+                />
+                {recallFieldErrors.recall_reference && (
+                  <p
+                    data-testid="manager-recall-error-recall_reference"
+                    className="text-[11px] font-semibold text-[#DC2626] mt-1"
+                  >
+                    {recallFieldErrors.recall_reference}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label
+                  htmlFor="recall-reason"
+                  className="block font-bold text-[#1A2420] mb-1"
+                >
+                  Audit Reason <span className="text-[#DC2626]">*</span>
+                </label>
+                <textarea
+                  id="recall-reason"
+                  data-testid="manager-recall-reason-input"
+                  rows={2}
+                  value={recallReason}
+                  onChange={(e) => {
+                    setRecallReason(e.target.value);
+                    setRecallFieldErrors((fe) => ({ ...fe, reason: '' }));
+                  }}
+                  placeholder="Enter mandatory audit reason for handback..."
+                  className="w-full px-3 py-2 rounded-xl border border-[#EAE3DC]"
+                />
+                {recallFieldErrors.reason && (
+                  <p
+                    data-testid="manager-recall-error-reason"
+                    className="text-[11px] font-semibold text-[#DC2626] mt-1"
+                  >
+                    {recallFieldErrors.reason}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setRecallModal(null)}
+                  className="px-4 py-2 rounded-xl border border-[#EAE3DC] font-bold text-[#6B6058] cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  data-testid="manager-recall-submit-btn"
+                  disabled={recallSubmitting}
+                  className="px-4 py-2 rounded-xl bg-[#6B21A8] hover:bg-[#581C87] text-white font-bold cursor-pointer"
+                >
+                  {recallSubmitting ? 'Recording...' : 'Confirm Handback'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </dialog>
       )}
     </div>
   );

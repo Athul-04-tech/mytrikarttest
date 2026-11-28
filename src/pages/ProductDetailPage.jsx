@@ -125,8 +125,16 @@ export default function ProductDetailPage({ isLoggedIn, currentUser, onLogout })
     };
   }, [selectedVariant]);
 
-  // Stock availability metrics
-  const stockQuantity = selectedVariant ? (selectedVariant.stock_quantity ?? 0) : 0;
+  // Stock availability metrics (show available_quantity as sent by server when present; do not add or compare numbers in browser)
+  const hasServerAvailableQuantity =
+    selectedVariant &&
+    selectedVariant.available_quantity !== undefined &&
+    selectedVariant.available_quantity !== null;
+  const stockQuantity = hasServerAvailableQuantity
+    ? selectedVariant.available_quantity
+    : selectedVariant
+    ? (selectedVariant.stock_quantity ?? 0)
+    : 0;
   const isOutOfStock = stockQuantity <= 0;
   const isUrgent = stockQuantity > 0 && stockQuantity <= 5;
 
@@ -390,6 +398,26 @@ export default function ProductDetailPage({ isLoggedIn, currentUser, onLogout })
                   <p className="text-[11px] text-[#6B6058]">
                     Inclusive of all taxes. Free shipping across India.
                   </p>
+                  {(hasServerAvailableQuantity || selectedVariant?.fulfilment_source === 'stored') && (
+                    <div className="flex flex-wrap items-center gap-2 pt-1.5">
+                      {hasServerAvailableQuantity && (
+                        <span
+                          data-testid="variant-available-quantity"
+                          className="text-[11px] font-bold text-[#6B6058] bg-white px-2.5 py-0.5 rounded-lg border border-[#EAE3DC]"
+                        >
+                          Available: {selectedVariant.available_quantity}
+                        </span>
+                      )}
+                      {selectedVariant?.fulfilment_source === 'stored' && (
+                        <span
+                          data-testid="variant-fulfilment-stored"
+                          className="text-[11px] font-bold text-[#FA661C] bg-[#FFF3EC] px-2.5 py-0.5 rounded-lg border border-[#FA661C]/20"
+                        >
+                          Ships from our warehouse
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Variant Selector (if product has variants) */}

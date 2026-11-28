@@ -25,6 +25,12 @@ import {
 import { apiRequest } from '../../../utils/api';
 import AdminRateCardsSection from '../../warehouse/AdminRateCardsSection';
 import {
+  AdminShipmentsSection,
+  AdminStockReconciliationSection,
+  AdminHubOperationsSection,
+  AdminReturnsSection,
+} from '../../warehouse/AdminFulfilmentSection';
+import {
   STORAGE_REQUEST_STATUSES,
   STATUS_LABELS,
   getStatusBadgeClass,
@@ -1263,6 +1269,62 @@ export default function WarehouseModule({ initialTab = 'warehouses' } = {}) {
         >
           <FileText className="w-4 h-4" />
           <span>Rate Cards</span>
+        </button>
+
+        <button
+          type="button"
+          data-testid="warehouse-tab-shipments"
+          onClick={() => setActiveTab('shipments')}
+          className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center space-x-2 transition-all cursor-pointer ${
+            activeTab === 'shipments'
+              ? 'bg-[#FA661C] text-white shadow-xs'
+              : 'bg-white text-[#6B6058] border border-[#EAE3DC] hover:text-[#FA661C]'
+          }`}
+        >
+          <Boxes className="w-4 h-4" />
+          <span>Shipments</span>
+        </button>
+
+        <button
+          type="button"
+          data-testid="warehouse-tab-reconciliation"
+          onClick={() => setActiveTab('reconciliation')}
+          className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center space-x-2 transition-all cursor-pointer ${
+            activeTab === 'reconciliation'
+              ? 'bg-[#FA661C] text-white shadow-xs'
+              : 'bg-white text-[#6B6058] border border-[#EAE3DC] hover:text-[#FA661C]'
+          }`}
+        >
+          <Scale className="w-4 h-4" />
+          <span>Stock Reconciliation</span>
+        </button>
+
+        <button
+          type="button"
+          data-testid="warehouse-tab-hub-assignments"
+          onClick={() => setActiveTab('hub-assignments')}
+          className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center space-x-2 transition-all cursor-pointer ${
+            activeTab === 'hub-assignments'
+              ? 'bg-[#FA661C] text-white shadow-xs'
+              : 'bg-white text-[#6B6058] border border-[#EAE3DC] hover:text-[#FA661C]'
+          }`}
+        >
+          <Warehouse className="w-4 h-4" />
+          <span>Hub Assignments &amp; Handovers</span>
+        </button>
+
+        <button
+          type="button"
+          data-testid="warehouse-tab-returns"
+          onClick={() => setActiveTab('returns')}
+          className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center space-x-2 transition-all cursor-pointer ${
+            activeTab === 'returns'
+              ? 'bg-[#FA661C] text-white shadow-xs'
+              : 'bg-white text-[#6B6058] border border-[#EAE3DC] hover:text-[#FA661C]'
+          }`}
+        >
+          <Boxes className="w-4 h-4" />
+          <span>Warehouse Returns</span>
         </button>
 
         <button
@@ -2546,6 +2608,26 @@ export default function WarehouseModule({ initialTab = 'warehouses' } = {}) {
             </div>
           )}
         </section>
+      )}
+
+      {/* TAB 7: WAREHOUSE SHIPMENTS & EVENT LOG */}
+      {activeTab === 'shipments' && !loadError && (
+        <AdminShipmentsSection warehouses={warehouses} />
+      )}
+
+      {/* TAB 8: STOCK RECONCILIATION & SUPERUSER STOCK CORRECTION */}
+      {activeTab === 'reconciliation' && !loadError && (
+        <AdminStockReconciliationSection />
+      )}
+
+      {/* TAB 9: SELLER HUB ASSIGNMENTS, NEEDS HUB & OVERDUE HANDOVERS */}
+      {activeTab === 'hub-assignments' && !loadError && (
+        <AdminHubOperationsSection warehouses={warehouses} />
+      )}
+
+      {/* TAB 10: WAREHOUSE RETURNS INBOX & RECEIVING (Phase E) */}
+      {activeTab === 'returns' && !loadError && (
+        <AdminReturnsSection warehouses={warehouses} />
       )}
 
       {/* MODAL 1: CREATE / EDIT / DEACTIVATE WAREHOUSE */}

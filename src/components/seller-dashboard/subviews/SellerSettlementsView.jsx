@@ -9,13 +9,15 @@ import { apiRequest } from '../../../utils/api';
 
 const inr = (v) => `₹${Number(v || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-const ENTRY_LABELS = {
+export const ENTRY_LABELS = {
   gross_sale: 'Gross sale', commission: 'Commission', commission_tax: 'GST on commission',
   platform_fee: 'Platform fee', platform_fee_tax: 'GST on platform fee', logistics_charge: 'Logistics charge',
   logistics_tax: 'GST on logistics', gateway_charge: 'Payment gateway charge', gateway_tax: 'GST on gateway',
   tds: 'TDS withheld', tcs: 'TCS withheld', net_settlement: 'Net settlement', wallet_credit: 'Credited to wallet',
   wallet_debit: 'Withdrawn from wallet', refund_adjustment: 'Refund adjustment', penalty: 'Penalty',
   incentive: 'Incentive', bonus: 'Bonus', chargeback: 'Chargeback', hold: 'Hold', hold_release: 'Hold released',
+  warehouse_storage_fee: 'Warehouse storage fee',
+  warehouse_storage_fee_refund: 'Warehouse storage fee refund',
 };
 
 const WITHDRAWAL_STATUS = {
@@ -118,7 +120,8 @@ export default function SellerSettlementsView() {
   ].filter(([, v]) => Number(v || 0) !== 0);
 
   const openWithdraw = () => {
-    setAmount(available > 0 ? available.toFixed(2) : '100.00');
+    const rawAvail = wallet?.available_balance ?? wallet?.wallet?.cached_balance;
+    setAmount(available > 0 && rawAvail != null ? String(rawAvail) : '100.00');
     setWithdrawError(null);
     setWithdrawOpen(true);
   };
@@ -130,7 +133,7 @@ export default function SellerSettlementsView() {
     if (!withdrawalsBlockedByAdmin && amt > available) return setWithdrawError(`You can withdraw at most ${inr(available)}.`);
     setSubmitting(true); setWithdrawError(null);
     try {
-      await apiRequest('/api/settlements/withdrawals/', { method: 'POST', body: JSON.stringify({ amount: amt.toFixed(2) }) });
+      await apiRequest('/api/settlements/withdrawals/', { method: 'POST', body: JSON.stringify({ amount: String(amount).trim() }) });
       toast.success('Withdrawal Requested', `${inr(amt)} has been sent for admin approval.`);
       setWithdrawOpen(false);
       loadSettlementData();
@@ -283,20 +286,46 @@ export default function SellerSettlementsView() {
         <h3 className="font-['Outfit'] font-bold text-base text-[#FA661C] flex items-center gap-1.5">
           <Wallet className="w-4 h-4" /> Settlement Ledger Transactions
         </h3>
-        {wallet?.recent_ledger_entries?.length > 0 ? (
+        {(wallet?.recent_ledger_entries?.length > 0 || wallet?.wallet?.recent_entries?.length > 0) ? (
           <div className="space-y-2.5 divide-y divide-[#EAE3DC]/50 text-xs">
-            {wallet.recent_ledger_entries.map((entry, idx) => {
-              const amt = Number(entry.amount || 0);
+            {(wallet.recent_ledger_entries || wallet.wallet.recent_entries).map((entry, idx) => {
+              const rawAmount = entry.amount != null ? String(entry.amount) : '0.00';
+              const isNegative = rawAmount.trim().startsWith('-');
+              const unsignedAmount = rawAmount.trim().replace(/^[-+]/, '');
               return (
-                <div key={entry.id || idx} className="flex items-center justify-between pt-2">
+                <div
+                  key={entry.id || idx}
+                  data-testid={`wallet-ledger-entry-${entry.id || idx}`}
+                  className="flex items-center justify-between pt-2"
+                >
                   <div>
-                    <span className="font-bold text-[#1A2420] block">{ENTRY_LABELS[entry.entry_type] || entry.entry_type || 'Ledger Credit'}</span>
+                    <span
+                      data-testid={`wallet-ledger-label-${entry.id || idx}`}
+                      className="font-bold text-[#1A2420] block"
+                    >
+                      {ENTRY_LABELS[entry.entry_type] || entry.entry_type || 'Ledger Credit'}
+                    </span>
+                    {entry.description && (
+                      <span
+                        data-testid={`wallet-ledger-desc-${entry.id || idx}`}
+                        className="text-[11px] text-[#1A2420] block"
+                      >
+                        {entry.description}
+                      </span>
+                    )}
                     <span className="text-[10px] text-[#6B6058]">
-                      {entry.vendor_order ? `Order #ORD-${entry.vendor_order} • ` : ''}{entry.created_at ? new Date(entry.created_at).toLocaleString() : ''}
+                      {entry.vendor_order ? `Order #ORD-${entry.vendor_order} • ` : ''}
+                      {entry.warehouse_storage_request ? `Storage Request #${entry.warehouse_storage_request} • ` : ''}
+                      {entry.created_at ? new Date(entry.created_at).toLocaleString() : ''}
                     </span>
                   </div>
-                  <span className={`font-mono font-bold ${amt < 0 ? 'text-red-600' : 'text-emerald-700'}`}>
-                    {amt < 0 ? '− ' : ''}₹{Math.abs(amt).toFixed(2)}
+                  <span
+                    data-testid={`wallet-ledger-amount-${entry.id || idx}`}
+                    className={`font-mono font-bold ${isNegative ? 'text-red-600' : 'text-emerald-700'}`}
+                  >
+                    {isNegative ? '− ' : ''}
+                    {entry.currency && entry.currency !== 'INR' ? `${entry.currency} ` : '₹'}
+                    {unsignedAmount}
                   </span>
                 </div>
               );
@@ -308,6 +337,61 @@ export default function SellerSettlementsView() {
           </div>
         )}
       </div>
+
+      {/* Settlement Statements & Lines */}
+      {statements.length > 0 && (
+        <div
+          data-testid="seller-settlement-statements-panel"
+          className="bg-white rounded-3xl border border-[#EAE3DC] p-5 sm:p-6 shadow-xs space-y-4"
+        >
+          <h3 className="font-['Outfit'] font-bold text-base text-[#FA661C]">
+            Settlement Statements
+          </h3>
+          <div className="space-y-4">
+            {statements.map((stmt, sIdx) => (
+              <div
+                key={stmt.id || sIdx}
+                data-testid={`settlement-statement-${stmt.id || sIdx}`}
+                className="p-4 rounded-2xl border border-[#EAE3DC] bg-[#FFF8F2]/50 space-y-2"
+              >
+                <div className="flex items-center justify-between font-bold text-[#1A2420]">
+                  <span>
+                    Period: {stmt.period_start} to {stmt.period_end}
+                  </span>
+                  <span className="font-mono">
+                    {stmt.currency || 'INR'} {stmt.net_bank_settlement}
+                  </span>
+                </div>
+                {Array.isArray(stmt.lines) && stmt.lines.length > 0 && (
+                  <div className="divide-y divide-[#EAE3DC]/60 pt-2">
+                    {stmt.lines.map((line, lIdx) => (
+                      <div
+                        key={line.ledger_entry || lIdx}
+                        data-testid={`statement-line-${line.ledger_entry || lIdx}`}
+                        className="flex items-center justify-between py-1.5 text-xs"
+                      >
+                        <div>
+                          <span className="font-bold text-[#1A2420] block">
+                            {ENTRY_LABELS[line.entry_type] || line.entry_type}
+                          </span>
+                          {line.description && (
+                            <span className="text-[11px] text-[#6B6058] block">
+                              {line.description}
+                            </span>
+                          )}
+                        </div>
+                        <span className="font-mono font-bold">
+                          {stmt.currency || 'INR'} {line.amount}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Withdraw modal */}
       {withdrawOpen && (
@@ -327,7 +411,7 @@ export default function SellerSettlementsView() {
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-[#FA661C]">₹</span>
                 <input type="number" step="0.01" min="0.01" max={withdrawalsBlockedByAdmin ? undefined : available} required value={amount} onChange={(e) => setAmount(e.target.value)}
                   className="w-full pl-7 pr-16 py-2.5 rounded-xl border border-[#EAE3DC] bg-white font-mono font-bold text-sm focus:outline-none focus:border-[#FA661C]" />
-                <button type="button" onClick={() => setAmount((available > 0 ? available : 100).toFixed(2))} className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 rounded-lg bg-[#FFF3EC] text-[#FA661C] font-bold text-[10px] cursor-pointer">MAX</button>
+                <button type="button" onClick={() => setAmount(available > 0 ? String(wallet?.available_balance ?? wallet?.wallet?.cached_balance ?? available) : '100.00')} className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 rounded-lg bg-[#FFF3EC] text-[#FA661C] font-bold text-[10px] cursor-pointer">MAX</button>
               </div>
             </label>
             <p className="text-[11px] text-[#6B6058]">Paid to your verified {(payout?.method || 'bank account').replace(/_/g, ' ')} after admin approval. The amount is reserved while the request is pending.</p>

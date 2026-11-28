@@ -170,6 +170,27 @@ function parseBackendRegistrationErrors(data) {
   };
 }
 
+export function extractDocUploadError(err) {
+  if (!err) return 'Upload failed';
+  const data = err.data;
+  if (data) {
+    if (typeof data === 'string') return data;
+    const messages = [];
+    for (const key of ['file', 'document_type', 'non_field_errors', 'detail']) {
+      if (data[key]) {
+        const val = Array.isArray(data[key]) ? data[key].join(' ') : String(data[key]);
+        if (val) messages.push(val);
+      }
+    }
+    if (messages.length > 0) return messages.join(' ');
+    const fallback = Object.values(data)
+      .map((v) => (Array.isArray(v) ? v.join(' ') : typeof v === 'string' ? v : ''))
+      .filter(Boolean);
+    if (fallback.length > 0) return fallback.join(' ');
+  }
+  return err.message || 'Upload failed';
+}
+
 export default function SellerRegisterPage() {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState(INITIAL_SELLER_STATE);
@@ -177,8 +198,9 @@ export default function SellerRegisterPage() {
   const [apiError, setApiError] = useState(null);
   const [backendErrors, setBackendErrors] = useState({});
   const [loginFailedFallback, setLoginFailedFallback] = useState(false);
+  const [hasRegisteredAccount, setHasRegisteredAccount] = useState(false);
   
-  const { login } = useAuth();
+  const { login, isLoggedIn } = useAuth();
   const navigate = useNavigate();
 
   // SEO Standard: Title & Meta Description for Seller Acquisition
@@ -272,6 +294,51 @@ export default function SellerRegisterPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const uploadSingleDocument = async (docId, fileObj, sizeStr) => {
+    const bodyFormData = new FormData();
+    bodyFormData.append('document_type', docId);
+    bodyFormData.append('file', fileObj);
+    try {
+      await apiRequest('/api/vendors/documents/', {
+        method: 'POST',
+        body: bodyFormData,
+        headers: {}
+      });
+      setFormData(prev => ({
+        ...prev,
+        uploadedDocuments: {
+          ...(prev.uploadedDocuments || {}),
+          [docId]: {
+            ...(prev.uploadedDocuments?.[docId] || {}),
+            fileName: fileObj.name,
+            fileSize: sizeStr || prev.uploadedDocuments?.[docId]?.fileSize || '',
+            fileObj,
+            status: 'uploaded_backend',
+            errorMessage: null
+          }
+        }
+      }));
+      return { ok: true };
+    } catch (docErr) {
+      const errMsg = extractDocUploadError(docErr);
+      setFormData(prev => ({
+        ...prev,
+        uploadedDocuments: {
+          ...(prev.uploadedDocuments || {}),
+          [docId]: {
+            ...(prev.uploadedDocuments?.[docId] || {}),
+            fileName: fileObj.name,
+            fileSize: sizeStr || prev.uploadedDocuments?.[docId]?.fileSize || '',
+            fileObj,
+            status: 'failed',
+            errorMessage: errMsg
+          }
+        }
+      }));
+      return { ok: false, errorMessage: errMsg };
+    }
+  };
+
   // Full registration submit pipeline
   const handleSubmitRegistration = async () => {
     setIsSubmitting(true);
@@ -279,112 +346,115 @@ export default function SellerRegisterPage() {
     setBackendErrors({});
     setLoginFailedFallback(false);
 
-    // 1. Build payment_details payload without bank_name
-    let paymentDetailsPayload = {};
-    if (formData.payoutMethod === 'bank') {
-      paymentDetailsPayload = {
-        payout_method: 'bank',
-        bank_account_number: formData.accountNumber || '',
-        bank_ifsc: formData.ifscSwift || '',
-        bank_account_holder: formData.accountHolder || ''
-      };
-    } else if (formData.payoutMethod === 'upi') {
-      paymentDetailsPayload = {
-        payout_method: 'upi',
-        upi_id: formData.upiId || ''
-      };
-    } else if (formData.payoutMethod === 'stripe_connect') {
-      paymentDetailsPayload = {
-        payout_method: 'stripe_connect',
-        stripe_connect_account_id: formData.stripeConnectAccountId || formData.stripeEmail || ''
-      };
-    }
-
-    // Parse yearsInBusiness into integer
-    let parsedYears = 1;
-    if (typeof formData.yearsInBusiness === 'string') {
-      const match = formData.yearsInBusiness.match(/\d+/);
-      if (match) parsedYears = parseInt(match[0], 10);
-    }
-
-    // 2. Build full POST /api/vendors/register/ payload
-    const payload = {
-      username: formData.username,
-      email: formData.email,
-      password: formData.password,
-      phone_number: formData.mobile,
-      profile: {
-        business_name: formData.businessName,
-        store_name: formData.storeName,
-        business_type: formData.businessType || 'company',
-        is_women_owned: Boolean(formData.isWomenOwned),
-        tax_id: formData.gstVatNumber,
-        registration_number: formData.businessRegNumber || '',
-        years_in_business: parsedYears,
-        store_slug: formData.storeSlug,
-        store_description: formData.storeDescription || '',
-        store_logo: formData.storeLogo || '',
-        store_banner: formData.storeBanner || '',
-        country: formData.country || 'IN',
-        support_email: formData.supportEmail || formData.email,
-        support_phone: formData.supportPhone || formData.mobile,
-        whatsapp_number: formData.whatsappNumber || '',
-        social_links: formData.socialLinks || {}
-      },
-      address: {
-        address_line1: formData.storeAddress,
-        address_line2: '',
-        city: formData.city,
-        state: formData.state,
-        postal_code: formData.zipCode,
-        country: formData.country || 'IN'
-      },
-      payment_details: paymentDetailsPayload,
-      agreements: [
-        { agreement_type: 'terms', agreement_version: '1.0' },
-        { agreement_type: 'privacy', agreement_version: '1.0' },
-        { agreement_type: 'vendor_agreement', agreement_version: '1.0' },
-        { agreement_type: 'tax_declaration', agreement_version: '1.0' }
-      ]
-    };
-
-    try {
-      // A. Call POST /api/vendors/register/ (AllowAny)
-      await apiRequest('/api/vendors/register/', {
-        method: 'POST',
-        body: JSON.stringify(payload),
-        skipAuth: true
-      });
-    } catch (regErr) {
-      setIsSubmitting(false);
-      const data = regErr.data || {};
-      const { fieldErrors, firstErrorStep, summaryMessage } = parseBackendRegistrationErrors(data);
-
-      setBackendErrors(fieldErrors);
-      setApiError(summaryMessage);
-
-      // Auto switch to FIRST step containing an error (1..7)
-      if (firstErrorStep) {
-        setCurrentStep(firstErrorStep);
-      } else {
-        setCurrentStep(7);
+    if (!hasRegisteredAccount) {
+      // 1. Build payment_details payload without bank_name
+      let paymentDetailsPayload = {};
+      if (formData.payoutMethod === 'bank') {
+        paymentDetailsPayload = {
+          payout_method: 'bank',
+          bank_account_number: formData.accountNumber || '',
+          bank_ifsc: formData.ifscSwift || '',
+          bank_account_holder: formData.accountHolder || ''
+        };
+      } else if (formData.payoutMethod === 'upi') {
+        paymentDetailsPayload = {
+          payout_method: 'upi',
+          upi_id: formData.upiId || ''
+        };
+      } else if (formData.payoutMethod === 'stripe_connect') {
+        paymentDetailsPayload = {
+          payout_method: 'stripe_connect',
+          stripe_connect_account_id: formData.stripeConnectAccountId || formData.stripeEmail || ''
+        };
       }
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    }
 
-    // B. Call login() to obtain JWT access token
-    try {
-      await login({
+      // Parse yearsInBusiness into integer
+      let parsedYears = 1;
+      if (typeof formData.yearsInBusiness === 'string') {
+        const match = formData.yearsInBusiness.match(/\d+/);
+        if (match) parsedYears = parseInt(match[0], 10);
+      }
+
+      // 2. Build full POST /api/vendors/register/ payload
+      const payload = {
         username: formData.username,
-        password: formData.password
-      });
-    } catch (loginErr) {
-      // Failure Mode 4a: Registration succeeded (201), but immediate login failed!
-      setIsSubmitting(false);
-      setLoginFailedFallback(true);
-      setApiError("Your vendor profile was created successfully! However, automated login failed due to a network glitch. Please click 'Authenticate & Continue' to log in with your credentials.");
-      return;
+        email: formData.email,
+        password: formData.password,
+        phone_number: formData.mobile,
+        profile: {
+          business_name: formData.businessName,
+          store_name: formData.storeName,
+          business_type: formData.businessType || 'company',
+          is_women_owned: Boolean(formData.isWomenOwned),
+          tax_id: formData.gstVatNumber,
+          registration_number: formData.businessRegNumber || '',
+          years_in_business: parsedYears,
+          store_slug: formData.storeSlug,
+          store_description: formData.storeDescription || '',
+          store_logo: formData.storeLogo || '',
+          store_banner: formData.storeBanner || '',
+          country: formData.country || 'IN',
+          support_email: formData.supportEmail || formData.email,
+          support_phone: formData.supportPhone || formData.mobile,
+          whatsapp_number: formData.whatsappNumber || '',
+          social_links: formData.socialLinks || {}
+        },
+        address: {
+          address_line1: formData.storeAddress,
+          address_line2: '',
+          city: formData.city,
+          state: formData.state,
+          postal_code: formData.zipCode,
+          country: formData.country || 'IN'
+        },
+        payment_details: paymentDetailsPayload,
+        agreements: [
+          { agreement_type: 'terms', agreement_version: '1.0' },
+          { agreement_type: 'privacy', agreement_version: '1.0' },
+          { agreement_type: 'vendor_agreement', agreement_version: '1.0' },
+          { agreement_type: 'tax_declaration', agreement_version: '1.0' }
+        ]
+      };
+
+      try {
+        // A. Call POST /api/vendors/register/ (AllowAny)
+        await apiRequest('/api/vendors/register/', {
+          method: 'POST',
+          body: JSON.stringify(payload),
+          skipAuth: true
+        });
+      } catch (regErr) {
+        setIsSubmitting(false);
+        const data = regErr.data || {};
+        const { fieldErrors, firstErrorStep, summaryMessage } = parseBackendRegistrationErrors(data);
+
+        setBackendErrors(fieldErrors);
+        setApiError(summaryMessage);
+
+        // Auto switch to FIRST step containing an error (1..7)
+        if (firstErrorStep) {
+          setCurrentStep(firstErrorStep);
+        } else {
+          setCurrentStep(7);
+        }
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+
+      // B. Call login() to obtain JWT access token
+      try {
+        await login({
+          username: formData.username,
+          password: formData.password
+        });
+        setHasRegisteredAccount(true);
+      } catch (loginErr) {
+        // Failure Mode 4a: Registration succeeded (201), but immediate login failed!
+        setIsSubmitting(false);
+        setLoginFailedFallback(true);
+        setApiError("Your vendor profile was created successfully! However, automated login failed due to a network glitch. Please click 'Authenticate & Continue' to log in with your credentials.");
+        return;
+      }
     }
 
     // C. Upload Documents via POST /api/vendors/documents/ (IsVendorOwner, multipart/form-data)
@@ -393,7 +463,7 @@ export default function SellerRegisterPage() {
     const updatedDocStatuses = { ...docs };
 
     for (const [docId, docMeta] of Object.entries(docs)) {
-      if (docMeta && docMeta.fileObj) {
+      if (docMeta && docMeta.fileObj && docMeta.status !== 'uploaded_backend') {
         const bodyFormData = new FormData();
         bodyFormData.append('document_type', docId);
         bodyFormData.append('file', docMeta.fileObj);
@@ -406,7 +476,7 @@ export default function SellerRegisterPage() {
           });
           updatedDocStatuses[docId] = {
             ...docMeta,
-            status: 'done',
+            status: 'uploaded_backend',
             errorMessage: null
           };
         } catch (docErr) {
@@ -414,7 +484,7 @@ export default function SellerRegisterPage() {
           updatedDocStatuses[docId] = {
             ...docMeta,
             status: 'failed',
-            errorMessage: docErr.message || 'Upload failed'
+            errorMessage: extractDocUploadError(docErr)
           };
         }
       }
@@ -580,6 +650,8 @@ export default function SellerRegisterPage() {
             updateFormData={updateFormData} 
             onNext={handleNextStep}
             onPrev={handlePrevStep}
+            onBack={handlePrevStep}
+            onUploadDocument={hasRegisteredAccount || isLoggedIn ? uploadSingleDocument : undefined}
             backendErrors={backendErrors}
           />
         )}

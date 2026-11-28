@@ -1,36 +1,54 @@
-import React, { useEffect, useState, useMemo } from 'react';
-import { ShieldCheck, ArrowRight, CheckCircle2, Truck } from 'lucide-react';
+import React, { useMemo } from 'react';
+import {
+  ShieldCheck,
+  ArrowRight,
+  CheckCircle2,
+  Truck,
+  Package,
+  Loader2,
+  AlertCircle,
+} from 'lucide-react';
 import { useCart } from '../../context/CartWishlistContext';
 import { useAuth } from '../../context/AuthContext';
+import {
+  formatVerbatimMoney,
+  getCartSummaryDeliveryDisplay,
+  isNonZeroMoneyString,
+} from '../../utils/orderPricingUtils';
 
-export default function OrderSummarySidebar({ onProceedToCheckout, isCheckoutPage = false }) {
-  const { calculations, cart, appliedCoupon } = useCart();
+export default function OrderSummarySidebar({
+  onProceedToCheckout,
+  isCheckoutPage = false,
+}) {
+  const {
+    cart,
+    cartSummary,
+    cartSummaryLoading,
+    cartSummaryError,
+    appliedCoupon,
+  } = useCart();
   const auth = useAuth();
   const isProductOwnedByCurrentSeller = auth?.isProductOwnedByCurrentSeller;
-  const [highlightPulse, setHighlightPulse] = useState(false);
 
   const hasOwnProductsInCart = useMemo(() => {
     if (!isProductOwnedByCurrentSeller || !Array.isArray(cart)) return false;
-    return cart.some(item => isProductOwnedByCurrentSeller(item));
+    return cart.some((item) => isProductOwnedByCurrentSeller(item));
   }, [cart, isProductOwnedByCurrentSeller]);
 
-  // Trigger subtle pulse animation on value update
-  useEffect(() => {
-    setHighlightPulse(true);
-    const timer = setTimeout(() => setHighlightPulse(false), 500);
-    return () => clearTimeout(timer);
-  }, [
-    calculations.cartSubtotal, 
-    calculations.shippingFee, 
-    calculations.taxAmount, 
-    calculations.amountPayable
-  ]);
+  const deliveryDisplay = useMemo(
+    () => getCartSummaryDeliveryDisplay(cartSummary),
+    [cartSummary]
+  );
 
-  const formatINR = (val) => `₹${Number(val).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const packagingLines = Array.isArray(cartSummary?.packaging_lines)
+    ? cartSummary.packaging_lines
+    : [];
 
   return (
-    <div className="bg-white rounded-3xl border border-[#EAE3DC] p-5 sm:p-6 shadow-xs lg:sticky lg:top-[calc(var(--header-h,80px)+16px)] space-y-4 text-xs">
-      
+    <div
+      data-testid="order-summary-sidebar"
+      className="bg-white rounded-3xl border border-[#EAE3DC] p-5 sm:p-6 shadow-xs lg:sticky lg:top-[calc(var(--header-h,80px)+16px)] space-y-4 text-xs"
+    >
       {/* Header */}
       <div className="flex items-center justify-between pb-3 border-b border-[#EAE3DC]">
         <h3 className="font-['Outfit'] font-extrabold text-base text-[#FA661C]">
@@ -41,62 +59,184 @@ export default function OrderSummarySidebar({ onProceedToCheckout, isCheckoutPag
         </span>
       </div>
 
-      {/* Breakdown Lines */}
-      <div className="space-y-2.5 divide-y divide-[#EAE3DC]/40 text-[#6B6058]">
-        
-        {/* Subtotal */}
-        <div className={`flex items-center justify-between pt-1 transition-all ${highlightPulse ? 'text-[#FA661C]' : ''}`}>
-          <span>Cart Subtotal</span>
-          <span className="font-bold text-[#FA661C]">
-            {formatINR(calculations.cartSubtotal)}
-          </span>
+      {/* Loading State */}
+      {cartSummaryLoading ? (
+        <div
+          role="status"
+          data-testid="cart-summary-loading"
+          className="py-8 text-center space-y-2 text-[#6B6058]"
+        >
+          <Loader2 className="w-5 h-5 text-[#FA661C] animate-spin mx-auto" />
+          <p className="font-semibold">Loading price summary from server…</p>
         </div>
-
-        {/* Shipping */}
-        <div className="flex items-center justify-between pt-2.5">
-          <span className="flex items-center space-x-1">
-            <Truck className="w-3 h-3 text-[#6B6058]" />
-            <span>Standard Delivery</span>
-          </span>
-          <span className="font-bold text-[#FA661C]">
-            <span className="text-[#FA661C] uppercase text-[10px] font-black bg-[#FFF3EC] px-1.5 py-0.2 rounded">
-              FREE
-            </span>
-          </span>
+      ) : cartSummaryError ? (
+        /* Error State: show server message and do not show a total from anywhere else */
+        <div
+          role="alert"
+          data-testid="cart-summary-error"
+          className="p-3.5 rounded-2xl border border-[#D7263D]/30 bg-[#FFF0F0] text-[#D7263D] flex items-start space-x-2"
+        >
+          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+          <span className="font-semibold">{cartSummaryError}</span>
         </div>
+      ) : cartSummary ? (
+        <>
+          {/* Breakdown Lines */}
+          <div className="space-y-2.5 divide-y divide-[#EAE3DC]/40 text-[#6B6058]">
+            {/* 1. Item Subtotal */}
+            <div className="flex items-center justify-between pt-1">
+              <span>Item subtotal</span>
+              <span
+                data-testid="cart-summary-item-subtotal"
+                className="font-mono font-bold text-[#1A2420]"
+              >
+                {formatVerbatimMoney(
+                  cartSummary.currency,
+                  cartSummary.item_subtotal
+                )}
+              </span>
+            </div>
 
-        {appliedCoupon && (
-          <div className="flex items-center justify-between pt-2.5 text-emerald-700">
-            <span>Coupon discount ({appliedCoupon.code})</span>
-            <span className="font-bold">- {formatINR(appliedCoupon.discountAmount)}</span>
+            {/* 2. Item Tax */}
+            <div className="flex items-center justify-between pt-2.5">
+              <span>Item tax</span>
+              <span
+                data-testid="cart-summary-item-tax"
+                className="font-mono font-bold text-[#1A2420]"
+              >
+                {formatVerbatimMoney(cartSummary.currency, cartSummary.item_tax)}
+              </span>
+            </div>
+
+            {/* 3. Discount (if any) */}
+            {isNonZeroMoneyString(cartSummary.discount) && (
+              <div className="flex items-center justify-between pt-2.5 text-emerald-700">
+                <span>
+                  Discount
+                  {appliedCoupon?.code ? ` (${appliedCoupon.code})` : ''}
+                </span>
+                <span
+                  data-testid="cart-summary-discount"
+                  className="font-mono font-bold"
+                >
+                  -{' '}
+                  {formatVerbatimMoney(
+                    cartSummary.currency,
+                    cartSummary.discount
+                  )}
+                </span>
+              </div>
+            )}
+
+            {/* 4. Delivery Charge or delivery_message or Free delivery */}
+            <div className="flex items-center justify-between pt-2.5">
+              <span className="flex items-center space-x-1">
+                <Truck className="w-3.5 h-3.5 text-[#6B6058]" />
+                <span>Delivery charge</span>
+              </span>
+              <span
+                data-testid="cart-summary-delivery-charge"
+                className="font-mono font-bold text-[#1A2420]"
+              >
+                {deliveryDisplay.text}
+              </span>
+            </div>
+
+            {/* 5. Packaging Fee (one line per seller parcel when more than one; single line otherwise) */}
+            {packagingLines.length > 1 ? (
+              <div
+                data-testid="cart-summary-packaging-multi"
+                className="pt-2.5 space-y-1.5"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center space-x-1">
+                    <Package className="w-3.5 h-3.5 text-[#6B6058]" />
+                    <span>
+                      Packaging fee ({packagingLines.length} seller parcels)
+                    </span>
+                  </span>
+                  <span
+                    data-testid="cart-summary-packaging-total"
+                    className="font-mono font-bold text-[#1A2420]"
+                  >
+                    {formatVerbatimMoney(
+                      cartSummary.currency,
+                      cartSummary.packaging_fee_total
+                    )}
+                  </span>
+                </div>
+                <div className="pl-4 space-y-1 text-[11px]">
+                  {packagingLines.map((line, idx) => (
+                    <div
+                      key={line.vendor_id ?? idx}
+                      data-testid={`cart-summary-packaging-line-${
+                        line.vendor_id ?? idx
+                      }`}
+                      className="flex items-center justify-between"
+                    >
+                      <span>
+                        Packaging fee (Seller parcel #{idx + 1}
+                        {line.vendor_id ? ` • Vendor #${line.vendor_id}` : ''})
+                      </span>
+                      <span className="font-mono font-semibold text-[#1A2420]">
+                        {formatVerbatimMoney(line.currency, line.amount)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between pt-2.5">
+                <span className="flex items-center space-x-1">
+                  <Package className="w-3.5 h-3.5 text-[#6B6058]" />
+                  <span>Packaging fee</span>
+                </span>
+                <span
+                  data-testid="cart-summary-packaging-total"
+                  className="font-mono font-bold text-[#1A2420]"
+                >
+                  {formatVerbatimMoney(
+                    cartSummary.currency,
+                    cartSummary.packaging_fee_total
+                  )}
+                </span>
+              </div>
+            )}
+
+            {/* 6. Any fee tax line the server sends */}
+            {isNonZeroMoneyString(cartSummary.fee_tax_total) && (
+              <div className="flex items-center justify-between pt-2.5">
+                <span>Fee tax</span>
+                <span
+                  data-testid="cart-summary-fee-tax"
+                  className="font-mono font-bold text-[#1A2420]"
+                >
+                  {formatVerbatimMoney(
+                    cartSummary.currency,
+                    cartSummary.fee_tax_total
+                  )}
+                </span>
+              </div>
+            )}
           </div>
-        )}
 
-        {/* Estimated Tax */}
-        <div className="flex items-center justify-between pt-2.5">
-          <span>Estimated Tax (GST 5%)</span>
-          <span className="font-bold text-[#FA661C]">
-            + {formatINR(calculations.taxAmount)}
-          </span>
-        </div>
+          {/* 7. Total */}
+          <div className="pt-3 border-t-2 border-[#FA661C]/20 flex items-center justify-between">
+            <div>
+              <span className="font-['Outfit'] font-black text-sm text-[#FA661C] block">
+                Total
+              </span>
+            </div>
 
-      </div>
-
-      {/* TOTAL AMOUNT PAYABLE */}
-      <div className={`pt-3 border-t-2 border-[#FA661C]/20 flex items-center justify-between transition-colors duration-300 ${
-        highlightPulse ? 'bg-[#FFF8F2] p-2 rounded-xl border-[#FF811A]' : ''
-      }`}>
-        <div>
-          <span className="font-['Outfit'] font-black text-sm text-[#FA661C] block">
-            {isCheckoutPage ? 'Amount Payable' : 'Estimated Total'}
-          </span>
-          <span className="text-[10px] text-[#6B6058]">Calculated at checkout</span>
-        </div>
-
-        <div className="text-right font-['Outfit'] font-black text-xl text-[#FA661C]">
-          {formatINR(calculations.amountPayable)}
-        </div>
-      </div>
+            <div
+              data-testid="cart-summary-total"
+              className="text-right font-['Outfit'] font-mono font-black text-xl text-[#FA661C]"
+            >
+              {formatVerbatimMoney(cartSummary.currency, cartSummary.total)}
+            </div>
+          </div>
+        </>
+      ) : null}
 
       {/* Primary CTA (if in Cart view) */}
       {!isCheckoutPage && (
@@ -110,7 +250,11 @@ export default function OrderSummarySidebar({ onProceedToCheckout, isCheckoutPag
               : 'bg-[#FA661C] hover:bg-[#E0530B] active:bg-[#0A2A1F] disabled:opacity-50 disabled:cursor-not-allowed text-[#FFFFFF] btn-interactive cursor-pointer shadow-md hover:shadow-lg'
           }`}
         >
-          <span>{hasOwnProductsInCart ? 'Remove Own Products to Checkout' : 'Proceed to Checkout'}</span>
+          <span>
+            {hasOwnProductsInCart
+              ? 'Remove Own Products to Checkout'
+              : 'Proceed to Checkout'}
+          </span>
           <ArrowRight className="w-4 h-4 text-[#FF811A] icon-interactive" />
         </button>
       )}
@@ -126,8 +270,6 @@ export default function OrderSummarySidebar({ onProceedToCheckout, isCheckoutPag
           <span>7-Day Easy Returns</span>
         </div>
       </div>
-
     </div>
   );
 }
-

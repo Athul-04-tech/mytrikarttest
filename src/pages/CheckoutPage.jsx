@@ -1,30 +1,33 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { 
-  ArrowLeft, 
-  Lock, 
-  Loader2,
-  AlertCircle
-} from 'lucide-react';
+import { ArrowLeft, Lock, Loader2, AlertCircle } from 'lucide-react';
 import { useCart } from '../context/CartWishlistContext';
-import ShippingAddressSection, { DEFAULT_FALLBACK_ADDRESS } from '../components/checkout/ShippingAddressSection';
+import ShippingAddressSection, {
+  DEFAULT_FALLBACK_ADDRESS,
+} from '../components/checkout/ShippingAddressSection';
 import PaymentMethodSection from '../components/checkout/PaymentMethodSection';
 import OrderSummarySidebar from '../components/cart/OrderSummarySidebar';
 import OrderSuccessConfirmation from '../components/checkout/OrderSuccessConfirmation';
 import CouponApplyBox from '../components/cart/CouponApplyBox';
+import { formatVerbatimMoney } from '../utils/orderPricingUtils';
 
 export default function CheckoutPage() {
   const {
     cart,
-    calculations,
+    cartSummary,
+    cartSummaryLoading,
+    cartSummaryError,
+    setSelectedAddressId,
     placeOrder,
-    lastPlacedOrder
+    lastPlacedOrder,
   } = useCart();
 
   const navigate = useNavigate();
 
   const isGuest = false;
-  const [selectedAddress, setSelectedAddress] = useState(DEFAULT_FALLBACK_ADDRESS);
+  const [selectedAddress, setSelectedAddress] = useState(
+    DEFAULT_FALLBACK_ADDRESS
+  );
   const [sameAsShipping, setSameAsShipping] = useState(true);
   const [paymentMethod, setPaymentMethod] = useState('upi');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -33,8 +36,19 @@ export default function CheckoutPage() {
 
   // SEO Standard
   useEffect(() => {
-    document.title = "Secure Checkout — MytriKart";
+    document.title = 'Secure Checkout — MytriKart';
   }, []);
+
+  const handleSelectAddress = (addr) => {
+    setSelectedAddress(addr);
+    if (
+      addr?.id &&
+      !String(addr.id).startsWith('default-') &&
+      !String(addr.id).startsWith('local-')
+    ) {
+      setSelectedAddressId(addr.id);
+    }
+  };
 
   const handlePlaceOrder = async () => {
     setIsProcessing(true);
@@ -42,12 +56,15 @@ export default function CheckoutPage() {
     try {
       const order = await placeOrder({
         shippingAddress: selectedAddress,
-        paymentMethod
+        paymentMethod,
       });
       setConfirmedOrder(order);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
-      const detailMsg = err?.data?.detail || err?.message || 'Checkout failed. Please verify your address and cart stock.';
+      const detailMsg =
+        err?.data?.detail ||
+        err?.message ||
+        'Checkout failed. Please verify your address and cart stock.';
       const code = err?.data?.code;
       setCheckoutError(code ? `${detailMsg} (${code})` : detailMsg);
     } finally {
@@ -55,17 +72,21 @@ export default function CheckoutPage() {
     }
   };
 
-  // If order was just completed, show Confirmation screen
+  // If order was just completed, show Confirmation screen with server order totals & charges
   if (confirmedOrder) {
     return (
       <div className="min-h-screen bg-[#FFFFFF] flex flex-col text-[#1A2420] font-sans selection:bg-[#FF811A]/30 selection:text-[#FA661C]">
         <header className="sticky top-0 z-40 bg-[#FFFFFF]/95 backdrop-blur-md border-b border-[#EAE3DC] shadow-xs px-4 sm:px-8 py-3.5">
           <div className="max-w-7xl mx-auto flex items-center justify-between">
-            <Link to="/" className="flex items-center space-x-2 btn-interactive" aria-label="MytriKart Homepage">
-              <img 
-                src="/mytrikart-logo.png" 
-                alt="MytriKart Logo" 
-                className="h-7 sm:h-8 w-auto object-contain" 
+            <Link
+              to="/"
+              className="flex items-center space-x-2 btn-interactive"
+              aria-label="MytriKart Homepage"
+            >
+              <img
+                src="/mytrikart-logo.png"
+                alt="MytriKart Logo"
+                className="h-7 sm:h-8 w-auto object-contain"
               />
               <span className="text-[#EAE3DC] hidden sm:inline">|</span>
               <span className="font-['Outfit'] font-black text-sm sm:text-base text-[#FA661C]">
@@ -75,7 +96,10 @@ export default function CheckoutPage() {
           </div>
         </header>
         <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-8 py-6">
-          <OrderSuccessConfirmation order={confirmedOrder} onBackToHome={() => navigate('/')} />
+          <OrderSuccessConfirmation
+            order={confirmedOrder}
+            onBackToHome={() => navigate('/')}
+          />
         </main>
       </div>
     );
@@ -83,7 +107,6 @@ export default function CheckoutPage() {
 
   return (
     <div className="min-h-screen bg-[#FFFFFF] flex flex-col text-[#1A2420] font-sans selection:bg-[#FF811A]/30 selection:text-[#FA661C]">
-      
       {/* 1. Header */}
       <header className="sticky top-0 z-40 bg-[#FFFFFF]/95 backdrop-blur-md border-b border-[#EAE3DC] shadow-xs px-4 sm:px-8 py-3.5">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -93,10 +116,10 @@ export default function CheckoutPage() {
               className="flex items-center btn-interactive shrink-0"
               aria-label="Return to Marketplace"
             >
-              <img 
-                src="/mytrikart-logo.png" 
-                alt="MytriKart Logo" 
-                className="h-7 sm:h-8 w-auto object-contain" 
+              <img
+                src="/mytrikart-logo.png"
+                alt="MytriKart Logo"
+                className="h-7 sm:h-8 w-auto object-contain"
               />
             </Link>
 
@@ -127,41 +150,38 @@ export default function CheckoutPage() {
 
       {/* 2. Main Checkout Body */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-8 py-6 sm:py-8">
-        
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
-          
           {/* LEFT COLUMN: One-Page Checkout Sections (8 Cols) */}
           <div className="lg:col-span-7 xl:col-span-8 space-y-6">
-            
-
-            {/* 2. Shipping Address & Same as Shipping Billing */}
+            {/* Shipping Address & Same as Shipping Billing */}
             <ShippingAddressSection
               selectedAddressId={selectedAddress?.id}
-              onSelectAddress={(addr) => setSelectedAddress(addr)}
+              onSelectAddress={handleSelectAddress}
               sameAsShipping={sameAsShipping}
               onToggleSameAsShipping={setSameAsShipping}
               isGuest={isGuest}
             />
 
-            {/* 3. Payment Method Selection */}
+            {/* Payment Method Selection */}
             <PaymentMethodSection
               selectedMethod={paymentMethod}
               onSelectMethod={(m) => setPaymentMethod(m)}
               selectedAddress={selectedAddress}
-              payableAmount={calculations.amountPayable}
             />
-
           </div>
 
           {/* RIGHT COLUMN: Sticky Order Summary & Primary Place Order CTA */}
           <div className="lg:col-span-5 xl:col-span-4 space-y-4">
-            
             <CouponApplyBox />
             <OrderSummarySidebar isCheckoutPage={true} />
 
             {/* Error Callout Banner if API fails */}
             {checkoutError && (
-              <div className="p-3 bg-[#FFF0F0] border border-[#D7263D]/40 rounded-2xl flex items-start space-x-2 text-xs text-[#D7263D] animate-reveal">
+              <div
+                role="alert"
+                data-testid="checkout-error-banner"
+                className="p-3 bg-[#FFF0F0] border border-[#D7263D]/40 rounded-2xl flex items-start space-x-2 text-xs text-[#D7263D] animate-reveal"
+              >
                 <AlertCircle className="w-4 h-4 text-[#D7263D] shrink-0 mt-0.5" />
                 <div>
                   <span className="font-bold block">Checkout Failed</span>
@@ -174,8 +194,15 @@ export default function CheckoutPage() {
             <div className="p-4 bg-white rounded-3xl border border-[#EAE3DC] space-y-3 text-center">
               <button
                 type="button"
+                data-testid="checkout-place-order-btn"
                 onClick={handlePlaceOrder}
-                disabled={isProcessing || cart.length === 0}
+                disabled={
+                  isProcessing ||
+                  cart.length === 0 ||
+                  cartSummaryLoading ||
+                  Boolean(cartSummaryError) ||
+                  !cartSummary
+                }
                 className="w-full py-3.5 px-5 bg-[#FA661C] hover:bg-[#E0530B] active:bg-[#0A2A1F] text-[#FFFFFF] rounded-2xl font-black text-sm btn-interactive flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl cursor-pointer disabled:opacity-50"
               >
                 {isProcessing ? (
@@ -186,22 +213,27 @@ export default function CheckoutPage() {
                 ) : (
                   <>
                     <Lock className="w-4 h-4 text-[#FF811A]" />
-                    <span>Place Order (₹{calculations.amountPayable.toLocaleString('en-IN', { minimumFractionDigits: 2 })})</span>
+                    <span>
+                      Place Order
+                      {cartSummary?.total
+                        ? ` (${formatVerbatimMoney(
+                            cartSummary.currency,
+                            cartSummary.total
+                          )})`
+                        : ''}
+                    </span>
                   </>
                 )}
               </button>
-              
+
               <p className="text-[10px] text-[#6B6058]">
-                By placing this order, you agree to MytriKart Terms of Sale and Fair Returns Policy.
+                By placing this order, you agree to MytriKart Terms of Sale and
+                Fair Returns Policy.
               </p>
             </div>
-
           </div>
-
         </div>
-
       </main>
     </div>
   );
 }
-

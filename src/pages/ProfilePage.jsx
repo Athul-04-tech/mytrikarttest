@@ -127,7 +127,6 @@ export default function ProfilePage({ onLogout }) {
           ? 'Payment Pending'
           : paymentStatus;
 
-        const amount = Number(order.grand_total || 0);
         const currency = order.currency || 'INR';
         let deliveredOn = null;
         if (order.delivered_at) {
@@ -155,15 +154,16 @@ export default function ProfilePage({ onLogout }) {
           deliveredOn,
           status,
           date: order.created_at ? new Date(order.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '',
-          total: new Intl.NumberFormat('en-IN', { style: 'currency', currency }).format(amount),
+          total: `${currency} ${order.grand_total ?? '0.00'}`,
           canCancel,
           canReturn: vendorStatus === 'delivered',
           items: (order.items || []).map((item) => ({
             id: item.id,
             name: item.product_name_snapshot || 'Marketplace Item',
             qty: item.quantity,
-            price: new Intl.NumberFormat('en-IN', { style: 'currency', currency }).format(Number(item.line_total || item.unit_price || 0)),
-            rawPrice: Number(item.line_total || item.unit_price || 0),
+            price: `${currency} ${item.line_total ?? item.unit_price ?? '0.00'}`,
+            lineTotal: item.line_total ?? item.unit_price ?? '0.00',
+            unitPrice: item.unit_price ?? '0.00',
             seller: 'Verified Seller',
             image: '/products/spatial_headphones_1786529304124.png',
             productId: item.product_id || null,
